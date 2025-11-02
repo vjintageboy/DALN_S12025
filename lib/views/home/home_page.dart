@@ -131,7 +131,6 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   final FirestoreService _firestoreService = FirestoreService();
-  List<Meditation> _meditations = [];
   Streak? _streak;
   bool _isLoading = true;
   String? _errorMessage;
@@ -156,7 +155,7 @@ class _HomeTabState extends State<HomeTab> {
   void initState() {
     super.initState();
     _migrateUser(); // Migrate existing users
-    _loadData();
+    _loadNonStreamData(); // ⭐ UPDATED - Only load non-stream data
     _checkAdminStatus(); // ⭐ NEW
   }
 
@@ -178,7 +177,8 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
-  Future<void> _loadData() async {
+  // ⭐ UPDATED - Load only streak and total users (meditations use stream now)
+  Future<void> _loadNonStreamData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -191,17 +191,15 @@ class _HomeTabState extends State<HomeTab> {
       // Recalculate streak to ensure it's up-to-date
       await _firestoreService.recalculateStreak(user.uid);
       
-      // Load meditations, streak, and total users in parallel
+      // Load streak and total users in parallel
       final results = await Future.wait([
-        _firestoreService.getFeaturedMeditations(limit: 5), // ⭐ Increased to 5
         _firestoreService.getOrCreateStreak(user.uid),
-        _loadTotalUsers(), // ⭐ NEW - Load total users count
+        _loadTotalUsers(),
       ]);
 
       setState(() {
-        _meditations = results[0] as List<Meditation>;
-        _streak = results[1] as Streak;
-        _totalUsers = results[2] as int;
+        _streak = results[0] as Streak;
+        _totalUsers = results[1] as int;
         _isLoading = false;
       });
     } catch (e) {
@@ -274,7 +272,7 @@ class _HomeTabState extends State<HomeTab> {
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: _loadData,
+                onPressed: _loadNonStreamData,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Thử lại'),
                 style: ElevatedButton.styleFrom(
@@ -297,7 +295,7 @@ class _HomeTabState extends State<HomeTab> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        await _loadData();
+        await _loadNonStreamData();
         await _checkAdminStatus(); // ⭐ Refresh admin status too
       },
       color: const Color(0xFF4CAF50),
@@ -330,9 +328,15 @@ class _HomeTabState extends State<HomeTab> {
 
               // ⭐ Admin Dashboard (if admin)
               if (_isAdmin)
-                AdminDashboardWidget(
-                  meditations: _meditations,
-                  totalUsers: _totalUsers,
+                StreamBuilder<List<Meditation>>(
+                  stream: _firestoreService.streamMeditations(),
+                  builder: (context, snapshot) {
+                    final meditations = snapshot.data ?? [];
+                    return AdminDashboardWidget(
+                      meditations: meditations,
+                      totalUsers: _totalUsers,
+                    );
+                  },
                 ),
               
               // Today's Mood and Streak with padding
@@ -401,8 +405,32 @@ class _HomeTabState extends State<HomeTab> {
               // Meditation list - full width scroll with left padding only
               SizedBox(
                 height: 240,
-                child: _meditations.isEmpty
-                    ? Center(
+                child: StreamBuilder<List<Meditation>>(
+                  stream: _firestoreService.streamMeditations(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Error loading meditations',
+                          style: TextStyle(color: Colors.red.shade600),
+                        ),
+                      );
+                    }
+
+                    if (!snapshot.hasData) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF4CAF50),
+                        ),
+                      );
+                    }
+
+                    final allMeditations = snapshot.data!;
+                    // Take only first 5 for featured display
+                    final featuredMeditations = allMeditations.take(5).toList();
+
+                    if (featuredMeditations.isEmpty) {
+                      return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -421,24 +449,28 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                           ],
                         ),
-                      )
-                    : ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.only(left: 20, right: 20),
-                        itemCount: _meditations.length,
-                        itemBuilder: (context, index) {
-                          final meditation = _meditations[index];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right: index < _meditations.length - 1 ? 16 : 0,
-                            ),
-                            child: _buildMeditationCard(
-                              meditation,
-                              _getMeditationColor(index),
-                            ),
-                          );
-                        },
-                      ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(left: 20, right: 20),
+                      itemCount: featuredMeditations.length,
+                      itemBuilder: (context, index) {
+                        final meditation = featuredMeditations[index];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            right: index < featuredMeditations.length - 1 ? 16 : 0,
+                          ),
+                          child: _buildMeditationCard(
+                            meditation,
+                            _getMeditationColor(index),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 32),
               
@@ -488,7 +520,7 @@ class _HomeTabState extends State<HomeTab> {
         
         // Reload data if mood was logged
         if (result == true && mounted) {
-          _loadData();
+          _loadNonStreamData();
         }
       },
       child: Container(

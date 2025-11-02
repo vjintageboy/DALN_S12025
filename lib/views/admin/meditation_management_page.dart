@@ -369,6 +369,8 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
               
               // Action Buttons
               Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.edit, size: 20),
@@ -400,26 +402,46 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
   }
 
   Widget _buildInfoChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Colors.grey.shade700),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade700,
-            ),
+    // Định nghĩa màu cho icon và text (không có background)
+    Color iconColor;
+    Color textColor;
+    
+    if (icon == Icons.schedule) {
+      // Duration - Blue
+      iconColor = const Color(0xFF1976D2);
+      textColor = const Color(0xFF1976D2);
+    } else if (icon == Icons.category_outlined) {
+      // Category - Purple
+      iconColor = const Color(0xFF8E24AA);
+      textColor = const Color(0xFF8E24AA);
+    } else if (icon == Icons.bar_chart) {
+      // Level - Orange
+      iconColor = const Color(0xFFF57C00);
+      textColor = const Color(0xFFF57C00);
+    } else if (icon == Icons.star) {
+      // Rating - Amber
+      iconColor = const Color(0xFFFFA000);
+      textColor = const Color(0xFFFFA000);
+    } else {
+      // Default - Grey
+      iconColor = Colors.grey.shade700;
+      textColor = Colors.grey.shade700;
+    }
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: iconColor),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: textColor,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
