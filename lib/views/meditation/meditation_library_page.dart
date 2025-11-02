@@ -160,24 +160,27 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                 const SizedBox(height: 12),
 
                 // Sort Options
-                Row(
-                  children: [
-                    const Icon(Icons.sort, size: 20, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Sort by:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.sort, size: 20, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Sort by:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    _buildSortChip('⭐ Rating', 'rating'),
-                    const SizedBox(width: 8),
-                    _buildSortChip('⏱️ Duration', 'duration'),
-                    const SizedBox(width: 8),
-                    _buildSortChip('🔤 Name', 'title'),
-                  ],
+                      const SizedBox(width: 12),
+                      _buildSortChip('⭐ Rating', 'rating'),
+                      const SizedBox(width: 8),
+                      _buildSortChip('⏱️ Duration', 'duration'),
+                      const SizedBox(width: 8),
+                      _buildSortChip('🔤 Name', 'title'),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -293,14 +296,6 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color,
-              color.withOpacity(0.7),
-            ],
-          ),
           boxShadow: [
             BoxShadow(
               color: color.withOpacity(0.3),
@@ -309,12 +304,80 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
             ),
           ],
         ),
-        child: Stack(
-          children: [
-            // Background pattern
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              // Background: Thumbnail or Gradient
+              Positioned.fill(
+                child: meditation.thumbnailUrl != null && meditation.thumbnailUrl!.isNotEmpty
+                    ? Image.network(
+                        meditation.thumbnailUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Fallback to gradient if image fails
+                          return Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  color,
+                                  color.withOpacity(0.7),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          // Show gradient while loading
+                          return Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  color,
+                                  color.withOpacity(0.7),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              color,
+                              color.withOpacity(0.7),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+              
+              // Overlay gradient for text readability
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.6),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Subtle pattern overlay
+              Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -328,73 +391,75 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                   ),
                 ),
               ),
-            ),
-            // Rating badge
-            if (meditation.rating > 0)
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1,
+              
+              // Rating badge
+              if (meditation.rating > 0)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.star,
-                        color: Colors.white,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        meditation.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.star,
                           color: Colors.white,
+                          size: 14,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          meditation.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    meditation.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+              
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      meditation.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${meditation.duration} min • ${_getLevelLabel(meditation.level)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white.withOpacity(0.9),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${meditation.duration} min • ${_getLevelLabel(meditation.level)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
