@@ -695,25 +695,40 @@ class _LineChartPainter extends CustomPainter {
     final points = <Offset>[];
 
     for (int i = 0; i < entries.length; i++) {
-      final x = (i / (entries.length - 1)) * size.width;
-      final y = size.height - ((entries[i].moodLevel - 1) / 4) * size.height;
+      // Validate mood level (must be 1-5)
+      final moodLevel = entries[i].moodLevel.clamp(1, 5);
       
-      points.add(Offset(x, y));
+      // Handle single entry case to avoid division by zero
+      final x = entries.length > 1
+          ? (i / (entries.length - 1)) * size.width
+          : size.width / 2; // Center the single point
       
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
+      // Calculate y position (moodLevel 1-5 mapped to height)
+      final normalizedMood = (moodLevel - 1) / 4; // 0.0 to 1.0
+      final y = size.height - (normalizedMood * size.height);
+      
+      // Validate coordinates before adding
+      if (!x.isNaN && !y.isNaN && x.isFinite && y.isFinite) {
+        points.add(Offset(x, y));
+        
+        if (i == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
       }
     }
 
-    // Draw line
-    canvas.drawPath(path, paint);
+    // Only draw if we have valid points
+    if (points.isNotEmpty) {
+      // Draw line
+      canvas.drawPath(path, paint);
 
-    // Draw points
-    for (final point in points) {
-      canvas.drawCircle(point, 5, pointPaint);
-      canvas.drawCircle(point, 7, paint);
+      // Draw points
+      for (final point in points) {
+        canvas.drawCircle(point, 5, pointPaint);
+        canvas.drawCircle(point, 7, paint);
+      }
     }
   }
 
