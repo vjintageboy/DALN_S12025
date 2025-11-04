@@ -67,14 +67,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _changeUserRole(AppUser user) async {
-    final newRole = user.role == UserRole.admin ? 'user' : 'admin';
+    final newRole = user.role == UserRole.admin ? UserRole.user : UserRole.admin;
     
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Change User Role'),
         content: Text(
-          'Change ${user.email} role from "${user.role.value}" to "$newRole"?',
+          'Change ${user.email} role from "${user.role.value.toUpperCase()}" to "${newRole.value.toUpperCase()}"?',
         ),
         actions: [
           TextButton(
@@ -96,13 +96,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.id)
-          .update({'role': newRole});
+          .update({'role': newRole.value});
 
       _loadUsers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('User role changed to $newRole'),
+            content: Text('User role changed to ${newRole.value.toUpperCase()}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -317,7 +317,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Widget _buildUserCard(AppUser user) {
-    final isAdmin = user.role == 'admin';
+    final isAdmin = user.role == UserRole.admin;
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
