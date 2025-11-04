@@ -449,17 +449,70 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   ),
                 ),
                 Expanded(
-                  child: _buildStatItem(
-                    Icons.verified_user,
-                    'Status',
-                    'Active',
-                  ),
+                  child: _buildStatusBadge(user),
                 ),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatusBadge(AppUser user) {
+    final now = DateTime.now();
+    final daysSinceLogin = user.lastLoginAt != null 
+        ? now.difference(user.lastLoginAt!).inDays 
+        : now.difference(user.createdAt).inDays;
+    
+    // Active: login trong 7 ngày
+    // Warning: login 7-30 ngày trước
+    // Inactive: không login > 30 ngày
+    
+    String status;
+    Color color;
+    IconData icon;
+    
+    if (daysSinceLogin <= 7) {
+      status = 'Active';
+      color = Colors.green;
+      icon = Icons.verified_user;
+    } else if (daysSinceLogin <= 30) {
+      status = 'Warning';
+      color = Colors.orange;
+      icon = Icons.warning_amber_rounded;
+    } else {
+      status = 'Inactive';
+      color = Colors.red;
+      icon = Icons.remove_circle_outline;
+    }
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Status',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey,
+              ),
+            ),
+            Text(
+              status,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -530,20 +583,17 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Today';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inDays < 30) {
-      return '${(difference.inDays / 7).floor()}w ago';
-    } else if (difference.inDays < 365) {
-      return '${(difference.inDays / 30).floor()}mo ago';
-    } else {
-      return '${(difference.inDays / 365).floor()}y ago';
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    final month = months[date.month - 1];
+    final day = date.day;
+    
+    // Add year if different from current year
+    if (date.year != now.year) {
+      return '$month $day, ${date.year}';
     }
+    
+    return '$month $day';
   }
 }
