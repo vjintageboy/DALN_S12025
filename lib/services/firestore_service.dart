@@ -619,4 +619,42 @@ class FirestoreService {
       return [];
     }
   }
+
+  /// Check if user is banned
+  Future<bool> isUserBanned(String uid) async {
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (!doc.exists) return false;
+      
+      final data = doc.data();
+      return data?['isBanned'] ?? false;
+    } catch (e) {
+      print('❌ Error checking ban status: $e');
+      return false;
+    }
+  }
+
+  /// Get ban information for a user
+  Future<Map<String, dynamic>?> getUserBanInfo(String uid) async {
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (!doc.exists) return null;
+      
+      final data = doc.data();
+      final isBanned = data?['isBanned'] ?? false;
+      
+      if (!isBanned) return null;
+      
+      return {
+        'isBanned': true,
+        'banReason': data?['banReason'],
+        'bannedAt': data?['bannedAt'] != null 
+            ? (data!['bannedAt'] as Timestamp).toDate() 
+            : null,
+      };
+    } catch (e) {
+      print('❌ Error getting ban info: $e');
+      return null;
+    }
+  }
 }

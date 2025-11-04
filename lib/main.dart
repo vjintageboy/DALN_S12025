@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'views/auth/welcome_page.dart';
@@ -76,15 +77,86 @@ class AuthWrapper extends StatelessWidget {
           );
         }
         
-        // If user is logged in, go directly to HomePage
+        // If user is logged in, check ban status before showing HomePage
         if (snapshot.hasData) {
-          return const HomePage();
+          return FutureBuilder<bool>(
+            future: _checkBanStatus(snapshot.data!.uid),
+            builder: (context, banSnapshot) {
+              // Loading ban check
+              if (banSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  backgroundColor: Color(0xFFFFF5F6),
+                  body: Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF7B2BB0),
+                    ),
+                  ),
+                );
+              }
+
+              // User is banned - force logout
+              if (banSnapshot.data == true) {
+                _handleBannedUser(context, snapshot.data!.uid);
+                return const WelcomePage();
+              }
+
+              // User is not banned - show home page
+              return const HomePage();
+            },
+          );
         }
         
-        // Otherwise, show onboarding
-        return const OnboardingPage();
+        // User is not logged in, show welcome page
+        return const WelcomePage();
       },
     );
+  }
+
+  Future<bool> _checkBanStatus(String uid) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final doc = await firestore.collection('users').doc(uid).get();
+      
+      if (!doc.exists) return false;
+      
+      final data = doc.data();
+      return data?['isBanned'] ?? false;
+    } catch (e) {
+      print('Error checking ban status: $e');
+      return false;
+    }
+  }
+
+  void _handleBannedUser(BuildContext context, String uid) async {
+    try {
+      // Get ban info
+      final firestore = FirebaseFirestore.instance;
+      final doc = await firestore.collection('users').doc(uid).get();
+      final data = doc.data();
+      final banReason = data?['banReason'];
+
+      // Sign out
+      await FirebaseAuth.instance.signOut();
+
+      // Show message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              banReason != null 
+                  ? 'Your account has been banned.\nReason: $banReason'
+                  : 'Your account has been banned. Please contact support.',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error handling banned user: $e');
+      await FirebaseAuth.instance.signOut();
+    }
   }
 }
 

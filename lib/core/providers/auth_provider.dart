@@ -99,10 +99,31 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      await _auth.signInWithEmailAndPassword(
+      final userCredential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
+
+      // ⭐ CHECK IF USER IS BANNED
+      final isBanned = await _firestoreService.isUserBanned(userCredential.user!.uid);
+      
+      if (isBanned) {
+        // Get ban info for detailed message
+        final banInfo = await _firestoreService.getUserBanInfo(userCredential.user!.uid);
+        
+        // Sign out immediately
+        await _auth.signOut();
+        
+        _status = AuthStatus.error;
+        _errorMessage = banInfo?['banReason'] != null 
+            ? 'Your account has been banned.\nReason: ${banInfo!['banReason']}'
+            : 'Your account has been banned. Please contact support.';
+        notifyListeners();
+        return false;
+      }
+
+      // Update last login
+      await _firestoreService.updateLastLogin(userCredential.user!.uid);
 
       _status = AuthStatus.authenticated;
       notifyListeners();
