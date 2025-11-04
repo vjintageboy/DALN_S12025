@@ -2,6 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/app_user.dart';
 
+// User stats model
+class UserStats {
+  final int moodEntries;
+  final int currentStreak;
+  final int meditationsDone;
+  final DateTime? lastLogin;
+
+  UserStats({
+    required this.moodEntries,
+    required this.currentStreak,
+    required this.meditationsDone,
+    this.lastLogin,
+  });
+}
+
 /// User Management Page - Admin page to manage all users
 class UserManagementPage extends StatefulWidget {
   const UserManagementPage({super.key});
@@ -13,6 +28,7 @@ class UserManagementPage extends StatefulWidget {
 class _UserManagementPageState extends State<UserManagementPage> {
   List<AppUser> _users = [];
   List<AppUser> _filteredUsers = [];
+  Map<String, UserStats> _userStats = {}; // Cache user stats
   bool _isLoading = true;
   String _searchQuery = '';
   String? _selectedRole; // null = all, 'admin', 'user'
@@ -36,6 +52,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
         return AppUser.fromFirestore(doc.data(), doc.id);
       }).toList();
 
+      // Load stats for all users
+      await _loadUserStats(users);
+
       setState(() {
         _users = users;
         _filteredUsers = users;
@@ -49,6 +68,74 @@ class _UserManagementPageState extends State<UserManagementPage> {
         );
       }
     }
+  }
+
+  Future<void> _loadUserStats(List<AppUser> users) async {
+    final Map<String, UserStats> stats = {};
+    
+    try {
+      // Batch query 1: Get ALL mood entries at once
+      final allMoodEntries = await FirebaseFirestore.instance
+          .collection('moodEntries')
+          .get();
+      
+      // Group mood entries by userId
+      final moodCountByUser = <String, int>{};
+      for (var doc in allMoodEntries.docs) {
+        final data = doc.data();
+        final userId = data['userId'] as String?;
+        
+        if (userId != null && userId.isNotEmpty) {
+          moodCountByUser[userId] = (moodCountByUser[userId] ?? 0) + 1;
+        }
+      }
+      
+      // Batch query 2: Get ALL streaks at once
+      final allStreaks = await FirebaseFirestore.instance
+          .collection('streaks')
+          .get();
+      
+      final streakByUser = <String, int>{};
+      for (var doc in allStreaks.docs) {
+        final data = doc.data();
+        streakByUser[doc.id] = (data['currentStreak'] ?? 0) as int;
+      }
+      
+      // Batch query 3: Get ALL profiles at once
+      final allProfiles = await FirebaseFirestore.instance
+          .collection('profiles')
+          .get();
+      
+      final meditationsByUser = <String, int>{};
+      for (var doc in allProfiles.docs) {
+        final data = doc.data();
+        meditationsByUser[doc.id] = (data['totalMeditationsCompleted'] ?? 0) as int;
+      }
+      
+      // Build stats for each user from cached data
+      for (var user in users) {
+        stats[user.id] = UserStats(
+          moodEntries: moodCountByUser[user.id] ?? 0,
+          currentStreak: streakByUser[user.id] ?? 0,
+          meditationsDone: meditationsByUser[user.id] ?? 0,
+          lastLogin: user.lastLoginAt,
+        );
+      }
+    } catch (e) {
+      // If error, use default stats for all users
+      for (var user in users) {
+        stats[user.id] = UserStats(
+          moodEntries: 0,
+          currentStreak: 0,
+          meditationsDone: 0,
+          lastLogin: user.lastLoginAt,
+        );
+      }
+    }
+    
+    setState(() {
+      _userStats = stats;
+    });
   }
 
   void _filterUsers() {
@@ -438,7 +525,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
             const Divider(height: 1),
             const SizedBox(height: 12),
             
-            // User Stats
+            // User Stats Row 1
             Row(
               children: [
                 Expanded(
@@ -453,9 +540,74 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 ),
               ],
             ),
+            
+            const SizedBox(height: 8),
+            
+            // User Stats Row 2 - Activity Stats
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatItem(
+                    Icons.mood,
+                    'Moods',
+                    '${_userStats[user.id]?.moodEntries ?? 0}',
+                    color: Colors.purple,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStatItem(
+                    Icons.local_fire_department,
+                    'Streak',
+                    '${_userStats[user.id]?.currentStreak ?? 0}d',
+                    color: Colors.orange,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStatItem(
+                    Icons.spa,
+                    'Sessions',
+                    '${_userStats[user.id]?.meditationsDone ?? 0}',
+                    color: Colors.green,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, String label, String value, {Color? color}) {
+    final iconColor = color ?? Colors.grey.shade600;
+    final textColor = color ?? Colors.black87;
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: iconColor),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.grey,
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -508,35 +660,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: color,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatItem(IconData icon, String label, String value) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: Colors.grey.shade600),
-        const SizedBox(width: 6),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
               ),
             ),
           ],

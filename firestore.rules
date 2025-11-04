@@ -50,6 +50,11 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isOwner(userId);
       allow update, delete: if isOwner(userId);
+      
+      // Admin can read all profiles
+      allow read: if isAdmin();
+      // Admin can delete profiles
+      allow delete: if isAdmin();
     }
     
     // ============================================
@@ -59,6 +64,11 @@ service cloud.firestore {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Admin can read all mood entries (for analytics)
+      allow read: if isAdmin();
+      // Admin can delete mood entries
+      allow delete: if isAdmin();
     }
     
     // ============================================
@@ -76,6 +86,11 @@ service cloud.firestore {
       allow read: if isOwner(streakId);
       allow create, update: if isOwner(streakId);
       allow delete: if isOwner(streakId);
+      
+      // Admin can read all streaks
+      allow read: if isAdmin();
+      // Admin can delete streaks
+      allow delete: if isAdmin();
     }
     
     // ============================================
