@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/meditation.dart';
+import 'user_management_page.dart';
 import 'meditation_management_page.dart';
 
 /// Admin Dashboard Widget - Hiển thị statistics và quick actions cho admin
@@ -181,11 +182,10 @@ class AdminDashboardWidget extends StatelessWidget {
                 ],
               ),
               onTap: () {
-                // TODO: Navigate to User Management Page
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('User Management - Coming Soon'),
-                    backgroundColor: Colors.blue,
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const UserManagementPage(),
                   ),
                 );
               },
