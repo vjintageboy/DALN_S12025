@@ -1,36 +1,148 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import '../core/config/gemini_config.dart';
 
 /// AI Chatbot Service - Xử lý logic chatbot và AI responses
 class AIChatbotService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  
+  // Gemini AI Model
+  GenerativeModel? _model;
+  ChatSession? _chatSession;
+  
+  // Initialize Gemini model
+  void _initializeGemini() {
+    if (!GeminiConfig.isConfigured) return;
+    
+    _model = GenerativeModel(
+      model: GeminiConfig.modelName,
+      apiKey: GeminiConfig.apiKey,
+      generationConfig: GenerationConfig(
+        temperature: GeminiConfig.temperature,
+        maxOutputTokens: GeminiConfig.maxOutputTokens,
+      ),
+      systemInstruction: Content.text(GeminiConfig.systemPrompt),
+    );
+    
+    // Create chat session for context
+    _chatSession = _model?.startChat();
+  }
 
   /// Get AI response based on user message
   Future<ChatMessage> getAIResponse(String userMessage) async {
     try {
-      // Simulate AI processing delay
-      await Future.delayed(const Duration(milliseconds: 800));
-
-      // Get current user info for personalized responses
+      // Initialize Gemini if not already done
+      if (_model == null && GeminiConfig.isConfigured) {
+        _initializeGemini();
+      }
+      
+      // Get user context for personalization
       final user = _auth.currentUser;
       final isAdmin = await _checkIfAdmin(user?.uid);
-
-      // Generate response based on message content
+      final userName = user?.displayName ?? 'bạn';
+      
+      // Build context message
+      final contextMessage = _buildContextMessage(userMessage, userName, isAdmin);
+      
+      // Try Gemini AI first
+      if (_chatSession != null) {
+        try {
+          final response = await _chatSession!.sendMessage(
+            Content.text(contextMessage),
+          );
+          
+          final aiText = response.text?.trim();
+          if (aiText != null && aiText.isNotEmpty) {
+            return ChatMessage(
+              message: aiText,
+              isUser: false,
+              timestamp: DateTime.now(),
+            );
+          }
+        } catch (geminiError) {
+          print('Gemini API error: $geminiError');
+          // Fall back to rule-based response
+        }
+      }
+      
+      // Fallback: Rule-based response
       final response = _generateResponse(userMessage, isAdmin);
-
       return ChatMessage(
         message: response,
         isUser: false,
         timestamp: DateTime.now(),
       );
+      
     } catch (e) {
+      print('Error getting AI response: $e');
       return ChatMessage(
-        message: 'Xin lỗi, tôi gặp sự cố. Vui lòng thử lại sau.',
+        message: 'Xin lỗi, tôi gặp sự cố. Vui lòng thử lại sau. 🙏',
         isUser: false,
         timestamp: DateTime.now(),
       );
     }
+  }
+  
+  /// Get AI response with streaming (real-time typing effect)
+  Stream<String> getAIResponseStream(String userMessage) async* {
+    try {
+      // Initialize Gemini if not already done
+      if (_model == null && GeminiConfig.isConfigured) {
+        _initializeGemini();
+      }
+      
+      // Get user context
+      final user = _auth.currentUser;
+      final isAdmin = await _checkIfAdmin(user?.uid);
+      final userName = user?.displayName ?? 'bạn';
+      final contextMessage = _buildContextMessage(userMessage, userName, isAdmin);
+      
+      // Try Gemini streaming
+      if (_chatSession != null) {
+        try {
+          final responseStream = _chatSession!.sendMessageStream(
+            Content.text(contextMessage),
+          );
+          
+          await for (final chunk in responseStream) {
+            final text = chunk.text;
+            if (text != null) {
+              yield text;
+            }
+          }
+          return;
+        } catch (geminiError) {
+          print('Gemini streaming error: $geminiError');
+          // Fall back to rule-based
+        }
+      }
+      
+      // Fallback: Rule-based with simulated streaming
+      final response = _generateResponse(userMessage, isAdmin);
+      yield response;
+      
+    } catch (e) {
+      print('Error in streaming response: $e');
+      yield 'Xin lỗi, tôi gặp sự cố. Vui lòng thử lại sau. 🙏';
+    }
+  }
+  
+  /// Reset chat session (clear context)
+  void resetChatSession() {
+    if (_model != null) {
+      _chatSession = _model!.startChat();
+    }
+  }
+  
+  /// Build context message with user info
+  String _buildContextMessage(String userMessage, String userName, bool isAdmin) {
+    final role = isAdmin ? 'Admin' : 'Người dùng';
+    return '''
+[User: $userName | Role: $role]
+$userMessage
+''';
   }
 
   /// Check if user is admin

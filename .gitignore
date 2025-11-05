@@ -49,3 +49,11 @@ app.*.map.json
 **/GoogleService-Info.plist
 lib/firebase_options.dart
 firebase_app_id_file.json
+
+# API Keys & Secrets (IMPORTANT: Never commit these!)
+lib/core/config/gemini_config.local.dart
+lib/core/config/*_secrets.dart
+.env
+.env.local
+*.env.local
+

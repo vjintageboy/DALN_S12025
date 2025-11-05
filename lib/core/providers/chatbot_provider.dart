@@ -61,7 +61,7 @@ class ChatbotProvider extends ChangeNotifier {
     _messages.insert(0, welcomeMessage);
   }
 
-  /// Send message
+  /// Send message with streaming support
   Future<void> sendMessage(String? message) async {
     final text = message ?? _messageController.text.trim();
     if (text.isEmpty) return;
@@ -83,12 +83,44 @@ class ChatbotProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Get AI response
-      final aiResponse = await _chatbotService.getAIResponse(text);
-      _messages.insert(0, aiResponse);
+      // Create placeholder for AI response
+      final aiMessageIndex = 0;
+      final aiMessage = ChatMessage(
+        message: '',
+        isUser: false,
+        timestamp: DateTime.now(),
+      );
+      _messages.insert(0, aiMessage);
+      
+      // Stream AI response (real-time typing effect)
+      final responseStream = _chatbotService.getAIResponseStream(text);
+      String fullResponse = '';
+      
+      await for (final chunk in responseStream) {
+        fullResponse += chunk;
+        
+        // Update AI message with accumulated text
+        _messages[aiMessageIndex] = ChatMessage(
+          message: fullResponse,
+          isUser: false,
+          timestamp: aiMessage.timestamp,
+        );
+        notifyListeners();
+      }
+      
+      // If no response received, use fallback
+      if (fullResponse.isEmpty) {
+        _messages[aiMessageIndex] = ChatMessage(
+          message: 'Xin lỗi, tôi không thể trả lời lúc này. Vui lòng thử lại! 🙏',
+          isUser: false,
+          timestamp: DateTime.now(),
+        );
+      }
+      
     } catch (e) {
+      print('Error sending message: $e');
       final errorMessage = ChatMessage(
-        message: 'Đã có lỗi xảy ra. Vui lòng thử lại.',
+        message: 'Đã có lỗi xảy ra. Vui lòng thử lại. 😔',
         isUser: false,
         timestamp: DateTime.now(),
       );
@@ -108,6 +140,7 @@ class ChatbotProvider extends ChangeNotifier {
   /// Clear chat history
   void clearChat() {
     _messages.clear();
+    _chatbotService.resetChatSession(); // Reset Gemini context
     _addWelcomeMessage();
     notifyListeners();
   }
