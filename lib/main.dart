@@ -9,6 +9,7 @@ import 'views/auth/welcome_page.dart';
 import 'views/home/home_page.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/mood_provider.dart';
+import 'core/providers/chatbot_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => MoodProvider()),
+        ChangeNotifierProvider(create: (_) => ChatbotProvider()),
       ],
       child: const MyApp(),
     ),

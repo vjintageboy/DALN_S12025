@@ -10,6 +10,7 @@ import '../expert/expert_list_page.dart';
 import '../streak/streak_history_page.dart';
 import '../admin/admin_badge.dart';
 import '../admin/admin_dashboard_widget.dart';
+import '../chatbot/chatbot_page.dart';
 import '../../services/firestore_service.dart';
 import '../../models/meditation.dart';
 import '../../models/streak.dart';
@@ -40,6 +41,9 @@ class _HomePageState extends State<HomePage> {
         currentTab = const ExpertListPage();
         break;
       case 3:
+        currentTab = const ChatbotPage();
+        break;
+      case 4:
         currentTab = const ProfilePage();
         break;
       default:
@@ -61,14 +65,15 @@ class _HomePageState extends State<HomePage> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
                 _buildNavItem(1, Icons.mood_outlined, Icons.mood, 'Mood'),
-                _buildNavItem(2, Icons.spa_outlined, Icons.spa, 'Experts'),
-                _buildNavItem(3, Icons.person_outline, Icons.person, 'Profile'),
+                _buildNavItem(2, Icons.spa_outlined, Icons.spa, 'Expert'),
+                _buildNavItem(3, Icons.chat_bubble_outline, Icons.chat_bubble, 'AI Chat'),
+                _buildNavItem(4, Icons.person_outline, Icons.person, 'Profile'),
               ],
             ),
           ),
@@ -108,7 +113,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildOtherTab() {
-    if (_selectedIndex == 3) {
+    if (_selectedIndex == 4) {
       // Profile tab
       return const ProfilePage();
     }
