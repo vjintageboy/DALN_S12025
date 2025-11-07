@@ -30,7 +30,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mood => 'Mood';
 
   @override
-  String get experts => 'experts';
+  String get experts => 'Experts';
 
   @override
   String get profile => 'Profile';
@@ -621,7 +621,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get findAnExpert => 'Find an Expert';
 
   @override
-  String get expert => 'expert';
+  String get expert => 'Expert';
 
   @override
   String get available => 'available';

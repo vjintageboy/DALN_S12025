@@ -31,7 +31,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get mood => 'Tâm trạng';
 
   @override
-  String get experts => 'chuyên gia';
+  String get experts => 'Chuyên gia';
 
   @override
   String get profile => 'Hồ sơ';
@@ -625,7 +625,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get findAnExpert => 'Tìm chuyên gia';
 
   @override
-  String get expert => 'chuyên gia';
+  String get expert => 'Chuyên gia';
 
   @override
   String get available => 'có sẵn';

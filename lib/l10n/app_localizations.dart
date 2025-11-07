@@ -143,7 +143,7 @@ abstract class AppLocalizations {
   /// No description provided for @experts.
   ///
   /// In en, this message translates to:
-  /// **'experts'**
+  /// **'Experts'**
   String get experts;
 
   /// No description provided for @profile.
@@ -1301,7 +1301,7 @@ abstract class AppLocalizations {
   /// No description provided for @expert.
   ///
   /// In en, this message translates to:
-  /// **'expert'**
+  /// **'Expert'**
   String get expert;
 
   /// No description provided for @available.

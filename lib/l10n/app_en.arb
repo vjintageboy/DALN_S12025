@@ -285,8 +285,7 @@
   
   "findAnExpert": "Find an Expert",
   "myAppointments": "My Appointments",
-  "expert": "expert",
-  "experts": "experts",
+  "expert": "Expert",
   "available": "available",
   "noExpertsFound": "No experts found",
   "tryAnotherFilter": "Try selecting a different specialization",
