@@ -754,4 +754,20 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get instructions => 'Hướng dẫn';
+
+  @override
+  String get aiAssistant => 'Trợ lý AI';
+
+  @override
+  String get alwaysReadyToHelp => 'Luôn sẵn sàng hỗ trợ bạn';
+
+  @override
+  String get clearChatHistory => 'Xóa lịch sử chat?';
+
+  @override
+  String get clearChatConfirmation =>
+      'Bạn có chắc muốn xóa toàn bộ lịch sử trò chuyện không?';
+
+  @override
+  String get typeMessage => 'Nhập tin nhắn...';
 }

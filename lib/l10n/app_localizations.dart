@@ -1555,6 +1555,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Instructions'**
   String get instructions;
+
+  /// No description provided for @aiAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Assistant'**
+  String get aiAssistant;
+
+  /// No description provided for @alwaysReadyToHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Always ready to help you'**
+  String get alwaysReadyToHelp;
+
+  /// No description provided for @clearChatHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear chat history?'**
+  String get clearChatHistory;
+
+  /// No description provided for @clearChatConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to clear all chat history?'**
+  String get clearChatConfirmation;
+
+  /// No description provided for @typeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a message...'**
+  String get typeMessage;
 }
 
 class _AppLocalizationsDelegate

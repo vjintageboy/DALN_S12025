@@ -357,5 +357,12 @@
   "description": "Description",
   "benefits": "Benefits",
   "instructions": "Instructions",
-  "level": "Level"
+  "level": "Level",
+  "aiAssistant": "AI Assistant",
+  "alwaysReadyToHelp": "Always ready to help you",
+  "clearChatHistory": "Clear chat history?",
+  "clearChatConfirmation": "Are you sure you want to clear all chat history?",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "typeMessage": "Type a message..."
 }

@@ -357,5 +357,12 @@
   "description": "Mô tả",
   "benefits": "Lợi ích",
   "instructions": "Hướng dẫn",
-  "level": "Cấp độ"
+  "level": "Cấp độ",
+  "aiAssistant": "Trợ lý AI",
+  "alwaysReadyToHelp": "Luôn sẵn sàng hỗ trợ bạn",
+  "clearChatHistory": "Xóa lịch sử chat?",
+  "clearChatConfirmation": "Bạn có chắc muốn xóa toàn bộ lịch sử trò chuyện không?",
+  "cancel": "Hủy",
+  "delete": "Xóa",
+  "typeMessage": "Nhập tin nhắn..."
 }

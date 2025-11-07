@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/chatbot_provider.dart';
+import '../../core/services/localization_service.dart';
 import '../../services/ai_chatbot_service.dart';
 
 /// Chatbot Page - Full screen AI chat interface
@@ -46,21 +47,21 @@ class _ChatbotPageState extends State<ChatbotPage> {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'AI Assistant',
-                    style: TextStyle(
+                    context.l10n.aiAssistant,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   Text(
-                    'Luôn sẵn sàng hỗ trợ bạn',
-                    style: TextStyle(
+                    context.l10n.alwaysReadyToHelp,
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
                     ),
@@ -96,21 +97,21 @@ class _ChatbotPageState extends State<ChatbotPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa lịch sử chat?'),
-        content: const Text('Bạn có chắc muốn xóa toàn bộ lịch sử trò chuyện không?'),
+        title: Text(context.l10n.clearChatHistory),
+        content: Text(context.l10n.clearChatConfirmation),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () {
               context.read<ChatbotProvider>().clearChat();
               Navigator.pop(context);
             },
-            child: const Text(
-              'Xóa',
-              style: TextStyle(color: Colors.red),
+            child: Text(
+              context.l10n.delete,
+              style: const TextStyle(color: Colors.red),
             ),
           ),
         ],
@@ -393,7 +394,7 @@ class _InputField extends StatelessWidget {
             child: TextField(
               controller: chatbot.messageController,
               decoration: InputDecoration(
-                hintText: 'Nhập tin nhắn...',
+                hintText: context.l10n.typeMessage,
                 hintStyle: TextStyle(color: Colors.grey.shade400),
                 filled: true,
                 fillColor: Colors.grey.shade100,

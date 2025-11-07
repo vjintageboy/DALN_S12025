@@ -750,4 +750,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get instructions => 'Instructions';
+
+  @override
+  String get aiAssistant => 'AI Assistant';
+
+  @override
+  String get alwaysReadyToHelp => 'Always ready to help you';
+
+  @override
+  String get clearChatHistory => 'Clear chat history?';
+
+  @override
+  String get clearChatConfirmation =>
+      'Are you sure you want to clear all chat history?';
+
+  @override
+  String get typeMessage => 'Type a message...';
 }
