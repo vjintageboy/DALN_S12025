@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../home/home_page.dart';
 import 'login_page.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/localization_service.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/modern_text_field.dart';
@@ -134,9 +135,9 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                     ),
                     const SizedBox(height: 20),
                     // Title
-                    const Text(
-                      'Create Account',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.createAccount,
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1A1A1A),
@@ -146,7 +147,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Join us and start your journey today',
+                      context.l10n.joinUsToday,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -158,12 +159,12 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                     // Name field
                     ModernTextField(
                       controller: _nameController,
-                      label: AppStrings.fullName,
-                      hint: AppStrings.fullNameHint,
+                      label: context.l10n.fullName,
+                      hint: context.l10n.fullName,
                       icon: Icons.person_outline,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return AppStrings.enterFullName;
+                          return context.l10n.fullName;
                         }
                         return null;
                       },
@@ -172,16 +173,16 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                     // Email field
                     ModernTextField(
                       controller: _emailController,
-                      label: AppStrings.emailAddress,
-                      hint: AppStrings.emailHint,
+                      label: context.l10n.emailAddress,
+                      hint: context.l10n.email,
                       icon: Icons.mail_outline,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return AppStrings.enterEmail;
+                          return context.l10n.emailAddress;
                         }
                         if (!value.contains('@')) {
-                          return AppStrings.enterValidEmail;
+                          return context.l10n.emailAddress;
                         }
                         return null;
                       },
@@ -190,8 +191,8 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                     // Password field
                     ModernTextField(
                       controller: _passwordController,
-                      label: AppStrings.password,
-                      hint: AppStrings.passwordHint,
+                      label: context.l10n.password,
+                      hint: context.l10n.password,
                       icon: Icons.lock_outline,
                       obscureText: _obscurePassword,
                       suffixIcon: IconButton(
@@ -208,10 +209,10 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return AppStrings.enterPassword;
+                          return context.l10n.password;
                         }
                         if (value.length < 6) {
-                          return AppStrings.passwordTooShort;
+                          return context.l10n.password;
                         }
                         return null;
                       },
@@ -220,8 +221,8 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                     // Confirm password field
                     ModernTextField(
                       controller: _confirmPasswordController,
-                      label: AppStrings.confirmPassword,
-                      hint: AppStrings.passwordHint,
+                      label: context.l10n.confirmPassword,
+                      hint: context.l10n.password,
                       icon: Icons.lock_outline,
                       obscureText: _obscureConfirmPassword,
                       suffixIcon: IconButton(
@@ -238,10 +239,10 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return AppStrings.confirmPasswordPrompt;
+                          return context.l10n.confirmPassword;
                         }
                         if (value != _passwordController.text) {
-                          return AppStrings.passwordsNotMatch;
+                          return context.l10n.confirmPassword;
                         }
                         return null;
                       },
@@ -251,7 +252,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                     Consumer<AuthProvider>(
                       builder: (context, authProvider, child) {
                         return PrimaryButton(
-                          text: AppStrings.createAccount,
+                          text: context.l10n.createAccount,
                           icon: Icons.arrow_forward,
                           isLoading: authProvider.isLoading,
                           onPressed: _signUp,
@@ -266,7 +267,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            AppStrings.or,
+                            context.l10n.orContinueWith,
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 13,
@@ -285,7 +286,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                         Expanded(
                           child: SocialButton(
                             icon: Icons.g_mobiledata,
-                            label: AppStrings.google,
+                            label: 'Google',
                             onPressed: () {
                               // TODO: Implement Google sign up
                             },
@@ -295,7 +296,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                         Expanded(
                           child: SocialButton(
                             icon: Icons.apple,
-                            label: AppStrings.apple,
+                            label: 'Apple',
                             onPressed: () {
                               // TODO: Implement Apple sign up
                             },
@@ -309,9 +310,9 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            AppStrings.alreadyHaveAccount,
-                            style: TextStyle(
+                          Text(
+                            context.l10n.alreadyHaveAccount,
+                            style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 15,
                             ),
@@ -328,9 +329,9 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            child: const Text(
-                              AppStrings.signIn,
-                              style: TextStyle(
+                            child: Text(
+                              context.l10n.signIn,
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,

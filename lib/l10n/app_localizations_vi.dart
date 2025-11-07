@@ -49,7 +49,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get fullName => 'Họ và tên';
 
   @override
-  String get emailAddress => 'Địa chỉ email';
+  String get emailAddress => 'Địa chỉ Email';
 
   @override
   String get password => 'Mật khẩu';
@@ -770,4 +770,45 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get typeMessage => 'Nhập tin nhắn...';
+
+  @override
+  String get welcomeTagline =>
+      'Nền tảng chăm sóc sức khỏe tinh thần chuyên nghiệp';
+
+  @override
+  String get aiPoweredInsights => 'Phân tích bằng AI';
+
+  @override
+  String get trackProgress => 'Theo dõi tiến trình theo thời gian';
+
+  @override
+  String get privateSecure => 'Riêng tư và bảo mật';
+
+  @override
+  String get getStarted => 'Bắt đầu';
+
+  @override
+  String get termsAgreement => 'Bằng việc tiếp tục, bạn đồng ý với ';
+
+  @override
+  String get termsPrivacy => 'Điều khoản & Quyền riêng tư';
+
+  @override
+  String get signInToModiki => 'Đăng nhập vào MODIKI';
+
+  @override
+  String get signInToContinue => 'Đăng nhập để tiếp tục hành trình của bạn';
+
+  @override
+  String get joinUsToday =>
+      'Tham gia với chúng tôi và bắt đầu hành trình ngay hôm nay';
+
+  @override
+  String get orContinueWith => 'Hoặc tiếp tục với';
+
+  @override
+  String get email => 'Email';
+
+  @override
+  String get adminSetup => 'Thiết lập Admin';
 }

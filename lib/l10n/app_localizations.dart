@@ -1585,6 +1585,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type a message...'**
   String get typeMessage;
+
+  /// No description provided for @welcomeTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Professional wellbeing platform'**
+  String get welcomeTagline;
+
+  /// No description provided for @aiPoweredInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'AI-powered insights'**
+  String get aiPoweredInsights;
+
+  /// No description provided for @trackProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Track progress over time'**
+  String get trackProgress;
+
+  /// No description provided for @privateSecure.
+  ///
+  /// In en, this message translates to:
+  /// **'Private and secure'**
+  String get privateSecure;
+
+  /// No description provided for @getStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get getStarted;
+
+  /// No description provided for @termsAgreement.
+  ///
+  /// In en, this message translates to:
+  /// **'By continuing, you agree to our '**
+  String get termsAgreement;
+
+  /// No description provided for @termsPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms & Privacy'**
+  String get termsPrivacy;
+
+  /// No description provided for @signInToModiki.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to MODIKI'**
+  String get signInToModiki;
+
+  /// No description provided for @signInToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue your journey'**
+  String get signInToContinue;
+
+  /// No description provided for @joinUsToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Join us and start your journey today'**
+  String get joinUsToday;
+
+  /// No description provided for @orContinueWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Or continue with'**
+  String get orContinueWith;
+
+  /// No description provided for @email.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get email;
+
+  /// No description provided for @adminSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Setup'**
+  String get adminSetup;
 }
 
 class _AppLocalizationsDelegate

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/services/localization_service.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
 // import 'package:flutter/foundation.dart'; // ✅ Không cần nữa - đã xóa admin setup
@@ -362,7 +363,7 @@ class _WelcomePageState extends State<WelcomePage>
                     ),
                   ),
                   child: Text(
-                    'Professional wellbeing platform',
+                    context.l10n.welcomeTagline,
                     style: TextStyle(
                       color: Colors.grey[700],
                       fontSize: 13,
@@ -382,17 +383,17 @@ class _WelcomePageState extends State<WelcomePage>
                   children: [
                     _FeatureItem(
                       icon: Icons.psychology_outlined,
-                      text: 'AI-powered insights',
+                      text: context.l10n.aiPoweredInsights,
                     ),
                     const SizedBox(height: 16),
                     _FeatureItem(
                       icon: Icons.trending_up,
-                      text: 'Track progress over time',
+                      text: context.l10n.trackProgress,
                     ),
                     const SizedBox(height: 16),
                     _FeatureItem(
                       icon: Icons.shield_outlined,
-                      text: 'Private and secure',
+                      text: context.l10n.privateSecure,
                     ),
                   ],
                 ),
@@ -409,7 +410,7 @@ class _WelcomePageState extends State<WelcomePage>
                     children: [
                       // Sign Up Button
                       _PrimaryButton(
-                        text: 'Get Started',
+                        text: context.l10n.getStarted,
                         onPressed: () => _navigateToPage(const SignUpPage()),
                       ),
 
@@ -417,7 +418,7 @@ class _WelcomePageState extends State<WelcomePage>
 
                       // Login Button
                       _SecondaryButton(
-                        text: 'Sign In',
+                        text: context.l10n.signIn,
                         onPressed: () => _navigateToPage(const LoginPage()),
                       ),
 
@@ -426,14 +427,14 @@ class _WelcomePageState extends State<WelcomePage>
                       // Terms link
                       Text.rich(
                         TextSpan(
-                          text: 'By continuing, you agree to our ',
+                          text: context.l10n.termsAgreement,
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,
                           ),
                           children: [
                             TextSpan(
-                              text: 'Terms & Privacy',
+                              text: context.l10n.termsPrivacy,
                               style: TextStyle(
                                 color: Colors.grey[800],
                                 fontWeight: FontWeight.w600,

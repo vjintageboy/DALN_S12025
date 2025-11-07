@@ -766,4 +766,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get typeMessage => 'Type a message...';
+
+  @override
+  String get welcomeTagline => 'Professional wellbeing platform';
+
+  @override
+  String get aiPoweredInsights => 'AI-powered insights';
+
+  @override
+  String get trackProgress => 'Track progress over time';
+
+  @override
+  String get privateSecure => 'Private and secure';
+
+  @override
+  String get getStarted => 'Get Started';
+
+  @override
+  String get termsAgreement => 'By continuing, you agree to our ';
+
+  @override
+  String get termsPrivacy => 'Terms & Privacy';
+
+  @override
+  String get signInToModiki => 'Sign in to MODIKI';
+
+  @override
+  String get signInToContinue => 'Sign in to continue your journey';
+
+  @override
+  String get joinUsToday => 'Join us and start your journey today';
+
+  @override
+  String get orContinueWith => 'Or continue with';
+
+  @override
+  String get email => 'Email';
+
+  @override
+  String get adminSetup => 'Admin Setup';
 }

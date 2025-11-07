@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../home/home_page.dart';
 import 'signup_page.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/localization_service.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/modern_text_field.dart';
@@ -128,9 +129,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     ),
                     const SizedBox(height: 20),
                     // Title
-                    const Text(
-                      'Sign in to MODIKI ',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.signInToModiki,
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1A1A1A),
@@ -140,7 +141,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Sign in to continue your journey',
+                      context.l10n.signInToContinue,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -152,16 +153,16 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     // Email field
                     ModernTextField(
                       controller: _emailController,
-                      label: AppStrings.emailAddress,
-                      hint: AppStrings.emailHint,
+                      label: context.l10n.emailAddress,
+                      hint: context.l10n.email,
                       icon: Icons.mail_outline,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return AppStrings.enterEmail;
+                          return context.l10n.emailAddress;
                         }
                         if (!value.contains('@')) {
-                          return AppStrings.enterValidEmail;
+                          return context.l10n.emailAddress;
                         }
                         return null;
                       },
@@ -170,8 +171,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     // Password field
                     ModernTextField(
                       controller: _passwordController,
-                      label: AppStrings.password,
-                      hint: AppStrings.passwordHint,
+                      label: context.l10n.password,
+                      hint: context.l10n.password,
                       icon: Icons.lock_outline,
                       obscureText: _obscurePassword,
                       suffixIcon: IconButton(
@@ -188,10 +189,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return AppStrings.enterPassword;
+                          return context.l10n.password;
                         }
                         if (value.length < 6) {
-                          return AppStrings.passwordTooShort;
+                          return context.l10n.password;
                         }
                         return null;
                       },
@@ -207,9 +208,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         ),
-                        child: const Text(
-                          AppStrings.forgotPassword,
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.forgotPassword,
+                          style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
@@ -222,7 +223,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     Consumer<AuthProvider>(
                       builder: (context, authProvider, child) {
                         return PrimaryButton(
-                          text: AppStrings.signIn,
+                          text: context.l10n.signIn,
                           icon: Icons.arrow_forward,
                           isLoading: authProvider.isLoading,
                           onPressed: _login,
@@ -237,7 +238,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            AppStrings.or,
+                            context.l10n.orContinueWith,
                             style: TextStyle(
                               color: AppColors.textSecondary.withOpacity(0.8),
                               fontSize: 13,
@@ -256,7 +257,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         Expanded(
                           child: SocialButton(
                             icon: Icons.g_mobiledata,
-                            label: AppStrings.google,
+                            label: 'Google',
                             onPressed: () {
                               // TODO: Implement Google sign in
                             },
@@ -266,7 +267,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         Expanded(
                           child: SocialButton(
                             icon: Icons.apple,
-                            label: AppStrings.apple,
+                            label: 'Apple',
                             onPressed: () {
                               // TODO: Implement Apple sign in
                             },
@@ -280,9 +281,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            AppStrings.dontHaveAccount,
-                            style: TextStyle(
+                          Text(
+                            context.l10n.dontHaveAccount,
+                            style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 15,
                             ),
@@ -299,9 +300,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            child: const Text(
-                              AppStrings.signUp,
-                              style: TextStyle(
+                            child: Text(
+                              context.l10n.signUp,
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
