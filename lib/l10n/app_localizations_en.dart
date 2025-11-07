@@ -723,4 +723,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentSuccessful => 'Payment Successful!';
+
+  @override
+  String get sortBy => 'Sort by:';
+
+  @override
+  String get ratingSort => '⭐ Rating';
+
+  @override
+  String get durationSort => '⏱️ Duration';
+
+  @override
+  String get nameSort => '🔤 Name';
+
+  @override
+  String get meditationsFound => 'meditations found';
+
+  @override
+  String get meditationFound => 'meditation found';
+
+  @override
+  String get tryDifferentSearch => 'Try a different search or filter';
+
+  @override
+  String get benefits => 'Benefits';
+
+  @override
+  String get instructions => 'Instructions';
 }

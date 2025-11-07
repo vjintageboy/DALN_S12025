@@ -1501,6 +1501,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Payment Successful!'**
   String get paymentSuccessful;
+
+  /// No description provided for @sortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by:'**
+  String get sortBy;
+
+  /// No description provided for @ratingSort.
+  ///
+  /// In en, this message translates to:
+  /// **'⭐ Rating'**
+  String get ratingSort;
+
+  /// No description provided for @durationSort.
+  ///
+  /// In en, this message translates to:
+  /// **'⏱️ Duration'**
+  String get durationSort;
+
+  /// No description provided for @nameSort.
+  ///
+  /// In en, this message translates to:
+  /// **'🔤 Name'**
+  String get nameSort;
+
+  /// No description provided for @meditationsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'meditations found'**
+  String get meditationsFound;
+
+  /// No description provided for @meditationFound.
+  ///
+  /// In en, this message translates to:
+  /// **'meditation found'**
+  String get meditationFound;
+
+  /// No description provided for @tryDifferentSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a different search or filter'**
+  String get tryDifferentSearch;
+
+  /// No description provided for @benefits.
+  ///
+  /// In en, this message translates to:
+  /// **'Benefits'**
+  String get benefits;
+
+  /// No description provided for @instructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Instructions'**
+  String get instructions;
 }
 
 class _AppLocalizationsDelegate

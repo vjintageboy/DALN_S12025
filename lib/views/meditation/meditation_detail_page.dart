@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../../core/services/localization_service.dart';
 import '../../models/meditation.dart';
 
 class MeditationDetailPage extends StatefulWidget {
@@ -131,11 +132,27 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   }
 
   String _getCategoryText() {
-    return widget.meditation.category.toString().split('.').last.toUpperCase();
+    switch (widget.meditation.category) {
+      case MeditationCategory.stress:
+        return context.l10n.stress.toUpperCase();
+      case MeditationCategory.anxiety:
+        return context.l10n.anxiety.toUpperCase();
+      case MeditationCategory.sleep:
+        return context.l10n.sleep.toUpperCase();
+      case MeditationCategory.focus:
+        return context.l10n.focus.toUpperCase();
+    }
   }
 
   String _getLevelText() {
-    return widget.meditation.level.toString().split('.').last.toUpperCase();
+    switch (widget.meditation.level) {
+      case MeditationLevel.beginner:
+        return context.l10n.beginner.toUpperCase();
+      case MeditationLevel.intermediate:
+        return context.l10n.intermediate.toUpperCase();
+      case MeditationLevel.advanced:
+        return context.l10n.advanced.toUpperCase();
+    }
   }
 
   @override
@@ -272,7 +289,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                '${widget.meditation.duration} min',
+                                '${widget.meditation.duration} ${context.l10n.min}',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
@@ -307,7 +324,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
 
                       // Description
                       Text(
-                        'About',
+                        context.l10n.about,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -500,7 +517,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
                               TextButton.icon(
                                 onPressed: _stop,
                                 icon: const Icon(Icons.stop),
-                                label: const Text('Stop'),
+                                label: Text(context.l10n.stop),
                                 style: TextButton.styleFrom(
                                   foregroundColor: categoryDarkColor,
                                 ),

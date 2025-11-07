@@ -222,7 +222,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get findYourPeace => 'Tìm sự bình yên của bạn';
 
   @override
-  String get searchMeditations => 'Tìm kiếm thiền định...';
+  String get searchMeditations => 'Tìm kiếm bài thiền...';
 
   @override
   String get allCategories => 'Tất cả danh mục';
@@ -243,7 +243,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get focus => 'Tập trung';
 
   @override
-  String get beginner => 'Người mới bắt đầu';
+  String get beginner => 'Cơ bản';
 
   @override
   String get intermediate => 'Trung cấp';
@@ -255,7 +255,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get minutes => 'phút';
 
   @override
-  String get noMeditationsFound => 'Không tìm thấy thiền định nào';
+  String get noMeditationsFound => 'Không tìm thấy bài thiền';
 
   @override
   String get tryAdjustingFilters => 'Thử điều chỉnh bộ lọc của bạn';
@@ -727,4 +727,31 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get paymentSuccessful => 'Thanh toán thành công!';
+
+  @override
+  String get sortBy => 'Sắp xếp:';
+
+  @override
+  String get ratingSort => '⭐ Đánh giá';
+
+  @override
+  String get durationSort => '⏱️ Thời lượng';
+
+  @override
+  String get nameSort => '🔤 Tên';
+
+  @override
+  String get meditationsFound => 'bài thiền';
+
+  @override
+  String get meditationFound => 'bài thiền';
+
+  @override
+  String get tryDifferentSearch => 'Thử tìm kiếm hoặc lọc khác';
+
+  @override
+  String get benefits => 'Lợi ích';
+
+  @override
+  String get instructions => 'Hướng dẫn';
 }

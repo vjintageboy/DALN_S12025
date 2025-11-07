@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/services/localization_service.dart';
 import '../../models/meditation.dart';
 import '../../services/firestore_service.dart';
 import 'meditation_detail_page.dart';
@@ -96,9 +97,9 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
-          'Meditation Library',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.l10n.meditationLibrary,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
@@ -115,7 +116,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                 // Search Bar
                 TextField(
                   decoration: InputDecoration(
-                    hintText: 'Search meditations...',
+                    hintText: context.l10n.searchMeditations,
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -137,7 +138,8 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                   child: Row(
                     children: [
                       _buildFilterChip(
-                        label: 'All',
+                        context: context,
+                        label: context.l10n.all,
                         isSelected: _selectedCategory == null,
                         onTap: () {
                           setState(() => _selectedCategory = null);
@@ -146,7 +148,8 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                       ),
                       ...MeditationCategory.values.map((category) {
                         return _buildFilterChip(
-                          label: _getCategoryLabel(category),
+                          context: context,
+                          label: _getCategoryLabel(context, category),
                           isSelected: _selectedCategory == category,
                           onTap: () {
                             setState(() => _selectedCategory = category);
@@ -166,19 +169,19 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                     children: [
                       const Icon(Icons.sort, size: 20, color: Colors.grey),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Sort by:',
-                        style: TextStyle(
+                      Text(
+                        context.l10n.sortBy,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      _buildSortChip('⭐ Rating', 'rating'),
+                      _buildSortChip(context.l10n.ratingSort, 'rating'),
                       const SizedBox(width: 8),
-                      _buildSortChip('⏱️ Duration', 'duration'),
+                      _buildSortChip(context.l10n.durationSort, 'duration'),
                       const SizedBox(width: 8),
-                      _buildSortChip('🔤 Name', 'title'),
+                      _buildSortChip(context.l10n.nameSort, 'title'),
                     ],
                   ),
                 ),
@@ -192,7 +195,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               alignment: Alignment.centerLeft,
               child: Text(
-                '${_filteredMeditations.length} meditation${_filteredMeditations.length != 1 ? 's' : ''} found',
+                '${_filteredMeditations.length} ${_filteredMeditations.length != 1 ? context.l10n.meditationsFound : context.l10n.meditationFound}',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -237,6 +240,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
   }
 
   Widget _buildFilterChip({
+    required BuildContext context,
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
@@ -448,7 +452,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${meditation.duration} min • ${_getLevelLabel(meditation.level)}',
+                      '${meditation.duration} ${context.l10n.min} • ${_getLevelLabel(context, meditation.level)}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -477,7 +481,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No meditations found',
+            context.l10n.noMeditationsFound,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -486,7 +490,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Try adjusting your filters',
+            context.l10n.tryDifferentSearch,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey.shade500,
@@ -497,27 +501,27 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
     );
   }
 
-  String _getCategoryLabel(MeditationCategory category) {
+  String _getCategoryLabel(BuildContext context, MeditationCategory category) {
     switch (category) {
       case MeditationCategory.stress:
-        return 'Stress';
+        return context.l10n.stress;
       case MeditationCategory.anxiety:
-        return 'Anxiety';
+        return context.l10n.anxiety;
       case MeditationCategory.sleep:
-        return 'Sleep';
+        return context.l10n.sleep;
       case MeditationCategory.focus:
-        return 'Focus';
+        return context.l10n.focus;
     }
   }
 
-  String _getLevelLabel(MeditationLevel level) {
+  String _getLevelLabel(BuildContext context, MeditationLevel level) {
     switch (level) {
       case MeditationLevel.beginner:
-        return 'Beginner';
+        return context.l10n.beginner;
       case MeditationLevel.intermediate:
-        return 'Intermediate';
+        return context.l10n.intermediate;
       case MeditationLevel.advanced:
-        return 'Advanced';
+        return context.l10n.advanced;
     }
   }
 }
