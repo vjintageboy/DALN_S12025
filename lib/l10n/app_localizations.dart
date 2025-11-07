@@ -143,7 +143,7 @@ abstract class AppLocalizations {
   /// No description provided for @experts.
   ///
   /// In en, this message translates to:
-  /// **'Experts'**
+  /// **'experts'**
   String get experts;
 
   /// No description provided for @profile.
@@ -869,7 +869,7 @@ abstract class AppLocalizations {
   /// Error message when loading experts fails
   ///
   /// In en, this message translates to:
-  /// **'Error loading experts: {error}'**
+  /// **'Error loading experts'**
   String errorLoadingExperts(String error);
 
   /// Error message when logout fails
@@ -1291,6 +1291,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error updating mood'**
   String get errorUpdatingMood;
+
+  /// No description provided for @findAnExpert.
+  ///
+  /// In en, this message translates to:
+  /// **'Find an Expert'**
+  String get findAnExpert;
+
+  /// No description provided for @expert.
+  ///
+  /// In en, this message translates to:
+  /// **'expert'**
+  String get expert;
+
+  /// No description provided for @available.
+  ///
+  /// In en, this message translates to:
+  /// **'available'**
+  String get available;
+
+  /// No description provided for @noExpertsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No experts found'**
+  String get noExpertsFound;
+
+  /// No description provided for @tryAnotherFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Try selecting a different specialization'**
+  String get tryAnotherFilter;
+
+  /// No description provided for @depression.
+  ///
+  /// In en, this message translates to:
+  /// **'Depression'**
+  String get depression;
+
+  /// No description provided for @from.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get from;
+
+  /// No description provided for @yrs.
+  ///
+  /// In en, this message translates to:
+  /// **'yrs'**
+  String get yrs;
+
+  /// No description provided for @rating.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get rating;
+
+  /// No description provided for @experience.
+  ///
+  /// In en, this message translates to:
+  /// **'Experience'**
+  String get experience;
+
+  /// No description provided for @reviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews'**
+  String get reviews;
+
+  /// No description provided for @availableDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Days'**
+  String get availableDays;
+
+  /// No description provided for @availableTimeSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Time Slots'**
+  String get availableTimeSlots;
+
+  /// No description provided for @selectDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Date'**
+  String get selectDate;
+
+  /// No description provided for @selectDateToView.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a date to view available time slots'**
+  String get selectDateToView;
+
+  /// No description provided for @chooseDateFromCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a date from the calendar above'**
+  String get chooseDateFromCalendar;
+
+  /// No description provided for @notesOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes (Optional)'**
+  String get notesOptional;
+
+  /// No description provided for @audioOnlyConsultation.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio only consultation'**
+  String get audioOnlyConsultation;
+
+  /// No description provided for @faceToFaceConsultation.
+  ///
+  /// In en, this message translates to:
+  /// **'Face-to-face video consultation'**
+  String get faceToFaceConsultation;
+
+  /// No description provided for @recommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get recommended;
+
+  /// No description provided for @min.
+  ///
+  /// In en, this message translates to:
+  /// **'min'**
+  String get min;
+
+  /// No description provided for @upcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get upcoming;
+
+  /// No description provided for @history.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get history;
+
+  /// No description provided for @noUpcomingAppointments.
+  ///
+  /// In en, this message translates to:
+  /// **'No Upcoming Appointments'**
+  String get noUpcomingAppointments;
+
+  /// No description provided for @bookAppointmentToGetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Book an appointment with an expert to get started'**
+  String get bookAppointmentToGetStarted;
+
+  /// No description provided for @noAppointmentHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No Appointment History'**
+  String get noAppointmentHistory;
+
+  /// No description provided for @pastAppointmentsWillAppear.
+  ///
+  /// In en, this message translates to:
+  /// **'Your past appointments will appear here'**
+  String get pastAppointmentsWillAppear;
+
+  /// No description provided for @cancelAppointment.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Appointment'**
+  String get cancelAppointment;
+
+  /// No description provided for @confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get confirmed;
+
+  /// No description provided for @cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get cancelled;
+
+  /// No description provided for @completed.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completed;
+
+  /// No description provided for @cancelAppointmentQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Appointment?'**
+  String get cancelAppointmentQuestion;
+
+  /// No description provided for @selectPaymentMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Payment Method'**
+  String get selectPaymentMethod;
+
+  /// No description provided for @confirmPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Payment'**
+  String get confirmPayment;
+
+  /// No description provided for @paymentSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Successful!'**
+  String get paymentSuccessful;
 }
 
 class _AppLocalizationsDelegate

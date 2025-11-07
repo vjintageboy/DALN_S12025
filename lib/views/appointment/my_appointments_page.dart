@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import '../../core/services/localization_service.dart';
 import '../../models/appointment.dart';
 import '../../services/appointment_service.dart';
 
@@ -34,9 +35,9 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
-          'My Appointments',
-          style: TextStyle(
+        title: Text(
+          context.l10n.myAppointments,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: Color(0xFF1A1A1A),
@@ -59,9 +60,9 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
-          tabs: const [
-            Tab(text: 'Upcoming'),
-            Tab(text: 'History'),
+          tabs: [
+            Tab(text: context.l10n.upcoming),
+            Tab(text: context.l10n.history),
           ],
         ),
       ),
@@ -99,8 +100,8 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
         if (upcomingAppointments.isEmpty) {
           return _buildEmptyState(
             icon: '📅',
-            title: 'No Upcoming Appointments',
-            subtitle: 'Book an appointment with an expert to get started',
+            title: context.l10n.noUpcomingAppointments,
+            subtitle: context.l10n.bookAppointmentToGetStarted,
           );
         }
 
@@ -142,8 +143,8 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
         if (historyAppointments.isEmpty) {
           return _buildEmptyState(
             icon: '📋',
-            title: 'No Appointment History',
-            subtitle: 'Your past appointments will appear here',
+            title: context.l10n.noAppointmentHistory,
+            subtitle: context.l10n.pastAppointmentsWillAppear,
           );
         }
 
@@ -236,41 +237,47 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
             child: Column(
               children: [
                 _buildDetailRow(
+                  context: context,
                   icon: '📅',
-                  label: 'Date',
+                  label: context.l10n.date,
                   value: dateFormat.format(appointment.appointmentDate),
                 ),
                 const SizedBox(height: 12),
                 _buildDetailRow(
+                  context: context,
                   icon: '🕒',
-                  label: 'Time',
+                  label: context.l10n.time,
                   value: timeFormat.format(appointment.appointmentDate),
                 ),
                 const SizedBox(height: 12),
                 _buildDetailRow(
+                  context: context,
                   icon: appointment.callType == CallType.voice ? '📞' : '🎥',
-                  label: 'Call Type',
+                  label: context.l10n.callType,
                   value: appointment.callType == CallType.voice
-                      ? 'Voice Call'
-                      : 'Video Call',
+                      ? context.l10n.voiceCall
+                      : context.l10n.videoCall,
                 ),
                 const SizedBox(height: 12),
                 _buildDetailRow(
+                  context: context,
                   icon: '⏱️',
-                  label: 'Duration',
-                  value: '${appointment.durationMinutes} minutes',
+                  label: context.l10n.duration,
+                  value: '${appointment.durationMinutes} ${context.l10n.min}',
                 ),
                 const SizedBox(height: 12),
                 _buildDetailRow(
+                  context: context,
                   icon: '💰',
-                  label: 'Price',
+                  label: context.l10n.from,
                   value: _formatPrice(appointment.price),
                 ),
                 if (appointment.userNotes?.isNotEmpty ?? false) ...[
                   const Divider(height: 24),
                   _buildDetailRow(
+                    context: context,
                     icon: '📝',
-                    label: 'Notes',
+                    label: context.l10n.notes,
                     value: appointment.userNotes!,
                   ),
                 ],
@@ -294,9 +301,9 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Cancel Appointment',
-                    style: TextStyle(
+                  child: Text(
+                    context.l10n.cancelAppointment,
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
@@ -318,17 +325,17 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
       case AppointmentStatus.confirmed:
         bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
         textColor = const Color(0xFF4CAF50);
-        text = 'Confirmed';
+        text = context.l10n.confirmed;
         break;
       case AppointmentStatus.completed:
         bgColor = Colors.blue.withOpacity(0.1);
         textColor = Colors.blue;
-        text = 'Completed';
+        text = context.l10n.completed;
         break;
       case AppointmentStatus.cancelled:
         bgColor = Colors.red.withOpacity(0.1);
         textColor = Colors.red;
-        text = 'Cancelled';
+        text = context.l10n.cancelled;
         break;
       case AppointmentStatus.pending:
         bgColor = Colors.orange.withOpacity(0.1);
@@ -355,6 +362,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
   }
 
   Widget _buildDetailRow({
+    required BuildContext context,
     required String icon,
     required String label,
     required String value,
@@ -445,9 +453,9 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text(
-          'Cancel Appointment?',
-          style: TextStyle(
+        title: Text(
+          context.l10n.cancelAppointmentQuestion,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -510,9 +518,9 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
-              'Cancel Appointment',
-              style: TextStyle(
+            child: Text(
+              context.l10n.cancelAppointment,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
               ),

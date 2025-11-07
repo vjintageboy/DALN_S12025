@@ -30,7 +30,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mood => 'Mood';
 
   @override
-  String get experts => 'Experts';
+  String get experts => 'experts';
 
   @override
   String get profile => 'Profile';
@@ -397,7 +397,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String errorLoadingExperts(String error) {
-    return 'Error loading experts: $error';
+    return 'Error loading experts';
   }
 
   @override
@@ -616,4 +616,111 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorUpdatingMood => 'Error updating mood';
+
+  @override
+  String get findAnExpert => 'Find an Expert';
+
+  @override
+  String get expert => 'expert';
+
+  @override
+  String get available => 'available';
+
+  @override
+  String get noExpertsFound => 'No experts found';
+
+  @override
+  String get tryAnotherFilter => 'Try selecting a different specialization';
+
+  @override
+  String get depression => 'Depression';
+
+  @override
+  String get from => 'From';
+
+  @override
+  String get yrs => 'yrs';
+
+  @override
+  String get rating => 'Rating';
+
+  @override
+  String get experience => 'Experience';
+
+  @override
+  String get reviews => 'Reviews';
+
+  @override
+  String get availableDays => 'Available Days';
+
+  @override
+  String get availableTimeSlots => 'Available Time Slots';
+
+  @override
+  String get selectDate => 'Select Date';
+
+  @override
+  String get selectDateToView => 'Select a date to view available time slots';
+
+  @override
+  String get chooseDateFromCalendar => 'Choose a date from the calendar above';
+
+  @override
+  String get notesOptional => 'Notes (Optional)';
+
+  @override
+  String get audioOnlyConsultation => 'Audio only consultation';
+
+  @override
+  String get faceToFaceConsultation => 'Face-to-face video consultation';
+
+  @override
+  String get recommended => 'Recommended';
+
+  @override
+  String get min => 'min';
+
+  @override
+  String get upcoming => 'Upcoming';
+
+  @override
+  String get history => 'History';
+
+  @override
+  String get noUpcomingAppointments => 'No Upcoming Appointments';
+
+  @override
+  String get bookAppointmentToGetStarted =>
+      'Book an appointment with an expert to get started';
+
+  @override
+  String get noAppointmentHistory => 'No Appointment History';
+
+  @override
+  String get pastAppointmentsWillAppear =>
+      'Your past appointments will appear here';
+
+  @override
+  String get cancelAppointment => 'Cancel Appointment';
+
+  @override
+  String get confirmed => 'Confirmed';
+
+  @override
+  String get cancelled => 'Cancelled';
+
+  @override
+  String get completed => 'Completed';
+
+  @override
+  String get cancelAppointmentQuestion => 'Cancel Appointment?';
+
+  @override
+  String get selectPaymentMethod => 'Select Payment Method';
+
+  @override
+  String get confirmPayment => 'Confirm Payment';
+
+  @override
+  String get paymentSuccessful => 'Payment Successful!';
 }

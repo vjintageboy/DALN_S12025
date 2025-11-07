@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../../models/appointment.dart';
 import 'package:intl/intl.dart';
+import '../../core/services/localization_service.dart';
+import '../../models/appointment.dart';
 import 'my_appointments_page.dart';
 
 class MockPaymentPage extends StatefulWidget {
@@ -62,9 +63,9 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Payment Successful!',
-                style: TextStyle(
+              Text(
+                context.l10n.paymentSuccessful,
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1A1A1A),
@@ -190,9 +191,9 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Payment',
-          style: TextStyle(
+        title: Text(
+          context.l10n.payment,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -283,9 +284,9 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Select Payment Method',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.selectPaymentMethod,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF1A1A1A),
@@ -432,9 +433,9 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Text(
-                      'Confirm Payment',
-                      style: TextStyle(
+                  : Text(
+                      context.l10n.confirmPayment,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),

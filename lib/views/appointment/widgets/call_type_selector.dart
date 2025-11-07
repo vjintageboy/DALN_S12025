@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/services/localization_service.dart';
 import '../../../models/appointment.dart';
 
 class CallTypeSelector extends StatelessWidget {
@@ -16,9 +17,9 @@ class CallTypeSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Select Call Type',
-          style: TextStyle(
+        Text(
+          context.l10n.selectCallType,
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: Color(0xFF1A1A1A),
@@ -28,9 +29,10 @@ class CallTypeSelector extends StatelessWidget {
         
         // Voice Call Option
         _buildCallTypeOption(
+          context: context,
           icon: '📞',
-          title: 'Voice Call',
-          description: 'Audio only consultation',
+          title: context.l10n.voiceCall,
+          description: context.l10n.audioOnlyConsultation,
           isSelected: selectedType == CallType.voice,
           onTap: () => onChanged(CallType.voice),
         ),
@@ -38,9 +40,10 @@ class CallTypeSelector extends StatelessWidget {
         
         // Video Call Option (Recommended)
         _buildCallTypeOption(
+          context: context,
           icon: '🎥',
-          title: 'Video Call',
-          description: 'Face-to-face video consultation',
+          title: context.l10n.videoCall,
+          description: context.l10n.faceToFaceConsultation,
           isRecommended: true,
           isSelected: selectedType == CallType.video,
           onTap: () => onChanged(CallType.video),
@@ -50,6 +53,7 @@ class CallTypeSelector extends StatelessWidget {
   }
 
   Widget _buildCallTypeOption({
+    required BuildContext context,
     required String icon,
     required String title,
     required String description,
@@ -147,9 +151,9 @@ class CallTypeSelector extends StatelessWidget {
                             color: const Color(0xFF4CAF50).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            'Recommended',
-                            style: TextStyle(
+                          child: Text(
+                            context.l10n.recommended,
+                            style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF4CAF50),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../models/expert.dart';
 import '../../../models/appointment.dart';
+import '../../../core/services/localization_service.dart';
 
 class ExpertCard extends StatelessWidget {
   final Expert expert;
@@ -157,7 +158,7 @@ class ExpertCard extends StatelessWidget {
                               color: Colors.grey.shade600),
                           const SizedBox(width: 4),
                           Text(
-                            '${expert.yearsOfExperience} yrs',
+                            '${expert.yearsOfExperience} ${context.l10n.yrs}',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -180,7 +181,7 @@ class ExpertCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'From',
+                          context.l10n.from,
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,

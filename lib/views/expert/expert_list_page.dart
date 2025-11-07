@@ -3,6 +3,7 @@ import '../../models/expert.dart';
 import 'widgets/expert_card.dart';
 import 'expert_detail_page.dart';
 import '../appointment/my_appointments_page.dart';
+import '../../core/services/localization_service.dart';
 
 class ExpertListPage extends StatefulWidget {
   const ExpertListPage({super.key});
@@ -17,13 +18,13 @@ class _ExpertListPageState extends State<ExpertListPage> {
   bool _isLoading = true;
   String? _selectedSpecialization;
 
-  final List<String> _specializations = [
-    'All',
-    'Anxiety',
-    'Depression',
-    'Stress',
-    'Sleep',
-    'Relationships',
+  final List<String> _specializationKeys = [
+    'all',
+    'anxiety',
+    'depression',
+    'stress',
+    'sleep',
+    'relationships',
   ];
 
   @override
@@ -47,7 +48,7 @@ class _ExpertListPageState extends State<ExpertListPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading experts: $e'),
+            content: Text('${context.l10n.errorLoadingExperts}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -55,17 +56,34 @@ class _ExpertListPageState extends State<ExpertListPage> {
     }
   }
 
-  void _filterExperts(String? specialization) {
-    setState(() {
-      _selectedSpecialization = specialization;
-      if (specialization == null || specialization == 'All') {
+  void _filterExperts(String? specializationKey) {
+        setState(() {
+          _selectedSpecialization = specializationKey;
+      if (specializationKey == null || specializationKey == 'all') {
         _filteredExperts = _experts;
       } else {
         _filteredExperts = _experts
-            .where((e) => e.specialization == specialization)
+            .where((e) => e.specialization.toLowerCase() == specializationKey.toLowerCase())
             .toList();
       }
     });
+  }  String _getSpecializationLabel(String key) {
+    switch (key) {
+      case 'all':
+        return context.l10n.all;
+      case 'anxiety':
+        return context.l10n.anxiety;
+      case 'depression':
+        return context.l10n.depression;
+      case 'stress':
+        return context.l10n.stress;
+      case 'sleep':
+        return context.l10n.sleep;
+      case 'relationships':
+        return context.l10n.relationships;
+      default:
+        return key;
+    }
   }
 
   @override
@@ -75,9 +93,9 @@ class _ExpertListPageState extends State<ExpertListPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Find an Expert',
-          style: TextStyle(
+        title: Text(
+          context.l10n.findAnExpert,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -145,14 +163,14 @@ class _ExpertListPageState extends State<ExpertListPage> {
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _specializations.length,
+              itemCount: _specializationKeys.length,
               itemBuilder: (context, index) {
-                final spec = _specializations[index];
-                final isSelected = _selectedSpecialization == spec ||
-                    (_selectedSpecialization == null && spec == 'All');
+                final specKey = _specializationKeys[index];
+                final isSelected = _selectedSpecialization == specKey ||
+                    (_selectedSpecialization == null && specKey == 'all');
 
                 return GestureDetector(
-                  onTap: () => _filterExperts(spec == 'All' ? null : spec),
+                  onTap: () => _filterExperts(specKey == 'all' ? null : specKey),
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(
@@ -167,7 +185,7 @@ class _ExpertListPageState extends State<ExpertListPage> {
                     ),
                     child: Center(
                       child: Text(
-                        spec,
+                        _getSpecializationLabel(specKey),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -188,7 +206,7 @@ class _ExpertListPageState extends State<ExpertListPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               color: Colors.grey.shade50,
               child: Text(
-                '${_filteredExperts.length} ${_filteredExperts.length == 1 ? 'expert' : 'experts'} available',
+                '${_filteredExperts.length} ${_filteredExperts.length == 1 ? context.l10n.expert : context.l10n.experts} ${context.l10n.available}',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -217,7 +235,7 @@ class _ExpertListPageState extends State<ExpertListPage> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No experts found',
+                              context.l10n.noExpertsFound,
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
@@ -226,7 +244,7 @@ class _ExpertListPageState extends State<ExpertListPage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Try selecting a different specialization',
+                              context.l10n.tryAnotherFilter,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey.shade500,

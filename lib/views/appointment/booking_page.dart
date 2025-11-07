@@ -3,6 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/services/localization_service.dart';
 import '../../models/expert.dart';
 import '../../models/appointment.dart';
 import '../../services/appointment_service.dart';
@@ -260,9 +261,9 @@ class _BookingPageState extends State<BookingPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Book Appointment',
-          style: TextStyle(
+        title: Text(
+          context.l10n.bookAppointment,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -359,9 +360,9 @@ class _BookingPageState extends State<BookingPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Select Date',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.selectDate,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF1A1A1A),
@@ -422,7 +423,7 @@ class _BookingPageState extends State<BookingPage> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Select a date to view available time slots',
+                        context.l10n.selectDateToView,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -431,7 +432,7 @@ class _BookingPageState extends State<BookingPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Choose a date from the calendar above',
+                        context.l10n.chooseDateFromCalendar,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade500,
@@ -555,9 +556,9 @@ class _BookingPageState extends State<BookingPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Notes (Optional)',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.notesOptional,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1A1A1A),

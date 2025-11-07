@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/services/localization_service.dart';
 import '../../models/expert.dart';
 import '../../models/appointment.dart';
 import '../appointment/booking_page.dart';
@@ -124,22 +125,25 @@ class ExpertDetailPage extends StatelessWidget {
                   Row(
                     children: [
                       _buildStatCard(
+                        context: context,
                         icon: Icons.star,
-                        label: 'Rating',
+                        label: context.l10n.rating,
                         value: expert.rating.toStringAsFixed(1),
                         color: Colors.amber.shade600,
                       ),
                       const SizedBox(width: 12),
                       _buildStatCard(
+                        context: context,
                         icon: Icons.work_outline,
-                        label: 'Experience',
-                        value: '${expert.yearsOfExperience} yrs',
+                        label: context.l10n.experience,
+                        value: '${expert.yearsOfExperience} ${context.l10n.yrs}',
                         color: const Color(0xFF4CAF50),
                       ),
                       const SizedBox(width: 12),
                       _buildStatCard(
+                        context: context,
                         icon: Icons.people_outline,
-                        label: 'Reviews',
+                        label: context.l10n.reviews,
                         value: '${expert.totalReviews}',
                         color: Colors.blue.shade600,
                       ),
@@ -148,7 +152,7 @@ class ExpertDetailPage extends StatelessWidget {
                   const SizedBox(height: 24),
 
                   // About Section
-                  _buildSectionTitle('About'),
+                  _buildSectionTitle(context.l10n.about),
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
@@ -176,7 +180,7 @@ class ExpertDetailPage extends StatelessWidget {
                   const SizedBox(height: 24),
 
                   // Availability Section
-                  _buildSectionTitle('Available Days'),
+                  _buildSectionTitle(context.l10n.availableDays),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -208,7 +212,7 @@ class ExpertDetailPage extends StatelessWidget {
                   const SizedBox(height: 24),
 
                   // Time Slots Section
-                  _buildSectionTitle('Available Time Slots'),
+                  _buildSectionTitle(context.l10n.availableTimeSlots),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -278,7 +282,7 @@ class ExpertDetailPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'From',
+                    context.l10n.from,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -318,9 +322,9 @@ class ExpertDetailPage extends StatelessWidget {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Book Appointment',
-                    style: TextStyle(
+                  child: Text(
+                    context.l10n.bookAppointment,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -361,6 +365,7 @@ class ExpertDetailPage extends StatelessWidget {
   }
 
   Widget _buildStatCard({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required String value,

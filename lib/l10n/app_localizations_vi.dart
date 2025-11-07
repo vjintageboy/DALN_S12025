@@ -31,7 +31,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get mood => 'Tâm trạng';
 
   @override
-  String get experts => 'Chuyên gia';
+  String get experts => 'chuyên gia';
 
   @override
   String get profile => 'Hồ sơ';
@@ -402,7 +402,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String errorLoadingExperts(String error) {
-    return 'Lỗi tải chuyên gia: $error';
+    return 'Lỗi khi tải chuyên gia';
   }
 
   @override
@@ -620,4 +620,111 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get errorUpdatingMood => 'Lỗi khi cập nhật';
+
+  @override
+  String get findAnExpert => 'Tìm chuyên gia';
+
+  @override
+  String get expert => 'chuyên gia';
+
+  @override
+  String get available => 'có sẵn';
+
+  @override
+  String get noExpertsFound => 'Không tìm thấy chuyên gia';
+
+  @override
+  String get tryAnotherFilter => 'Thử chọn chuyên môn khác';
+
+  @override
+  String get depression => 'Trầm cảm';
+
+  @override
+  String get from => 'Từ';
+
+  @override
+  String get yrs => 'năm';
+
+  @override
+  String get rating => 'Đánh giá';
+
+  @override
+  String get experience => 'Kinh nghiệm';
+
+  @override
+  String get reviews => 'Lượt đánh giá';
+
+  @override
+  String get availableDays => 'Ngày có lịch';
+
+  @override
+  String get availableTimeSlots => 'Khung giờ có lịch';
+
+  @override
+  String get selectDate => 'Chọn ngày';
+
+  @override
+  String get selectDateToView => 'Chọn một ngày để xem khung giờ có sẵn';
+
+  @override
+  String get chooseDateFromCalendar => 'Chọn một ngày từ lịch bên trên';
+
+  @override
+  String get notesOptional => 'Ghi chú (Tùy chọn)';
+
+  @override
+  String get audioOnlyConsultation => 'Tư vấn qua âm thanh';
+
+  @override
+  String get faceToFaceConsultation => 'Tư vấn trực tiếp qua video';
+
+  @override
+  String get recommended => 'Đề xuất';
+
+  @override
+  String get min => 'phút';
+
+  @override
+  String get upcoming => 'Sắp tới';
+
+  @override
+  String get history => 'Lịch sử';
+
+  @override
+  String get noUpcomingAppointments => 'Không có lịch hẹn sắp tới';
+
+  @override
+  String get bookAppointmentToGetStarted =>
+      'Đặt lịch hẹn với chuyên gia để bắt đầu';
+
+  @override
+  String get noAppointmentHistory => 'Chưa có lịch sử';
+
+  @override
+  String get pastAppointmentsWillAppear =>
+      'Các lịch hẹn đã qua sẽ xuất hiện ở đây';
+
+  @override
+  String get cancelAppointment => 'Hủy lịch hẹn';
+
+  @override
+  String get confirmed => 'Đã xác nhận';
+
+  @override
+  String get cancelled => 'Đã hủy';
+
+  @override
+  String get completed => 'Hoàn thành';
+
+  @override
+  String get cancelAppointmentQuestion => 'Hủy lịch hẹn?';
+
+  @override
+  String get selectPaymentMethod => 'Chọn phương thức thanh toán';
+
+  @override
+  String get confirmPayment => 'Xác nhận thanh toán';
+
+  @override
+  String get paymentSuccessful => 'Thanh toán thành công!';
 }

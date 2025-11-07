@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/services/localization_service.dart';
 import '../../../models/appointment.dart';
 
 class DurationSelector extends StatelessWidget {
@@ -21,9 +22,9 @@ class DurationSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Duration',
-          style: TextStyle(
+        Text(
+          context.l10n.duration,
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: Color(0xFF1A1A1A),
@@ -34,6 +35,7 @@ class DurationSelector extends StatelessWidget {
           children: [
             Expanded(
               child: _buildDurationOption(
+                context: context,
                 duration: 30,
                 price: Appointment.calculatePrice(
                   expertBasePrice: expertBasePrice,
@@ -47,6 +49,7 @@ class DurationSelector extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _buildDurationOption(
+                context: context,
                 duration: 60,
                 price: Appointment.calculatePrice(
                   expertBasePrice: expertBasePrice,
@@ -64,6 +67,7 @@ class DurationSelector extends StatelessWidget {
   }
 
   Widget _buildDurationOption({
+    required BuildContext context,
     required int duration,
     required double price,
     required bool isSelected,
@@ -113,7 +117,7 @@ class DurationSelector extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '$duration min',
+                  '$duration ${context.l10n.min}',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
