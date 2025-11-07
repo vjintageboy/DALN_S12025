@@ -453,4 +453,34 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get settings => 'Cài đặt';
+
+  @override
+  String get goodMorning => 'Chào buổi sáng';
+
+  @override
+  String get goodAfternoon => 'Chào buổi chiều';
+
+  @override
+  String get goodEvening => 'Chào buổi tối';
+
+  @override
+  String get featuredMeditations => 'Thiền nổi bật';
+
+  @override
+  String get viewAll => 'Xem tất cả';
+
+  @override
+  String get errorLoadingMeditations => 'Lỗi tải thiền';
+
+  @override
+  String get categories => 'Danh mục';
+
+  @override
+  String get calm => 'Bình tĩnh';
+
+  @override
+  String get trackMood => 'Ghi nhận tâm trạng';
+
+  @override
+  String get streak => 'Chuỗi';
 }

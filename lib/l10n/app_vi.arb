@@ -212,5 +212,16 @@
   
   "day": "ngày",
   "days": "ngày",
-  "settings": "Cài đặt"
+  "settings": "Cài đặt",
+  
+  "goodMorning": "Chào buổi sáng",
+  "goodAfternoon": "Chào buổi chiều",
+  "goodEvening": "Chào buổi tối",
+  "featuredMeditations": "Thiền nổi bật",
+  "viewAll": "Xem tất cả",
+  "errorLoadingMeditations": "Lỗi tải thiền",
+  "categories": "Danh mục",
+  "calm": "Bình tĩnh",
+  "trackMood": "Ghi nhận tâm trạng",
+  "streak": "Chuỗi"
 }

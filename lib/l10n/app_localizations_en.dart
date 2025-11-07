@@ -448,4 +448,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings => 'Settings';
+
+  @override
+  String get goodMorning => 'Good Morning';
+
+  @override
+  String get goodAfternoon => 'Good Afternoon';
+
+  @override
+  String get goodEvening => 'Good Evening';
+
+  @override
+  String get featuredMeditations => 'Featured Meditations';
+
+  @override
+  String get viewAll => 'View All';
+
+  @override
+  String get errorLoadingMeditations => 'Error loading meditations';
+
+  @override
+  String get categories => 'Categories';
+
+  @override
+  String get calm => 'Calm';
+
+  @override
+  String get trackMood => 'Track Mood';
+
+  @override
+  String get streak => 'Streak';
 }

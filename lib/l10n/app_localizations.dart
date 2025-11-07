@@ -961,6 +961,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settings;
+
+  /// No description provided for @goodMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good Morning'**
+  String get goodMorning;
+
+  /// No description provided for @goodAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good Afternoon'**
+  String get goodAfternoon;
+
+  /// No description provided for @goodEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good Evening'**
+  String get goodEvening;
+
+  /// No description provided for @featuredMeditations.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured Meditations'**
+  String get featuredMeditations;
+
+  /// No description provided for @viewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View All'**
+  String get viewAll;
+
+  /// No description provided for @errorLoadingMeditations.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading meditations'**
+  String get errorLoadingMeditations;
+
+  /// No description provided for @categories.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get categories;
+
+  /// No description provided for @calm.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm'**
+  String get calm;
+
+  /// No description provided for @trackMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Track Mood'**
+  String get trackMood;
+
+  /// No description provided for @streak.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get streak;
 }
 
 class _AppLocalizationsDelegate

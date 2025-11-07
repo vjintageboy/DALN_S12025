@@ -15,6 +15,7 @@ import '../../services/firestore_service.dart';
 import '../../models/meditation.dart';
 import '../../models/streak.dart';
 import '../../scripts/migrate_existing_users.dart';
+import '../../core/services/localization_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -69,11 +70,11 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
-                _buildNavItem(1, Icons.mood_outlined, Icons.mood, 'Mood'),
-                _buildNavItem(2, Icons.spa_outlined, Icons.spa, 'Expert'),
-                _buildNavItem(3, Icons.chat_bubble_outline, Icons.chat_bubble, 'AI Chat'),
-                _buildNavItem(4, Icons.person_outline, Icons.person, 'Profile'),
+                _buildNavItem(0, Icons.home_outlined, Icons.home, context.l10n.home),
+                _buildNavItem(1, Icons.mood_outlined, Icons.mood, context.l10n.mood),
+                _buildNavItem(2, Icons.spa_outlined, Icons.spa, context.l10n.experts),
+                _buildNavItem(3, Icons.chat_bubble_outline, Icons.chat_bubble, context.l10n.chatbot),
+                _buildNavItem(4, Icons.person_outline, Icons.person, context.l10n.profile),
               ],
             ),
           ),
@@ -232,9 +233,9 @@ class _HomeTabState extends State<HomeTab> {
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return context.l10n.goodMorning;
+    if (hour < 18) return context.l10n.goodAfternoon;
+    return context.l10n.goodEvening;
   }
 
   String _getUserName() {
@@ -367,9 +368,9 @@ class _HomeTabState extends State<HomeTab> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Featured Meditations',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.featuredMeditations,
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                       ),
@@ -385,17 +386,17 @@ class _HomeTabState extends State<HomeTab> {
                       },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Text(
-                            'View All',
-                            style: TextStyle(
+                            context.l10n.viewAll,
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF4CAF50),
                             ),
                           ),
-                          SizedBox(width: 4),
-                          Icon(
+                          const SizedBox(width: 4),
+                          const Icon(
                             Icons.arrow_forward_ios,
                             size: 12,
                             color: Color(0xFF4CAF50),
@@ -416,7 +417,7 @@ class _HomeTabState extends State<HomeTab> {
                     if (snapshot.hasError) {
                       return Center(
                         child: Text(
-                          'Error loading meditations',
+                          context.l10n.errorLoadingMeditations,
                           style: TextStyle(color: Colors.red.shade600),
                         ),
                       );
@@ -480,11 +481,11 @@ class _HomeTabState extends State<HomeTab> {
               const SizedBox(height: 32),
               
               // Categories with padding
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  'Categories',
-                  style: TextStyle(
+                  context.l10n.categories,
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                   ),
@@ -497,12 +498,12 @@ class _HomeTabState extends State<HomeTab> {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    _buildCategoryChip('Stress', const Color(0xFFE8F5E9)),
-                    _buildCategoryChip('Anxiety', const Color(0xFFE3F2FD)),
-                    _buildCategoryChip('Sleep', const Color(0xFFD1F2EB)),
-                    _buildCategoryChip('Focus', const Color(0xFFFFF3E0)),
-                    _buildCategoryChip('Meditation', const Color(0xFFF3E5F5)),
-                    _buildCategoryChip('Calm', const Color(0xFFFCE4EC)),
+                    _buildCategoryChip(context.l10n.stress, const Color(0xFFE8F5E9)),
+                    _buildCategoryChip(context.l10n.anxiety, const Color(0xFFE3F2FD)),
+                    _buildCategoryChip(context.l10n.sleep, const Color(0xFFD1F2EB)),
+                    _buildCategoryChip(context.l10n.focus, const Color(0xFFFFF3E0)),
+                    _buildCategoryChip(context.l10n.meditation, const Color(0xFFF3E5F5)),
+                    _buildCategoryChip(context.l10n.calm, const Color(0xFFFCE4EC)),
                   ],
                 ),
               ),
@@ -568,10 +569,10 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Track Mood',
-                    style: TextStyle(
+                    context.l10n.trackMood,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
@@ -613,9 +614,9 @@ class _HomeTabState extends State<HomeTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Streak',
-              style: TextStyle(
+            Text(
+              context.l10n.streak,
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: Colors.black54,
@@ -649,9 +650,9 @@ class _HomeTabState extends State<HomeTab> {
                           height: 1,
                         ),
                       ),
-                      const Text(
-                        'days',
-                        style: TextStyle(
+                      Text(
+                        context.l10n.days,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.black54,

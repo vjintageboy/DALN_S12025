@@ -5,6 +5,8 @@ import '../mood/mood_analytics_page.dart';
 import '../appointment/my_appointments_page.dart';
 import '../../services/firestore_service.dart';
 import '../../models/streak.dart';
+import '../../shared/widgets/language_switcher.dart';
+import '../../core/services/localization_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -142,16 +144,16 @@ class _ProfilePageState extends State<ProfilePage> {
                       children: [
                         Expanded(
                           child: _buildStreakCard(
-                            title: 'Current Streak',
-                            value: '$currentStreak ${currentStreak == 1 ? 'Day' : 'Days'}',
+                            title: context.l10n.currentStreak,
+                            value: '$currentStreak ${currentStreak == 1 ? context.l10n.day : context.l10n.days}',
                             color: const Color(0xFF8BC34A),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: _buildStreakCard(
-                            title: 'Longest Streak',
-                            value: '$longestStreak ${longestStreak == 1 ? 'Day' : 'Days'}',
+                            title: context.l10n.longestStreak,
+                            value: '$longestStreak ${longestStreak == 1 ? context.l10n.day : context.l10n.days}',
                             color: const Color(0xFF689F38),
                           ),
                         ),
@@ -163,11 +165,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 32),
                 
                 // Settings Title
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Settings',
-                    style: TextStyle(
+                    context.l10n.settings,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF1A1A1A),
@@ -179,8 +181,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 // Profile Options
                 _buildProfileOption(
                   icon: Icons.person_outline,
-                  title: 'Edit Profile',
-                  subtitle: 'Update your personal information',
+                  title: context.l10n.editProfile,
+                  subtitle: context.l10n.editProfileSubtitle,
                   onTap: () {
                     // TODO: Navigate to edit profile page
                   },
@@ -189,8 +191,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 
                 _buildProfileOption(
                   icon: Icons.notifications_none,
-                  title: 'Notifications',
-                  subtitle: 'Manage notification preferences',
+                  title: context.l10n.notifications,
+                  subtitle: context.l10n.notificationsSubtitle,
                   onTap: () {
                     // TODO: Navigate to notifications settings
                   },
@@ -199,8 +201,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 
                 _buildProfileOption(
                   icon: Icons.bar_chart_rounded,
-                  title: 'Statistics',
-                  subtitle: 'View your mood analytics',
+                  title: context.l10n.statistics,
+                  subtitle: context.l10n.statisticsSubtitle,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -214,8 +216,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 
                 _buildProfileOption(
                   icon: Icons.calendar_month_outlined,
-                  title: 'My Appointments',
-                  subtitle: 'View and manage your bookings',
+                  title: context.l10n.myAppointments,
+                  subtitle: context.l10n.myAppointmentsSubtitle,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -229,8 +231,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 
                 _buildProfileOption(
                   icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy & Security',
-                  subtitle: 'Control your privacy settings',
+                  title: context.l10n.privacySecurity,
+                  subtitle: context.l10n.privacySecuritySubtitle,
                   onTap: () {
                     // TODO: Navigate to privacy settings
                   },
@@ -239,12 +241,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 
                 _buildProfileOption(
                   icon: Icons.help_outline,
-                  title: 'Help & Support',
-                  subtitle: 'Get help and contact us',
+                  title: context.l10n.helpSupport,
+                  subtitle: context.l10n.helpSupportSubtitle,
                   onTap: () {
                     // TODO: Navigate to help page
                   },
                 ),
+                const SizedBox(height: 12),
+                
+                // Language Selector
+                const LanguageSettingsTile(),
                 const SizedBox(height: 24),
 
                 // Logout Button
@@ -271,7 +277,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Lỗi đăng xuất: ${e.toString()}'),
+                                content: Text(context.l10n.errorLogout(e.toString())),
                                 duration: const Duration(seconds: 3),
                                 backgroundColor: Colors.red,
                               ),
@@ -296,7 +302,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Icon(Icons.logout, size: 20, color: Colors.red.shade600),
                         const SizedBox(width: 8),
                         Text(
-                          'Đăng xuất',
+                          context.l10n.logout,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -488,38 +494,38 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<bool?> _showLogoutDialog(BuildContext context) {
     return showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text(
-            'Xác nhận đăng xuất',
-            style: TextStyle(
+          title: Text(
+            context.l10n.logoutConfirmTitle,
+            style: const TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 18,
             ),
           ),
-          content: const Text(
-            'Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng?',
-            style: TextStyle(
+          content: Text(
+            context.l10n.logoutConfirmMessage,
+            style: const TextStyle(
               fontSize: 14,
               color: Colors.black87,
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                'Hủy',
-                style: TextStyle(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(
+                context.l10n.cancel,
+                style: const TextStyle(
                   color: Colors.grey,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade400,
                 foregroundColor: Colors.white,
@@ -527,9 +533,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Đăng xuất',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              child: Text(
+                context.l10n.logout,
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],

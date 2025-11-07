@@ -212,5 +212,16 @@
   
   "day": "day",
   "days": "days",
-  "settings": "Settings"
+  "settings": "Settings",
+  
+  "goodMorning": "Good Morning",
+  "goodAfternoon": "Good Afternoon",
+  "goodEvening": "Good Evening",
+  "featuredMeditations": "Featured Meditations",
+  "viewAll": "View All",
+  "errorLoadingMeditations": "Error loading meditations",
+  "categories": "Categories",
+  "calm": "Calm",
+  "trackMood": "Track Mood",
+  "streak": "Streak"
 }
