@@ -10,6 +10,7 @@ import 'utils/mood_helpers.dart';
 import 'widgets/mood_filter_bar.dart';
 import 'widgets/mood_empty_state.dart';
 import 'widgets/calendar_legend.dart';
+import '../../core/services/localization_service.dart';
 
 class MoodHistoryPage extends StatefulWidget {
   const MoodHistoryPage({super.key});
@@ -153,9 +154,9 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
         backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text(
-          'Mood History',
-          style: TextStyle(
+        title: Text(
+          context.l10n.moodHistory,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -216,9 +217,9 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
             fontWeight: FontWeight.w500,
             fontSize: 15,
           ),
-          tabs: const [
-            Tab(text: 'Grouped'),
-            Tab(text: 'Calendar'),
+          tabs: [
+            Tab(text: context.l10n.grouped),
+            Tab(text: context.l10n.calendar),
           ],
         ),
       ),
@@ -281,11 +282,13 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
     
     String dateLabel;
     if (entryDate == today) {
-      dateLabel = 'Today';
+      dateLabel = context.l10n.today;
     } else if (entryDate == today.subtract(const Duration(days: 1))) {
-      dateLabel = 'Yesterday';
+      dateLabel = context.l10n.yesterday;
     } else {
-      dateLabel = DateFormat('EEEE, MMM dd').format(date);
+      // Use locale from context for date formatting
+      final locale = Localizations.localeOf(context).toString();
+      dateLabel = DateFormat('EEEE, MMM dd', locale).format(date);
     }
 
     // Calculate average mood for the day
@@ -325,7 +328,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Avg: ${avgMood.toStringAsFixed(1)}',
+                      '${context.l10n.avg}: ${avgMood.toStringAsFixed(1)}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -337,7 +340,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
               ),
               const Spacer(),
               Text(
-                '${entries.length} ${entries.length == 1 ? 'entry' : 'entries'}',
+                '${entries.length} ${entries.length == 1 ? context.l10n.entry : context.l10n.entries}',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade600,
@@ -613,7 +616,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${entries.length} ${entries.length == 1 ? 'entry' : 'entries'}',
+                      '${entries.length} ${entries.length == 1 ? context.l10n.entry : context.l10n.entries}',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -747,7 +750,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              MoodHelpers.getMoodLabel(entry.moodLevel),
+                              MoodHelpers.getMoodLabel(context, entry.moodLevel),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -816,7 +819,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                             ),
                           ),
                           child: Text(
-                            factor,
+                            _getEmotionFactorLabel(factor),
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF2E7D32),
@@ -858,5 +861,35 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
         ),
       ),
     );
+  }
+
+  String _getEmotionFactorLabel(String factor) {
+    // Normalize to lowercase for key matching (backward compatibility with old data)
+    final key = factor.toLowerCase().replaceAll(' ', '');
+    
+    switch (key) {
+      case 'work':
+        return context.l10n.work;
+      case 'family':
+        return context.l10n.family;
+      case 'health':
+        return context.l10n.health;
+      case 'relationships':
+        return context.l10n.relationships;
+      case 'sleep':
+        return context.l10n.sleep;
+      case 'exercise':
+        return context.l10n.exercise;
+      case 'social':
+        return context.l10n.social;
+      case 'money':
+        return context.l10n.money;
+      case 'weather':
+        return context.l10n.weather;
+      case 'food':
+        return context.l10n.food;
+      default:
+        return factor; // Return original if no match
+    }
   }
 }

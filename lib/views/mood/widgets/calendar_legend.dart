@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 class CalendarLegend extends StatelessWidget {
   const CalendarLegend({super.key});
@@ -15,9 +16,9 @@ class CalendarLegend extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Legend',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.legend,
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -27,11 +28,11 @@ class CalendarLegend extends StatelessWidget {
             spacing: 12,
             runSpacing: 8,
             children: [
-              _buildLegendItem('😞', 'Very Poor', Colors.red.shade400),
-              _buildLegendItem('😕', 'Poor', Colors.orange.shade400),
-              _buildLegendItem('😐', 'Okay', Colors.yellow.shade700),
-              _buildLegendItem('🙂', 'Good', Colors.lightGreen.shade600),
-              _buildLegendItem('😄', 'Excellent', Colors.green.shade600),
+              _buildLegendItem('😞', AppLocalizations.of(context)!.veryPoor, Colors.red.shade400),
+              _buildLegendItem('😕', AppLocalizations.of(context)!.poor, Colors.orange.shade400),
+              _buildLegendItem('😐', AppLocalizations.of(context)!.okay, Colors.yellow.shade700),
+              _buildLegendItem('🙂', AppLocalizations.of(context)!.good, Colors.lightGreen.shade600),
+              _buildLegendItem('😄', AppLocalizations.of(context)!.excellent, Colors.green.shade600),
             ],
           ),
         ],

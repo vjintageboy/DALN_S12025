@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 class MoodFilterBar extends StatelessWidget {
   final int selectedFilter;
@@ -25,23 +26,23 @@ class MoodFilterBar extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          _buildFilterChip('All', 0, Icons.filter_list),
+          _buildFilterChip(context, AppLocalizations.of(context)!.all, 0, Icons.filter_list),
           const SizedBox(width: 8),
-          _buildFilterChip('😞 Very Poor', 1, null),
+          _buildFilterChip(context, '😞 ${AppLocalizations.of(context)!.veryPoor}', 1, null),
           const SizedBox(width: 8),
-          _buildFilterChip('😕 Poor', 2, null),
+          _buildFilterChip(context, '😕 ${AppLocalizations.of(context)!.poor}', 2, null),
           const SizedBox(width: 8),
-          _buildFilterChip('😐 Okay', 3, null),
+          _buildFilterChip(context, '😐 ${AppLocalizations.of(context)!.okay}', 3, null),
           const SizedBox(width: 8),
-          _buildFilterChip('🙂 Good', 4, null),
+          _buildFilterChip(context, '🙂 ${AppLocalizations.of(context)!.good}', 4, null),
           const SizedBox(width: 8),
-          _buildFilterChip('😄 Excellent', 5, null),
+          _buildFilterChip(context, '😄 ${AppLocalizations.of(context)!.excellent}', 5, null),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, int value, IconData? icon) {
+  Widget _buildFilterChip(BuildContext context, String label, int value, IconData? icon) {
     final isSelected = selectedFilter == value;
     return FilterChip(
       selected: isSelected,

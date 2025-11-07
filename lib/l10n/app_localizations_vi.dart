@@ -381,7 +381,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get search => 'Tìm kiếm';
 
   @override
-  String get filter => 'Bộ lọc';
+  String get filter => 'Lọc';
 
   @override
   String get sort => 'Sắp xếp';
@@ -483,4 +483,141 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get streak => 'Chuỗi';
+
+  @override
+  String get moodLog => 'Ghi nhật ký tâm trạng';
+
+  @override
+  String get howAreYouFeelingToday => 'Hôm nay bạn cảm thấy\nthế nào?';
+
+  @override
+  String get notes => 'Ghi chú';
+
+  @override
+  String get notesHint => 'Bạn đang nghĩ gì? (Tùy chọn)';
+
+  @override
+  String get emotionFactors => 'Điều gì ảnh hưởng đến tâm trạng bạn?';
+
+  @override
+  String get work => 'Công việc';
+
+  @override
+  String get family => 'Gia đình';
+
+  @override
+  String get health => 'Sức khỏe';
+
+  @override
+  String get relationships => 'Mối quan hệ';
+
+  @override
+  String get exercise => 'Tập thể dục';
+
+  @override
+  String get social => 'Xã hội';
+
+  @override
+  String get money => 'Tài chính';
+
+  @override
+  String get weather => 'Thời tiết';
+
+  @override
+  String get food => 'Ăn uống';
+
+  @override
+  String get moodLoggedSuccess => 'Đã ghi nhận tâm trạng! 🎉';
+
+  @override
+  String errorSavingMood(String error) {
+    return 'Lỗi lưu tâm trạng: $error';
+  }
+
+  @override
+  String get moodHistory => 'Lịch sử tâm trạng';
+
+  @override
+  String get allMoods => 'Tất cả';
+
+  @override
+  String get thisWeek => 'Tuần này';
+
+  @override
+  String get thisMonth => 'Tháng này';
+
+  @override
+  String get noMoodEntries => 'Chưa có ghi nhận nào';
+
+  @override
+  String get startTrackingMood => 'Bắt đầu ghi nhận tâm trạng để xem lịch sử';
+
+  @override
+  String get errorLoadingMoods => 'Lỗi tải tâm trạng';
+
+  @override
+  String get moodDetails => 'Chi tiết tâm trạng';
+
+  @override
+  String get edit => 'Chỉnh sửa';
+
+  @override
+  String get factors => 'Yếu tố';
+
+  @override
+  String get noFactors => 'Không có yếu tố nào';
+
+  @override
+  String get deleteMoodConfirm => 'Xóa ghi nhận này?';
+
+  @override
+  String get deleteMoodMessage => 'Hành động này không thể hoàn tác.';
+
+  @override
+  String get moodDeletedSuccess => 'Đã xóa ghi nhận';
+
+  @override
+  String get errorDeletingMood => 'Lỗi khi xóa';
+
+  @override
+  String get grouped => 'Theo nhóm';
+
+  @override
+  String get calendar => 'Lịch';
+
+  @override
+  String get all => 'Tất cả';
+
+  @override
+  String get avg => 'TB';
+
+  @override
+  String get entry => 'mục';
+
+  @override
+  String get entries => 'mục';
+
+  @override
+  String get today => 'Hôm nay';
+
+  @override
+  String get yesterday => 'Hôm qua';
+
+  @override
+  String get legend => 'Chú giải';
+
+  @override
+  String get moodEntry => 'Nhật ký tâm trạng';
+
+  @override
+  String get howWereYouFeeling => 'Bạn cảm thấy thế nào?';
+
+  @override
+  String get whatInfluencedMood => 'Điều gì ảnh hưởng đến tâm trạng của bạn?';
+
+  @override
+  String get moodUpdatedSuccess => 'Đã cập nhật nhật ký tâm trạng! 🎉';
+
+  @override
+  String get errorUpdatingMood => 'Lỗi khi cập nhật';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 class MoodHelpers {
   static String getMoodEmoji(int level) {
@@ -18,20 +19,21 @@ class MoodHelpers {
     }
   }
 
-  static String getMoodLabel(int level) {
+  static String getMoodLabel(BuildContext context, int level) {
+    final l10n = AppLocalizations.of(context)!;
     switch (level) {
       case 1:
-        return 'Very Poor';
+        return l10n.veryPoor;
       case 2:
-        return 'Poor';
+        return l10n.poor;
       case 3:
-        return 'Okay';
+        return l10n.okay;
       case 4:
-        return 'Good';
+        return l10n.good;
       case 5:
-        return 'Excellent';
+        return l10n.excellent;
       default:
-        return 'Okay';
+        return l10n.okay;
     }
   }
 

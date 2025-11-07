@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../models/mood_entry.dart';
 import '../../services/firestore_service.dart';
+import '../../core/services/localization_service.dart';
 
 class MoodAnalyticsPage extends StatefulWidget {
   const MoodAnalyticsPage({super.key});
@@ -122,12 +123,12 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
 
   String _getMoodLabel(int level) {
     switch (level) {
-      case 1: return 'Very Poor';
-      case 2: return 'Poor';
-      case 3: return 'Okay';
-      case 4: return 'Good';
-      case 5: return 'Excellent';
-      default: return 'Okay';
+      case 1: return context.l10n.veryPoor;
+      case 2: return context.l10n.poor;
+      case 3: return context.l10n.okay;
+      case 4: return context.l10n.good;
+      case 5: return context.l10n.excellent;
+      default: return context.l10n.okay;
     }
   }
 

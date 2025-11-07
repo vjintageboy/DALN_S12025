@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/mood_entry.dart';
 import '../../services/firestore_service.dart';
+import '../../core/services/localization_service.dart';
 
 class MoodLogPage extends StatefulWidget {
   const MoodLogPage({super.key});
@@ -18,27 +19,27 @@ class _MoodLogPageState extends State<MoodLogPage> {
   final Set<String> _selectedFactors = {};
   bool _isSaving = false;
 
-  // Mood levels with emojis
-  final List<Map<String, dynamic>> _moodLevels = [
-    {'level': 1, 'emoji': '😞', 'label': 'Very Poor'},
-    {'level': 2, 'emoji': '😕', 'label': 'Poor'},
-    {'level': 3, 'emoji': '😐', 'label': 'Okay'},
-    {'level': 4, 'emoji': '🙂', 'label': 'Good'},
-    {'level': 5, 'emoji': '😄', 'label': 'Excellent'},
+  // Mood levels with emojis - Will be localized in build method
+  List<Map<String, dynamic>> get _moodLevels => [
+    {'level': 1, 'emoji': '😞', 'labelKey': 'veryPoor'},
+    {'level': 2, 'emoji': '😕', 'labelKey': 'poor'},
+    {'level': 3, 'emoji': '😐', 'labelKey': 'okay'},
+    {'level': 4, 'emoji': '🙂', 'labelKey': 'good'},
+    {'level': 5, 'emoji': '😄', 'labelKey': 'excellent'},
   ];
 
-  // Emotion factors
-  final List<String> _emotionFactors = [
-    'Work',
-    'Family',
-    'Health',
-    'Relationships',
-    'Sleep',
-    'Exercise',
-    'Social',
-    'Money',
-    'Weather',
-    'Food',
+  // Emotion factors - Will be localized in build method
+  List<String> get _emotionFactorKeys => [
+    'work',
+    'family',
+    'health',
+    'relationships',
+    'sleep',
+    'exercise',
+    'social',
+    'money',
+    'weather',
+    'food',
   ];
 
   @override
@@ -69,10 +70,10 @@ class _MoodLogPageState extends State<MoodLogPage> {
       if (mounted) {
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mood logged successfully! 🎉'),
-            backgroundColor: Color(0xFF4CAF50),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(context.l10n.moodLoggedSuccess),
+            backgroundColor: const Color(0xFF4CAF50),
+            duration: const Duration(seconds: 2),
           ),
         );
 
@@ -84,7 +85,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving mood: $e'),
+            content: Text(context.l10n.errorSavingMood(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -107,9 +108,9 @@ class _MoodLogPageState extends State<MoodLogPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Mood Log',
-          style: TextStyle(
+        title: Text(
+          context.l10n.moodLog,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -135,9 +136,9 @@ class _MoodLogPageState extends State<MoodLogPage> {
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
               ),
-              child: const Text(
-                'Save',
-                style: TextStyle(
+              child: Text(
+                context.l10n.save,
+                style: const TextStyle(
                   color: Color(0xFF4CAF50),
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -153,9 +154,9 @@ class _MoodLogPageState extends State<MoodLogPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Question
-              const Text(
-                'How are you feeling\ntoday?',
-                style: TextStyle(
+              Text(
+                context.l10n.howAreYouFeelingToday,
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   height: 1.2,
@@ -196,7 +197,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          mood['label'],
+                          _getMoodLabel(context, mood['labelKey']),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 11,
@@ -214,11 +215,11 @@ class _MoodLogPageState extends State<MoodLogPage> {
               const SizedBox(height: 40),
 
               // Notes section
-              const Text(
-                'Notes',
-                style: TextStyle(
+              Text(
+                context.l10n.notes,
+                style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 12),
@@ -238,7 +239,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
                   controller: _noteController,
                   maxLines: 5,
                   decoration: InputDecoration(
-                    hintText: 'Add a note...',
+                    hintText: context.l10n.notesHint,
                     hintStyle: TextStyle(
                       color: Colors.grey.shade400,
                       fontSize: 15,
@@ -252,9 +253,9 @@ class _MoodLogPageState extends State<MoodLogPage> {
               const SizedBox(height: 32),
 
               // What's influencing your mood
-              const Text(
-                'What\'s influencing your mood?',
-                style: TextStyle(
+              Text(
+                context.l10n.emotionFactors,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -263,15 +264,16 @@ class _MoodLogPageState extends State<MoodLogPage> {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: _emotionFactors.map((factor) {
-                  final isSelected = _selectedFactors.contains(factor);
+                children: _emotionFactorKeys.map((factorKey) {
+                  final factor = _getEmotionFactorLabel(context, factorKey);
+                  final isSelected = _selectedFactors.contains(factorKey);
                   return GestureDetector(
                     onTap: () {
                       setState(() {
                         if (isSelected) {
-                          _selectedFactors.remove(factor);
+                          _selectedFactors.remove(factorKey);
                         } else {
-                          _selectedFactors.add(factor);
+                          _selectedFactors.add(factorKey);
                         }
                       });
                     },
@@ -312,5 +314,49 @@ class _MoodLogPageState extends State<MoodLogPage> {
         ),
       ),
     );
+  }
+
+  String _getMoodLabel(BuildContext context, String labelKey) {
+    switch (labelKey) {
+      case 'veryPoor':
+        return context.l10n.veryPoor;
+      case 'poor':
+        return context.l10n.poor;
+      case 'okay':
+        return context.l10n.okay;
+      case 'good':
+        return context.l10n.good;
+      case 'excellent':
+        return context.l10n.excellent;
+      default:
+        return '';
+    }
+  }
+
+  String _getEmotionFactorLabel(BuildContext context, String factorKey) {
+    switch (factorKey) {
+      case 'work':
+        return context.l10n.work;
+      case 'family':
+        return context.l10n.family;
+      case 'health':
+        return context.l10n.health;
+      case 'relationships':
+        return context.l10n.relationships;
+      case 'sleep':
+        return context.l10n.sleep;
+      case 'exercise':
+        return context.l10n.exercise;
+      case 'social':
+        return context.l10n.social;
+      case 'money':
+        return context.l10n.money;
+      case 'weather':
+        return context.l10n.weather;
+      case 'food':
+        return context.l10n.food;
+      default:
+        return factorKey;
+    }
   }
 }

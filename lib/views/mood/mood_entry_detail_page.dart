@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/mood_entry.dart';
 import '../../services/firestore_service.dart';
+import '../../core/services/localization_service.dart';
 
 class MoodEntryDetailPage extends StatefulWidget {
   final MoodEntry entry;
@@ -24,17 +25,17 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
   bool _isEditing = false;
   bool _isSaving = false;
 
-  final List<String> _emotionFactors = [
-    'Work',
-    'Family',
-    'Health',
-    'Relationships',
-    'Sleep',
-    'Exercise',
-    'Social',
-    'Money',
-    'Weather',
-    'Food',
+  final List<String> _emotionFactorKeys = [
+    'work',
+    'family',
+    'health',
+    'relationships',
+    'sleep',
+    'exercise',
+    'social',
+    'money',
+    'weather',
+    'food',
   ];
 
   @override
@@ -64,12 +65,12 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
 
   String _getMoodLabel(int level) {
     switch (level) {
-      case 1: return 'Very Poor';
-      case 2: return 'Poor';
-      case 3: return 'Okay';
-      case 4: return 'Good';
-      case 5: return 'Excellent';
-      default: return 'Okay';
+      case 1: return context.l10n.veryPoor;
+      case 2: return context.l10n.poor;
+      case 3: return context.l10n.okay;
+      case 4: return context.l10n.good;
+      case 5: return context.l10n.excellent;
+      default: return context.l10n.okay;
     }
   }
 
@@ -81,6 +82,36 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
       case 4: return Colors.lightGreen.shade600;
       case 5: return Colors.green.shade600;
       default: return Colors.grey;
+    }
+  }
+
+  String _getEmotionFactorLabel(String factor) {
+    // Normalize to lowercase for key matching (backward compatibility with old data)
+    final key = factor.toLowerCase().replaceAll(' ', '');
+    
+    switch (key) {
+      case 'work':
+        return context.l10n.work;
+      case 'family':
+        return context.l10n.family;
+      case 'health':
+        return context.l10n.health;
+      case 'relationships':
+        return context.l10n.relationships;
+      case 'sleep':
+        return context.l10n.sleep;
+      case 'exercise':
+        return context.l10n.exercise;
+      case 'social':
+        return context.l10n.social;
+      case 'money':
+        return context.l10n.money;
+      case 'weather':
+        return context.l10n.weather;
+      case 'food':
+        return context.l10n.food;
+      default:
+        return factor; // Return original if no match
     }
   }
 
@@ -99,10 +130,10 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mood entry updated successfully! 🎉'),
-            backgroundColor: Color(0xFF4CAF50),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(context.l10n.moodUpdatedSuccess),
+            backgroundColor: const Color(0xFF4CAF50),
+            duration: const Duration(seconds: 2),
           ),
         );
         Navigator.pop(context, true);
@@ -111,7 +142,7 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating mood: $e'),
+            content: Text('${context.l10n.errorUpdatingMood}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -125,8 +156,9 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('EEEE, MMMM dd, yyyy');
-    final timeFormat = DateFormat('h:mm a');
+    final locale = Localizations.localeOf(context).toString();
+    final dateFormat = DateFormat('EEEE, MMMM dd, yyyy', locale);
+    final timeFormat = DateFormat('h:mm a', locale);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -137,9 +169,9 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Mood Entry',
-          style: TextStyle(
+        title: Text(
+          context.l10n.moodEntry,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -166,9 +198,9 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
+                child: Text(
+                  context.l10n.save,
+                  style: const TextStyle(
                     color: Color(0xFF4CAF50),
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -231,9 +263,9 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
               const SizedBox(height: 24),
 
               // Mood Level
-              const Text(
-                'How were you feeling?',
-                style: TextStyle(
+              Text(
+                context.l10n.howWereYouFeeling,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -326,9 +358,9 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
               const SizedBox(height: 32),
 
               // Notes
-              const Text(
-                'Notes',
-                style: TextStyle(
+              Text(
+                context.l10n.notes,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -363,9 +395,9 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
               const SizedBox(height: 32),
 
               // Emotion Factors
-              const Text(
-                'What influenced your mood?',
-                style: TextStyle(
+              Text(
+                context.l10n.whatInfluencedMood,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -374,15 +406,15 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: _emotionFactors.map((factor) {
-                  final isSelected = _selectedFactors.contains(factor);
+                children: _emotionFactorKeys.map((factorKey) {
+                  final isSelected = _selectedFactors.contains(factorKey);
                   return GestureDetector(
                     onTap: _isEditing ? () {
                       setState(() {
                         if (isSelected) {
-                          _selectedFactors.remove(factor);
+                          _selectedFactors.remove(factorKey);
                         } else {
-                          _selectedFactors.add(factor);
+                          _selectedFactors.add(factorKey);
                         }
                       });
                     } : null,
@@ -404,7 +436,7 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
                         ),
                       ),
                       child: Text(
-                        factor,
+                        _getEmotionFactorLabel(factorKey),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,

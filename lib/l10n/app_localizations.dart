@@ -1021,6 +1021,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Streak'**
   String get streak;
+
+  /// No description provided for @moodLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood Log'**
+  String get moodLog;
+
+  /// No description provided for @howAreYouFeelingToday.
+  ///
+  /// In en, this message translates to:
+  /// **'How are you feeling\ntoday?'**
+  String get howAreYouFeelingToday;
+
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
+  /// No description provided for @notesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s on your mind? (Optional)'**
+  String get notesHint;
+
+  /// No description provided for @emotionFactors.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s affecting your mood?'**
+  String get emotionFactors;
+
+  /// No description provided for @work.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get work;
+
+  /// No description provided for @family.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get family;
+
+  /// No description provided for @health.
+  ///
+  /// In en, this message translates to:
+  /// **'Health'**
+  String get health;
+
+  /// No description provided for @relationships.
+  ///
+  /// In en, this message translates to:
+  /// **'Relationships'**
+  String get relationships;
+
+  /// No description provided for @exercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise'**
+  String get exercise;
+
+  /// No description provided for @social.
+  ///
+  /// In en, this message translates to:
+  /// **'Social'**
+  String get social;
+
+  /// No description provided for @money.
+  ///
+  /// In en, this message translates to:
+  /// **'Money'**
+  String get money;
+
+  /// No description provided for @weather.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather'**
+  String get weather;
+
+  /// No description provided for @food.
+  ///
+  /// In en, this message translates to:
+  /// **'Food'**
+  String get food;
+
+  /// No description provided for @moodLoggedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood logged successfully! 🎉'**
+  String get moodLoggedSuccess;
+
+  /// No description provided for @errorSavingMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Error saving mood: {error}'**
+  String errorSavingMood(String error);
+
+  /// No description provided for @moodHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood History'**
+  String get moodHistory;
+
+  /// No description provided for @allMoods.
+  ///
+  /// In en, this message translates to:
+  /// **'All Moods'**
+  String get allMoods;
+
+  /// No description provided for @thisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This Week'**
+  String get thisWeek;
+
+  /// No description provided for @thisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month'**
+  String get thisMonth;
+
+  /// No description provided for @noMoodEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'No mood entries yet'**
+  String get noMoodEntries;
+
+  /// No description provided for @startTrackingMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Start tracking your mood to see your history'**
+  String get startTrackingMood;
+
+  /// No description provided for @errorLoadingMoods.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading moods'**
+  String get errorLoadingMoods;
+
+  /// No description provided for @moodDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood Details'**
+  String get moodDetails;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @factors.
+  ///
+  /// In en, this message translates to:
+  /// **'Factors'**
+  String get factors;
+
+  /// No description provided for @noFactors.
+  ///
+  /// In en, this message translates to:
+  /// **'No factors recorded'**
+  String get noFactors;
+
+  /// No description provided for @deleteMoodConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this mood entry?'**
+  String get deleteMoodConfirm;
+
+  /// No description provided for @deleteMoodMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get deleteMoodMessage;
+
+  /// No description provided for @moodDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood entry deleted'**
+  String get moodDeletedSuccess;
+
+  /// No description provided for @errorDeletingMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting mood'**
+  String get errorDeletingMood;
+
+  /// No description provided for @grouped.
+  ///
+  /// In en, this message translates to:
+  /// **'Grouped'**
+  String get grouped;
+
+  /// No description provided for @calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendar;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @avg.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg'**
+  String get avg;
+
+  /// No description provided for @entry.
+  ///
+  /// In en, this message translates to:
+  /// **'entry'**
+  String get entry;
+
+  /// No description provided for @entries.
+  ///
+  /// In en, this message translates to:
+  /// **'entries'**
+  String get entries;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @legend.
+  ///
+  /// In en, this message translates to:
+  /// **'Legend'**
+  String get legend;
+
+  /// No description provided for @moodEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood Entry'**
+  String get moodEntry;
+
+  /// No description provided for @howWereYouFeeling.
+  ///
+  /// In en, this message translates to:
+  /// **'How were you feeling?'**
+  String get howWereYouFeeling;
+
+  /// No description provided for @whatInfluencedMood.
+  ///
+  /// In en, this message translates to:
+  /// **'What influenced your mood?'**
+  String get whatInfluencedMood;
+
+  /// No description provided for @moodUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood entry updated successfully! 🎉'**
+  String get moodUpdatedSuccess;
+
+  /// No description provided for @errorUpdatingMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating mood'**
+  String get errorUpdatingMood;
 }
 
 class _AppLocalizationsDelegate

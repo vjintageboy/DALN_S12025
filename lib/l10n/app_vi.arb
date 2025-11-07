@@ -223,5 +223,63 @@
   "categories": "Danh mục",
   "calm": "Bình tĩnh",
   "trackMood": "Ghi nhận tâm trạng",
-  "streak": "Chuỗi"
+  "streak": "Chuỗi",
+  
+  "moodLog": "Ghi nhật ký tâm trạng",
+  "howAreYouFeelingToday": "Hôm nay bạn cảm thấy\nthế nào?",
+  "notes": "Ghi chú",
+  "notesHint": "Bạn đang nghĩ gì? (Tùy chọn)",
+  "emotionFactors": "Điều gì ảnh hưởng đến tâm trạng bạn?",
+  "work": "Công việc",
+  "family": "Gia đình",
+  "health": "Sức khỏe",
+  "relationships": "Mối quan hệ",
+  "exercise": "Tập thể dục",
+  "social": "Xã hội",
+  "money": "Tài chính",
+  "weather": "Thời tiết",
+  "food": "Ăn uống",
+  "moodLoggedSuccess": "Đã ghi nhận tâm trạng! 🎉",
+  "errorSavingMood": "Lỗi lưu tâm trạng: {error}",
+  "@errorSavingMood": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  
+  "moodHistory": "Lịch sử tâm trạng",
+  "filter": "Lọc",
+  "allMoods": "Tất cả",
+  "thisWeek": "Tuần này",
+  "thisMonth": "Tháng này",
+  "noMoodEntries": "Chưa có ghi nhận nào",
+  "startTrackingMood": "Bắt đầu ghi nhận tâm trạng để xem lịch sử",
+  "errorLoadingMoods": "Lỗi tải tâm trạng",
+  
+  "moodDetails": "Chi tiết tâm trạng",
+  "delete": "Xóa",
+  "edit": "Chỉnh sửa",
+  "factors": "Yếu tố",
+  "noFactors": "Không có yếu tố nào",
+  "deleteMoodConfirm": "Xóa ghi nhận này?",
+  "deleteMoodMessage": "Hành động này không thể hoàn tác.",
+  "moodDeletedSuccess": "Đã xóa ghi nhận",
+  "errorDeletingMood": "Lỗi khi xóa",
+  
+  "grouped": "Theo nhóm",
+  "calendar": "Lịch",
+  "all": "Tất cả",
+  "avg": "TB",
+  "entry": "mục",
+  "entries": "mục",
+  "today": "Hôm nay",
+  "yesterday": "Hôm qua",
+  "legend": "Chú giải",
+  
+  "moodEntry": "Nhật ký tâm trạng",
+  "save": "Lưu",
+  "howWereYouFeeling": "Bạn cảm thấy thế nào?",
+  "whatInfluencedMood": "Điều gì ảnh hưởng đến tâm trạng của bạn?",
+  "moodUpdatedSuccess": "Đã cập nhật nhật ký tâm trạng! 🎉",
+  "errorUpdatingMood": "Lỗi khi cập nhật"
 }

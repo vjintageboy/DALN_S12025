@@ -223,5 +223,63 @@
   "categories": "Categories",
   "calm": "Calm",
   "trackMood": "Track Mood",
-  "streak": "Streak"
+  "streak": "Streak",
+  
+  "moodLog": "Mood Log",
+  "howAreYouFeelingToday": "How are you feeling\ntoday?",
+  "notes": "Notes",
+  "notesHint": "What's on your mind? (Optional)",
+  "emotionFactors": "What's affecting your mood?",
+  "work": "Work",
+  "family": "Family",
+  "health": "Health",
+  "relationships": "Relationships",
+  "exercise": "Exercise",
+  "social": "Social",
+  "money": "Money",
+  "weather": "Weather",
+  "food": "Food",
+  "moodLoggedSuccess": "Mood logged successfully! 🎉",
+  "errorSavingMood": "Error saving mood: {error}",
+  "@errorSavingMood": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  
+  "moodHistory": "Mood History",
+  "filter": "Filter",
+  "allMoods": "All Moods",
+  "thisWeek": "This Week",
+  "thisMonth": "This Month",
+  "noMoodEntries": "No mood entries yet",
+  "startTrackingMood": "Start tracking your mood to see your history",
+  "errorLoadingMoods": "Error loading moods",
+  
+  "moodDetails": "Mood Details",
+  "delete": "Delete",
+  "edit": "Edit",
+  "factors": "Factors",
+  "noFactors": "No factors recorded",
+  "deleteMoodConfirm": "Delete this mood entry?",
+  "deleteMoodMessage": "This action cannot be undone.",
+  "moodDeletedSuccess": "Mood entry deleted",
+  "errorDeletingMood": "Error deleting mood",
+  
+  "grouped": "Grouped",
+  "calendar": "Calendar",
+  "all": "All",
+  "avg": "Avg",
+  "entry": "entry",
+  "entries": "entries",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "legend": "Legend",
+  
+  "moodEntry": "Mood Entry",
+  "save": "Save",
+  "howWereYouFeeling": "How were you feeling?",
+  "whatInfluencedMood": "What influenced your mood?",
+  "moodUpdatedSuccess": "Mood entry updated successfully! 🎉",
+  "errorUpdatingMood": "Error updating mood"
 }

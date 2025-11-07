@@ -478,4 +478,142 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get streak => 'Streak';
+
+  @override
+  String get moodLog => 'Mood Log';
+
+  @override
+  String get howAreYouFeelingToday => 'How are you feeling\ntoday?';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String get notesHint => 'What\'s on your mind? (Optional)';
+
+  @override
+  String get emotionFactors => 'What\'s affecting your mood?';
+
+  @override
+  String get work => 'Work';
+
+  @override
+  String get family => 'Family';
+
+  @override
+  String get health => 'Health';
+
+  @override
+  String get relationships => 'Relationships';
+
+  @override
+  String get exercise => 'Exercise';
+
+  @override
+  String get social => 'Social';
+
+  @override
+  String get money => 'Money';
+
+  @override
+  String get weather => 'Weather';
+
+  @override
+  String get food => 'Food';
+
+  @override
+  String get moodLoggedSuccess => 'Mood logged successfully! 🎉';
+
+  @override
+  String errorSavingMood(String error) {
+    return 'Error saving mood: $error';
+  }
+
+  @override
+  String get moodHistory => 'Mood History';
+
+  @override
+  String get allMoods => 'All Moods';
+
+  @override
+  String get thisWeek => 'This Week';
+
+  @override
+  String get thisMonth => 'This Month';
+
+  @override
+  String get noMoodEntries => 'No mood entries yet';
+
+  @override
+  String get startTrackingMood =>
+      'Start tracking your mood to see your history';
+
+  @override
+  String get errorLoadingMoods => 'Error loading moods';
+
+  @override
+  String get moodDetails => 'Mood Details';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get factors => 'Factors';
+
+  @override
+  String get noFactors => 'No factors recorded';
+
+  @override
+  String get deleteMoodConfirm => 'Delete this mood entry?';
+
+  @override
+  String get deleteMoodMessage => 'This action cannot be undone.';
+
+  @override
+  String get moodDeletedSuccess => 'Mood entry deleted';
+
+  @override
+  String get errorDeletingMood => 'Error deleting mood';
+
+  @override
+  String get grouped => 'Grouped';
+
+  @override
+  String get calendar => 'Calendar';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get avg => 'Avg';
+
+  @override
+  String get entry => 'entry';
+
+  @override
+  String get entries => 'entries';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get legend => 'Legend';
+
+  @override
+  String get moodEntry => 'Mood Entry';
+
+  @override
+  String get howWereYouFeeling => 'How were you feeling?';
+
+  @override
+  String get whatInfluencedMood => 'What influenced your mood?';
+
+  @override
+  String get moodUpdatedSuccess => 'Mood entry updated successfully! 🎉';
+
+  @override
+  String get errorUpdatingMood => 'Error updating mood';
 }
