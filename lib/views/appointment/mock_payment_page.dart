@@ -300,9 +300,9 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                     'Simulate card payment',
                   ),
                   const SizedBox(height: 12),
-                  _buildPaymentMethod(
+                  _buildPaymentMethodWithImage(
                     'momo',
-                    '🟣',
+                    'assets/images/Logo-MoMo-Circle.webp',
                     'Mock MoMo',
                     'Simulate MoMo e-wallet',
                   ),
@@ -502,6 +502,104 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
             ),
             const SizedBox(width: 12),
             Text(icon, style: const TextStyle(fontSize: 24)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected
+                          ? const Color(0xFF1A1A1A)
+                          : Colors.grey.shade800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodWithImage(
+    String value,
+    String imagePath,
+    String title,
+    String subtitle,
+  ) {
+    final isSelected = _selectedMethod == value;
+    return InkWell(
+      onTap: () {
+        setState(() => _selectedMethod = value);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF4CAF50).withOpacity(0.05)
+              : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF4CAF50)
+                : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF4CAF50)
+                      : Colors.grey.shade400,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFF4CAF50),
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Image.asset(
+                imagePath,
+                width: 32,
+                height: 32,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Text('🟣', style: TextStyle(fontSize: 24));
+                },
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

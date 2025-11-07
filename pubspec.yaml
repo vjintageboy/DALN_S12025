@@ -81,6 +81,7 @@ flutter:
 
   assets:
     - assets/images/logo.png
+    - assets/images/Logo-MoMo-Circle.webp
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
