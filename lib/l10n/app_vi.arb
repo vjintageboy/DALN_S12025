@@ -1,0 +1,216 @@
+{
+  "@@locale": "vi",
+  
+  "appTitle": "Moodiki",
+  "@appTitle": {
+    "description": "Tên ứng dụng"
+  },
+  
+  "appTagline": "Theo dõi cảm xúc, nâng tầm tâm trí",
+  "@appTagline": {
+    "description": "Slogan chính trên màn hình chào mừng"
+  },
+  
+  "appSubTagline": "Hành trình chăm sóc sức khỏe tinh thần bắt đầu từ đây",
+  "@appSubTagline": {
+    "description": "Slogan phụ trên màn hình chào mừng"
+  },
+  
+  "emotionalJourney": "Hành trình chăm sóc cảm xúc",
+  "@emotionalJourney": {
+    "description": "Phụ đề trong màn hình splash"
+  },
+  
+  "home": "Trang chủ",
+  "meditation": "Thiền định",
+  "mood": "Tâm trạng",
+  "experts": "Chuyên gia",
+  "profile": "Hồ sơ",
+  
+  "signIn": "Đăng nhập",
+  "signUp": "Đăng ký",
+  "createAccount": "Tạo tài khoản",
+  "fullName": "Họ và tên",
+  "emailAddress": "Địa chỉ email",
+  "password": "Mật khẩu",
+  "confirmPassword": "Xác nhận mật khẩu",
+  "alreadyHaveAccount": "Đã có tài khoản? ",
+  "dontHaveAccount": "Chưa có tài khoản? ",
+  "forgotPassword": "Quên mật khẩu?",
+  "or": "HOẶC",
+  
+  "fullNameHint": "Nguyễn Văn A",
+  "emailHint": "email.cua.ban@company.com",
+  "passwordHint": "••••••••",
+  
+  "signUpSubtitle": "Tham gia cùng chúng tôi và bắt đầu hành trình ngày hôm nay",
+  "signInSubtitle": "Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục",
+  
+  "emailRequired": "Email là bắt buộc",
+  "emailInvalid": "Vui lòng nhập email hợp lệ",
+  "passwordRequired": "Mật khẩu là bắt buộc",
+  "passwordTooShort": "Mật khẩu phải có ít nhất 6 ký tự",
+  "passwordsDoNotMatch": "Mật khẩu không khớp",
+  "nameRequired": "Tên là bắt buộc",
+  "nameTooShort": "Tên phải có ít nhất 2 ký tự",
+  
+  "skip": "Bỏ qua",
+  "quote1": "\"Giữa mùa đông giá lạnh, tôi nhận ra bên trong mình vẫn có một mùa hè bất khuất.\"",
+  "quote1Author": "ALBERT CAMUS",
+  "quote2": "\"Cảm xúc chỉ là những vị khách. Hãy để chúng đến rồi đi.\"",
+  "quote2Author": "MOOJI",
+  
+  "currentStreak": "Chuỗi hiện tại",
+  "longestStreak": "Chuỗi dài nhất",
+  "editProfile": "Chỉnh sửa hồ sơ",
+  "editProfileSubtitle": "Cập nhật thông tin cá nhân của bạn",
+  "notifications": "Thông báo",
+  "notificationsSubtitle": "Quản lý tùy chọn thông báo",
+  "statistics": "Thống kê",
+  "statisticsSubtitle": "Xem phân tích tâm trạng của bạn",
+  "myAppointments": "Lịch hẹn của tôi",
+  "myAppointmentsSubtitle": "Xem và quản lý các đặt chỗ của bạn",
+  "privacySecurity": "Quyền riêng tư & Bảo mật",
+  "privacySecuritySubtitle": "Kiểm soát cài đặt quyền riêng tư",
+  "helpSupport": "Trợ giúp & Hỗ trợ",
+  "helpSupportSubtitle": "Nhận trợ giúp và liên hệ với chúng tôi",
+  "logout": "Đăng xuất",
+  "logoutConfirmTitle": "Đăng xuất",
+  "logoutConfirmMessage": "Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng?",
+  "cancel": "Hủy",
+  
+  "howAreYouFeeling": "Hôm nay bạn cảm thấy thế nào?",
+  "selectYourMood": "Chọn tâm trạng của bạn",
+  "addNote": "Thêm ghi chú (tùy chọn)",
+  "noteHint": "Bạn đang nghĩ gì?",
+  "saveMood": "Lưu tâm trạng",
+  "moodSaved": "Đã lưu tâm trạng thành công",
+  "moodAnalytics": "Phân tích tâm trạng",
+  "veryPoor": "Rất tệ",
+  "poor": "Tệ",
+  "okay": "Bình thường",
+  "good": "Tốt",
+  "excellent": "Xuất sắc",
+  
+  "meditationLibrary": "Thư viện thiền định",
+  "findYourPeace": "Tìm sự bình yên của bạn",
+  "searchMeditations": "Tìm kiếm thiền định...",
+  "allCategories": "Tất cả danh mục",
+  "stress": "Căng thẳng",
+  "stressRelief": "Giảm căng thẳng",
+  "anxiety": "Lo âu",
+  "sleep": "Giấc ngủ",
+  "focus": "Tập trung",
+  "beginner": "Người mới bắt đầu",
+  "intermediate": "Trung cấp",
+  "advanced": "Nâng cao",
+  "minutes": "phút",
+  "noMeditationsFound": "Không tìm thấy thiền định nào",
+  "tryAdjustingFilters": "Thử điều chỉnh bộ lọc của bạn",
+  "play": "Phát",
+  "pause": "Tạm dừng",
+  "stop": "Dừng",
+  
+  "findExpert": "Tìm chuyên gia",
+  "searchExperts": "Tìm kiếm chuyên gia theo tên hoặc chuyên môn...",
+  "yearsExperience": "năm kinh nghiệm",
+  "bookAppointment": "Đặt lịch hẹn",
+  "about": "Giới thiệu",
+  "specializations": "Chuyên môn",
+  "availability": "Lịch trống",
+  "selectDateTime": "Chọn ngày & giờ",
+  "selectCallType": "Chọn loại cuộc gọi",
+  "videoCall": "Gọi video",
+  "voiceCall": "Gọi thoại",
+  "inPerson": "Gặp trực tiếp",
+  "confirm": "Xác nhận",
+  "payment": "Thanh toán",
+  "proceedToPayment": "Tiến hành thanh toán",
+  
+  "admin": "Quản trị",
+  "manageMeditations": "Quản lý thiền định",
+  "manageUsers": "Quản lý người dùng",
+  "addMeditation": "Thêm thiền định",
+  "editMeditation": "Chỉnh sửa thiền định",
+  "title": "Tiêu đề",
+  "description": "Mô tả",
+  "duration": "Thời lượng",
+  "category": "Danh mục",
+  "level": "Cấp độ",
+  "audioFile": "File âm thanh",
+  "imageUrl": "URL hình ảnh",
+  "save": "Lưu",
+  "saveChanges": "Lưu thay đổi",
+  "delete": "Xóa",
+  "createMeditation": "Tạo thiền định",
+  
+  "loading": "Đang tải...",
+  "error": "Lỗi",
+  "success": "Thành công",
+  "tryAgain": "Thử lại",
+  "close": "Đóng",
+  "search": "Tìm kiếm",
+  "filter": "Bộ lọc",
+  "sort": "Sắp xếp",
+  "apply": "Áp dụng",
+  "reset": "Đặt lại",
+  "userNotLoggedIn": "Người dùng chưa đăng nhập",
+  
+  "daysStreak": "{count} ngày",
+  "@daysStreak": {
+    "description": "Hiển thị số ngày trong chuỗi",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  
+  "errorLoadingExperts": "Lỗi tải chuyên gia: {error}",
+  "@errorLoadingExperts": {
+    "description": "Thông báo lỗi khi tải chuyên gia thất bại",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Lỗi mạng"
+      }
+    }
+  },
+  
+  "errorLogout": "Lỗi đăng xuất: {error}",
+  "@errorLogout": {
+    "description": "Thông báo lỗi khi đăng xuất thất bại",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Kết nối thất bại"
+      }
+    }
+  },
+  
+  "chatbot": "Trợ lý AI",
+  "askMeAnything": "Hỏi tôi bất cứ điều gì...",
+  "sendMessage": "Gửi",
+  
+  "appointmentBooked": "Đã đặt lịch hẹn thành công",
+  "date": "Ngày",
+  "time": "Giờ",
+  "amount": "Số tiền",
+  "callType": "Loại cuộc gọi",
+  
+  "yourAccountBanned": "Tài khoản của bạn đã bị cấm.",
+  "banReason": "Lý do: {reason}",
+  "@banReason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "contactSupport": "Vui lòng liên hệ hỗ trợ.",
+  
+  "day": "ngày",
+  "days": "ngày",
+  "settings": "Cài đặt"
+}
