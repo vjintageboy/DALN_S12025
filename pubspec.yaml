@@ -48,6 +48,7 @@ dependencies:
   google_generative_ai: ^0.4.7
   http: ^1.2.0
   flutter_dotenv: ^5.2.1
+  image_picker: ^1.2.0
 
 dev_dependencies:
   flutter_test:

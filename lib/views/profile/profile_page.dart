@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import '../auth/welcome_page.dart';
 import '../mood/mood_analytics_page.dart';
 import '../appointment/my_appointments_page.dart';
+import 'edit_profile_page.dart';
 import '../../services/firestore_service.dart';
 import '../../models/streak.dart';
 import '../../shared/widgets/language_switcher.dart';
@@ -17,12 +20,41 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final FirestoreService _firestoreService = FirestoreService();
+  String? _photoBase64;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPhoto();
+  }
+
+  Future<void> _loadPhoto() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('profiles')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists && doc.data()?['photoBase64'] != null) {
+        setState(() {
+          _photoBase64 = doc.data()!['photoBase64'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading photo: $e');
+    }
+  }
 
   Future<void> _refreshProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       // Recalculate streak to get latest data
       await _firestoreService.recalculateStreak(user.uid);
+      // Reload photo
+      await _loadPhoto();
       // Force rebuild by calling setState
       if (mounted) {
         setState(() {});
@@ -77,14 +109,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: CircleAvatar(
                       radius: 56,
                       backgroundColor: const Color(0xFF8BC34A).withOpacity(0.1),
-                      child: Text(
-                        user.displayName?.substring(0, 1).toUpperCase() ?? 'U',
-                        style: const TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF689F38),
-                        ),
-                      ),
+                      backgroundImage: _photoBase64 != null && _photoBase64!.isNotEmpty
+                          ? MemoryImage(base64Decode(_photoBase64!))
+                          : null,
+                      child: _photoBase64 == null || _photoBase64!.isEmpty
+                          ? Text(
+                              user.displayName?.substring(0, 1).toUpperCase() ?? 'U',
+                              style: const TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF689F38),
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                 ),
@@ -183,8 +220,17 @@ class _ProfilePageState extends State<ProfilePage> {
                   icon: Icons.person_outline,
                   title: context.l10n.editProfile,
                   subtitle: context.l10n.editProfileSubtitle,
-                  onTap: () {
-                    // TODO: Navigate to edit profile page
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfilePage(),
+                      ),
+                    );
+                    // Refresh if profile was updated
+                    if (result == true && mounted) {
+                      await _refreshProfile();
+                    }
                   },
                 ),
                 const SizedBox(height: 12),
