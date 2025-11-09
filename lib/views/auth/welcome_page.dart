@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import '../../main.dart';
 import '../../core/services/localization_service.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
@@ -275,17 +277,22 @@ class _WelcomePageState extends State<WelcomePage>
             children: [
               const Spacer(flex: 1),
 
-              // Animated Logo/Brand
-              // ✅ Admin đã tạo - đã xóa long press admin setup
+              // Animated Logo/Brand (long-press to show onboarding in debug builds)
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: ScaleTransition(
                   scale: _scaleAnimation,
                   child: Hero(
                     tag: 'app_logo',
-                    child: Container(
-                      width: size.width * 0.4,
-                      height: size.width * 0.4,
+                    child: GestureDetector(
+                      onLongPress: () {
+                        if (kDebugMode) {
+                          _navigateToPage(const OnboardingPage());
+                        }
+                      },
+                      child: Container(
+                        width: size.width * 0.4,
+                        height: size.width * 0.4,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(28),
                           boxShadow: [
@@ -297,11 +304,12 @@ class _WelcomePageState extends State<WelcomePage>
                             ),
                           ],
                         ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(28),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          fit: BoxFit.cover,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),
@@ -421,6 +429,8 @@ class _WelcomePageState extends State<WelcomePage>
                         text: context.l10n.signIn,
                         onPressed: () => _navigateToPage(const LoginPage()),
                       ),
+
+                      // (debug button removed — use long-press on logo to trigger onboarding in debug builds)
 
                       const SizedBox(height: 32),
 

@@ -132,8 +132,9 @@ class AuthWrapper extends StatelessWidget {
           );
         }
         
-        // User is not logged in, show welcome page
-        return const WelcomePage();
+        // User is not logged in, show onboarding page (then WelcomePage after onboarding)
+        // Note: OnboardingPage is defined below in this file.
+        return const OnboardingPage();
       },
     );
   }
@@ -650,33 +651,49 @@ class _QuoteScreenState extends State<QuoteScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Larger, more readable quote text with subtle shadow for contrast
                           Text(
                             widget.quote,
                             style: TextStyle(
                               color: AppColors.white,
-                              fontSize: size.width * 0.074,
-                              height: 1.4,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.5,
+                              fontSize: size.width * 0.09,
+                              height: 1.6,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.6,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  offset: const Offset(0, 3),
+                                  blurRadius: 6,
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 24),
+                          // Author pill: increased padding and contrast
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                              horizontal: 14,
+                              vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
+                              color: AppColors.white.withOpacity(0.28),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.06),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: Text(
                               '— ${widget.author}',
                               style: const TextStyle(
                                 color: AppColors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 1.5,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.6,
                               ),
                             ),
                           ),
