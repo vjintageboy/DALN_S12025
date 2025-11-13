@@ -5,8 +5,7 @@ import '../../main.dart';
 import '../../core/services/localization_service.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
-// import 'package:flutter/foundation.dart'; // ✅ Không cần nữa - đã xóa admin setup
-// import '../../scripts/create_admin.dart'; // ✅ Admin đã tạo - comment để không dùng nữa
+import 'expert_signup_page.dart'; // ⭐ NEW - Expert signup
 
 // ============================================================================
 // WELCOME PAGE - CEO MODERN DESIGN
@@ -430,9 +429,36 @@ class _WelcomePageState extends State<WelcomePage>
                         onPressed: () => _navigateToPage(const LoginPage()),
                       ),
 
+                      const SizedBox(height: 20),
+
+                      // ⭐ NEW - Expert Sign Up Link
+                      TextButton(
+                        onPressed: () => _navigateToPage(const ExpertSignupPage()),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.medical_services_outlined,
+                              size: 18,
+                              color: Color(0xFF4CAF50),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Join as Mental Health Expert',
+                              style: TextStyle(
+                                color: Colors.grey[800],
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       // (debug button removed — use long-press on logo to trigger onboarding in debug builds)
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
 
                       // Terms link
                       Text.rich(
