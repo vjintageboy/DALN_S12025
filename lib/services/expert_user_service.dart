@@ -41,16 +41,18 @@ class ExpertUserService {
       
       await _db.collection('expertUsers').doc(uid).set(expertUser.toMap());
       
-      // 4. Also create in 'users' collection with expert role
+      // 4. Create in 'users' collection as regular user (not expert yet)
+      //    Role will be upgraded to 'expert' only after admin approval
       await _db.collection('users').doc(uid).set({
         'email': email,
         'displayName': displayName,
-        'role': 'expert',
+        'role': 'user', // Keep as regular user until approved
+        'hasExpertApplication': true, // Flag to indicate pending expert application
         'createdAt': FieldValue.serverTimestamp(),
         'lastLoginAt': FieldValue.serverTimestamp(),
       });
       
-      print('✅ Expert user created: $email (Pending Approval)');
+      print('✅ Expert user created: $email (Pending Approval - Role: user)');
       return uid;
     } catch (e) {
       print('❌ Error creating expert user: $e');
@@ -153,7 +155,14 @@ class ExpertUserService {
         'expertId': expertId,
       });
 
-      print('✅ Expert approved: ${expertUser.email}');
+      // 5. Upgrade user role from 'user' to 'expert' in users collection
+      await _db.collection('users').doc(expertUid).update({
+        'role': 'expert',
+        'expertId': expertId,
+        'hasExpertApplication': false, // Clear the pending flag
+      });
+
+      print('✅ Expert approved: ${expertUser.email} - Role upgraded to expert');
     } catch (e) {
       print('❌ Error approving expert: $e');
       rethrow;
