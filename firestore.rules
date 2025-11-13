@@ -45,12 +45,15 @@ service cloud.firestore {
       // User can create their own profile on signup
       allow create: if isOwner(userId);
       
-      // User can update their own profile (except role)
+      // User can update their own profile (except role, isBanned, banReason)
       allow update: if isOwner(userId) && 
-                      !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+                      !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isBanned', 'banReason', 'bannedAt']);
       
-      // Only admin can change roles
-      allow update: if isAdmin();
+      // Admin can ONLY update specific fields: role, isBanned, banReason, bannedAt
+      // This prevents admin from modifying user's displayName, email, etc.
+      allow update: if isAdmin() && 
+                       request.resource.data.diff(resource.data)
+                       .affectedKeys().hasOnly(['role', 'isBanned', 'banReason', 'bannedAt']);
       
       // Admin can read all users
       allow read: if isAdmin();
