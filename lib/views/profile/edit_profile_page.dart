@@ -17,11 +17,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   bool _isSaving = false;
   bool _isUploadingPhoto = false;
   String? _photoUrl;
   File? _imageFile;
+  DateTime? _dateOfBirth;
+  String? _gender; // 'male', 'female', 'other'
 
   @override
   void initState() {
@@ -30,27 +33,110 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (user != null) {
       _nameController.text = user.displayName ?? '';
       _emailController.text = user.email ?? '';
-      _loadPhotoFromFirestore();
+      _loadProfileData();
     }
   }
 
-  Future<void> _loadPhotoFromFirestore() async {
+  Future<void> _loadProfileData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final doc = await FirebaseFirestore.instance
-          .collection('profiles')
+      // First, get user role from users collection
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
           .doc(user.uid)
           .get();
+      
+      final role = userDoc.data()?['role'] as String? ?? 'user';
 
-      if (doc.exists && doc.data()?['photoBase64'] != null) {
-        setState(() {
-          _photoUrl = doc.data()!['photoBase64'];
-        });
+      // Determine which collection to load from based on role
+      DocumentSnapshot? profileDoc;
+      
+      if (role == 'expert') {
+        // Load from expertUsers collection
+        profileDoc = await FirebaseFirestore.instance
+            .collection('expertUsers')
+            .doc(user.uid)
+            .get();
+      } else if (role == 'user') {
+        // Load from profiles collection (legacy)
+        profileDoc = await FirebaseFirestore.instance
+            .collection('profiles')
+            .doc(user.uid)
+            .get();
+      }
+      
+      // If no profile doc found, try to load from users collection
+      if (profileDoc == null || !profileDoc.exists) {
+        profileDoc = userDoc;
+      }
+
+      if (profileDoc.exists) {
+        final data = profileDoc.data() as Map<String, dynamic>?;
+        if (data != null) {
+          setState(() {
+            // Load photo - different field names for different roles
+            if (role == 'expert') {
+              // ExpertUser uses 'photoUrl'
+              if (data.containsKey('photoUrl') && data['photoUrl'] != null) {
+                _photoUrl = data['photoUrl'] as String;
+              }
+            } else {
+              // Regular user uses 'photoBase64'
+              if (data.containsKey('photoBase64') && data['photoBase64'] != null) {
+                _photoUrl = data['photoBase64'] as String;
+              }
+            }
+            
+            // Load phone number (only in users collection)
+            if (data.containsKey('phoneNumber') && data['phoneNumber'] != null) {
+              _phoneController.text = data['phoneNumber'] as String;
+            }
+            
+            // Load gender (only in users collection)
+            if (data.containsKey('gender') && data['gender'] != null) {
+              _gender = data['gender'] as String;
+            }
+            
+            // Load date of birth (only in users collection)
+            if (data.containsKey('dateOfBirth') && data['dateOfBirth'] != null) {
+              _dateOfBirth = (data['dateOfBirth'] as Timestamp).toDate();
+            }
+          });
+        }
+      }
+      
+      // For experts, also load from users collection to get profile fields
+      if (role == 'expert') {
+        final usersData = userDoc.data();
+        if (usersData != null) {
+          setState(() {
+            if (usersData.containsKey('phoneNumber') && usersData['phoneNumber'] != null) {
+              _phoneController.text = usersData['phoneNumber'] as String;
+            }
+            if (usersData.containsKey('gender') && usersData['gender'] != null) {
+              _gender = usersData['gender'] as String;
+            }
+            if (usersData.containsKey('dateOfBirth') && usersData['dateOfBirth'] != null) {
+              _dateOfBirth = (usersData['dateOfBirth'] as Timestamp).toDate();
+            }
+            if (usersData.containsKey('photoBase64') && usersData['photoBase64'] != null) {
+              _photoUrl = usersData['photoBase64'] as String;
+            }
+          });
+        }
       }
     } catch (e) {
-      debugPrint('Error loading photo: $e');
+      debugPrint('Error loading profile: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -96,17 +182,44 @@ class _EditProfilePageState extends State<EditProfilePage> {
       // Convert to Base64
       final base64String = base64Encode(bytes);
       
-      // Save to Firestore in user's profile
-      await FirebaseFirestore.instance
-          .collection('profiles')
+      // Get user role to determine which collections to update
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
           .doc(user.uid)
-          .set({
+          .get();
+      
+      final role = userDoc.data()?['role'] as String? ?? 'user';
+      
+      final photoData = {
         'photoBase64': base64String,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
+
+      // Always update users collection
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set(photoData, SetOptions(merge: true));
+
+      // Update role-specific collections
+      if (role == 'expert') {
+        // For experts: Only update photoBase64 in expertUsers (it's in the model)
+        await FirebaseFirestore.instance
+            .collection('expertUsers')
+            .doc(user.uid)
+            .set({
+          'photoUrl': base64String, // ExpertUser uses 'photoUrl' not 'photoBase64'
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } else if (role == 'user') {
+        await FirebaseFirestore.instance
+            .collection('profiles')
+            .doc(user.uid)
+            .set(photoData, SetOptions(merge: true));
+      }
 
       setState(() {
-        _photoUrl = base64String; // Store base64 in _photoUrl for display
+        _photoUrl = base64String;
       });
 
       if (mounted) {
@@ -137,6 +250,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -153,15 +267,62 @@ class _EditProfilePageState extends State<EditProfilePage> {
           await user.updateDisplayName(_nameController.text.trim());
         }
 
-        // Update name in Firestore profile
-        await FirebaseFirestore.instance
-            .collection('profiles')
-            .doc(user.uid)
-            .set({
+        // Prepare data to save
+        final profileData = <String, dynamic>{
           'displayName': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        };
+
+        // Add optional fields only if they have values
+        if (_phoneController.text.isNotEmpty) {
+          profileData['phoneNumber'] = _phoneController.text.trim();
+        }
+        
+        if (_gender != null) {
+          profileData['gender'] = _gender;
+        }
+        
+        if (_dateOfBirth != null) {
+          profileData['dateOfBirth'] = Timestamp.fromDate(_dateOfBirth!);
+        }
+
+        // Get user role to determine which collections to update
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        
+        final role = userDoc.data()?['role'] as String? ?? 'user';
+
+        // Always update users collection (for admin system)
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set(profileData, SetOptions(merge: true));
+
+        // Update role-specific collections
+        if (role == 'expert') {
+          // For experts: Only update basic fields in expertUsers
+          // (gender, dateOfBirth, phoneNumber stay in users collection only)
+          final expertData = {
+            'displayName': profileData['displayName'],
+            'email': profileData['email'],
+            'updatedAt': profileData['updatedAt'],
+          };
+          
+          await FirebaseFirestore.instance
+              .collection('expertUsers')
+              .doc(user.uid)
+              .set(expertData, SetOptions(merge: true));
+        } else if (role == 'user') {
+          // Update profiles collection (legacy for regular users)
+          await FirebaseFirestore.instance
+              .collection('profiles')
+              .doc(user.uid)
+              .set(profileData, SetOptions(merge: true));
+        }
+        // Admin doesn't need extra collection, only 'users' is enough
 
         // Update email if changed
         if (_emailController.text != user.email) {
@@ -413,6 +574,143 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       return 'Invalid email address';
                     }
                     return null;
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                // Phone Number Field
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number',
+                    hintText: 'Enter your phone number',
+                    prefixIcon: const Icon(Icons.phone_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF8BC34A),
+                        width: 2,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      if (!RegExp(r'^\+?[\d\s-()]+$').hasMatch(value)) {
+                        return 'Invalid phone number';
+                      }
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                // Date of Birth Field
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _dateOfBirth ?? DateTime(2000),
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime.now(),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: Color(0xFF8BC34A),
+                              onPrimary: Colors.white,
+                              onSurface: Colors.black,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (picked != null) {
+                      setState(() => _dateOfBirth = picked);
+                    }
+                  },
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Date of Birth',
+                      hintText: 'Select your date of birth',
+                      prefixIcon: const Icon(Icons.cake_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF8BC34A),
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    child: Text(
+                      _dateOfBirth != null
+                          ? '${_dateOfBirth!.day}/${_dateOfBirth!.month}/${_dateOfBirth!.year}'
+                          : 'Not set',
+                      style: TextStyle(
+                        color: _dateOfBirth != null ? Colors.black87 : Colors.grey[600],
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Gender Field
+                DropdownButtonFormField<String>(
+                  value: _gender,
+                  decoration: InputDecoration(
+                    labelText: 'Gender',
+                    hintText: 'Select your gender',
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF8BC34A),
+                        width: 2,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'male', child: Text('Male')),
+                    DropdownMenuItem(value: 'female', child: Text('Female')),
+                    DropdownMenuItem(value: 'other', child: Text('Other')),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _gender = value);
                   },
                 ),
 
