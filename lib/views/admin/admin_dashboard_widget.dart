@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/meditation.dart';
 import 'user_management_page.dart';
 import 'meditation_management_page.dart';
+import 'admin_expert_management_page.dart';
 
 /// Admin Dashboard Widget - Hiển thị statistics và quick actions cho admin
 class AdminDashboardWidget extends StatelessWidget {
@@ -302,7 +303,7 @@ class AdminDashboardWidget extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: _buildAdminButton(
               context: context,
@@ -322,6 +323,31 @@ class AdminDashboardWidget extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const MeditationManagementPage(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildAdminButton(
+              context: context,
+              icon: Icons.medical_services_outlined,
+              label: 'Manage Experts',
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.teal.shade400,
+                  Colors.teal.shade600,
+                  Colors.teal.shade700,
+                ],
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminExpertManagementPage(),
                   ),
                 );
               },
