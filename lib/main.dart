@@ -10,6 +10,7 @@ import 'l10n/app_localizations.dart';
 import 'firebase_options.dart';
 import 'views/auth/welcome_page.dart';
 import 'views/home/home_page.dart';
+import 'views/expert_dashboard/expert_main_page.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/mood_provider.dart';
 import 'core/providers/chatbot_provider.dart';
@@ -105,11 +106,11 @@ class AuthWrapper extends StatelessWidget {
         
         // If user is logged in, check ban status before showing HomePage
         if (snapshot.hasData) {
-          return FutureBuilder<bool>(
-            future: _checkBanStatus(snapshot.data!.uid),
-            builder: (context, banSnapshot) {
-              // Loading ban check
-              if (banSnapshot.connectionState == ConnectionState.waiting) {
+          return FutureBuilder<Map<String, dynamic>>(
+            future: _checkUserStatus(snapshot.data!.uid),
+            builder: (context, statusSnapshot) {
+              // Loading status check
+              if (statusSnapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   backgroundColor: Color(0xFFFFF5F6),
                   body: Center(
@@ -120,13 +121,21 @@ class AuthWrapper extends StatelessWidget {
                 );
               }
 
+              final status = statusSnapshot.data ?? {};
+              
               // User is banned - force logout
-              if (banSnapshot.data == true) {
+              if (status['isBanned'] == true) {
                 _handleBannedUser(context, snapshot.data!.uid);
                 return const WelcomePage();
               }
 
-              // User is not banned - show home page
+              // Check if user is expert
+              final role = status['role'] as String?;
+              if (role == 'expert') {
+                return const ExpertMainPage();
+              }
+
+              // Regular user - show home page
               return const HomePage();
             },
           );
@@ -139,18 +148,30 @@ class AuthWrapper extends StatelessWidget {
     );
   }
 
-  Future<bool> _checkBanStatus(String uid) async {
+  Future<Map<String, dynamic>> _checkUserStatus(String uid) async {
     try {
       final firestore = FirebaseFirestore.instance;
       final doc = await firestore.collection('users').doc(uid).get();
       
-      if (!doc.exists) return false;
+      if (!doc.exists) {
+        return {
+          'isBanned': false,
+          'role': 'user',
+        };
+      }
       
       final data = doc.data();
-      return data?['isBanned'] ?? false;
+      return {
+        'isBanned': data?['isBanned'] ?? false,
+        'role': data?['role'] ?? 'user',
+        'banReason': data?['banReason'],
+      };
     } catch (e) {
-      print('Error checking ban status: $e');
-      return false;
+      print('Error checking user status: $e');
+      return {
+        'isBanned': false,
+        'role': 'user',
+      };
     }
   }
 
