@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../home/home_page.dart';
 import 'signup_page.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/localization_service.dart';
@@ -62,10 +61,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (!mounted) return;
 
     if (success) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-      );
+      // Don't navigate manually - AuthWrapper in main.dart will handle it
+      // The StreamBuilder will detect the user is logged in and show appropriate page
+      // This preserves the navigation stack properly
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
