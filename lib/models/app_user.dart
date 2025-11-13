@@ -71,6 +71,7 @@ class AppUser {
 
 enum UserRole {
   admin('admin'),
+  expert('expert'), // ⭐ NEW - Expert role for mental health professionals
   user('user');
 
   final String value;
@@ -85,4 +86,9 @@ enum UserRole {
 
   @override
   String toString() => value;
+  
+  // Helper getters
+  bool get isAdmin => this == UserRole.admin;
+  bool get isExpert => this == UserRole.expert;
+  bool get isUser => this == UserRole.user;
 }
