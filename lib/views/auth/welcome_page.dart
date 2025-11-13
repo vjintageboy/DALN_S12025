@@ -164,9 +164,10 @@ class _WelcomePageState extends State<WelcomePage>
               style: TextStyle(
                 color: Colors.grey,
                 fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+                        ),
+                      ),
+                    ),
+                ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -270,224 +271,226 @@ class _WelcomePageState extends State<WelcomePage>
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Column(
-            children: [
-              const Spacer(flex: 1),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
 
-              // Animated Logo/Brand (long-press to show onboarding in debug builds)
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: Hero(
-                    tag: 'app_logo',
-                    child: GestureDetector(
-                      onLongPress: () {
-                        if (kDebugMode) {
-                          _navigateToPage(const OnboardingPage());
-                        }
-                      },
-                      child: Container(
-                        width: size.width * 0.4,
-                        height: size.width * 0.4,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 40,
-                              offset: const Offset(0, 20),
-                              spreadRadius: 0,
+                // Animated Logo/Brand (long-press to show onboarding in debug builds)
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Hero(
+                      tag: 'app_logo',
+                      child: GestureDetector(
+                        onLongPress: () {
+                          if (kDebugMode) {
+                            _navigateToPage(const OnboardingPage());
+                          }
+                        },
+                        child: Container(
+                          width: size.width * 0.4,
+                          height: size.width * 0.4,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 40,
+                                offset: const Offset(0, 20),
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              fit: BoxFit.cover,
                             ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(28),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-              // App Name
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: const Text(
-                  'MOODIKI',
-                  style: TextStyle(
-                    color: Color(0xFF1A1A1A),
-                    fontSize: 38,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                    height: 1,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Tagline
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Text(
-                  'Track your emotions, elevate your mindset',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.3,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Sub-tagline
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.grey[300]!,
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    context.l10n.welcomeTagline,
+                // App Name
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: const Text(
+                    'MOODIKI',
                     style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
+                      color: Color(0xFF1A1A1A),
+                      fontSize: 38,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2,
+                      height: 1,
                     ),
                   ),
                 ),
-              ),
 
-              const Spacer(flex: 2),
+                const SizedBox(height: 16),
 
-              // Feature highlights
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Column(
-                  children: [
-                    _FeatureItem(
-                      icon: Icons.psychology_outlined,
-                      text: context.l10n.aiPoweredInsights,
+                // Tagline
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Text(
+                    'Track your emotions, elevate your mindset',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.3,
+                      height: 1.5,
                     ),
-                    const SizedBox(height: 16),
-                    _FeatureItem(
-                      icon: Icons.trending_up,
-                      text: context.l10n.trackProgress,
-                    ),
-                    const SizedBox(height: 16),
-                    _FeatureItem(
-                      icon: Icons.shield_outlined,
-                      text: context.l10n.privateSecure,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
 
-              const Spacer(flex: 1),
+                const SizedBox(height: 12),
 
-              // Animated Buttons
-              SlideTransition(
-                position: _slideAnimation,
-                child: FadeTransition(
+                // Sub-tagline
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      context.l10n.welcomeTagline,
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Feature highlights
+                FadeTransition(
                   opacity: _fadeAnimation,
                   child: Column(
                     children: [
-                      // Sign Up Button
-                      _PrimaryButton(
-                        text: context.l10n.getStarted,
-                        onPressed: () => _navigateToPage(const SignUpPage()),
+                      _FeatureItem(
+                        icon: Icons.psychology_outlined,
+                        text: context.l10n.aiPoweredInsights,
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Login Button
-                      _SecondaryButton(
-                        text: context.l10n.signIn,
-                        onPressed: () => _navigateToPage(const LoginPage()),
+                      _FeatureItem(
+                        icon: Icons.trending_up,
+                        text: context.l10n.trackProgress,
                       ),
-
-                      const SizedBox(height: 20),
-
-                      // ⭐ NEW - Expert Sign Up Link
-                      TextButton(
-                        onPressed: () => _navigateToPage(const ExpertSignupPage()),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.medical_services_outlined,
-                              size: 18,
-                              color: Color(0xFF4CAF50),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Join as Mental Health Expert',
-                              style: TextStyle(
-                                color: Colors.grey[800],
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // (debug button removed — use long-press on logo to trigger onboarding in debug builds)
-
-                      const SizedBox(height: 24),
-
-                      // Terms link
-                      Text.rich(
-                        TextSpan(
-                          text: context.l10n.termsAgreement,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: context.l10n.termsPrivacy,
-                              style: TextStyle(
-                                color: Colors.grey[800],
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
+                      const SizedBox(height: 16),
+                      _FeatureItem(
+                        icon: Icons.shield_outlined,
+                        text: context.l10n.privateSecure,
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 24),
-            ],
+                const SizedBox(height: 32),
+
+                // Animated Buttons
+                SlideTransition(
+                  position: _slideAnimation,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Column(
+                      children: [
+                        // Sign Up Button
+                        _PrimaryButton(
+                          text: context.l10n.getStarted,
+                          onPressed: () => _navigateToPage(const SignUpPage()),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Login Button
+                        _SecondaryButton(
+                          text: context.l10n.signIn,
+                          onPressed: () => _navigateToPage(const LoginPage()),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // ⭐ NEW - Expert Sign Up Link
+                        TextButton(
+                          onPressed: () => _navigateToPage(const ExpertSignupPage()),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.medical_services_outlined,
+                                size: 18,
+                                color: Color(0xFF4CAF50),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Join as Mental Health Expert',
+                                style: TextStyle(
+                                  color: Colors.grey[800],
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // (debug button removed — use long-press on logo to trigger onboarding in debug builds)
+
+                        const SizedBox(height: 16),
+
+                        // Terms link
+                        Text.rich(
+                          TextSpan(
+                            text: context.l10n.termsAgreement,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: context.l10n.termsPrivacy,
+                                style: TextStyle(
+                                  color: Colors.grey[800],
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ), // end Column
+                  ), // end FadeTransition
+                ), // end SlideTransition
+
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),

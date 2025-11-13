@@ -120,6 +120,26 @@ service cloud.firestore {
     }
     
     // ============================================
+    // EXPERT USERS - Expert applications and profiles
+    // ============================================
+    match /expertUsers/{expertUserId} {
+      // Users can create their own expert application
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      
+      // Users can read their own expert application
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      
+      // Admin can read all expert applications
+      allow read: if isAdmin();
+      
+      // Admin can update expert applications (approve, reject, suspend)
+      allow update: if isAdmin();
+      
+      // Admin can delete expert applications
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
     // APPOINTMENTS - Coming soon (Phase 3)
     // ============================================
     match /appointments/{appointmentId} {
