@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../mood/mood_log_page.dart';
 import '../mood/mood_history_page.dart';
 import '../meditation/meditation_detail_page.dart';
@@ -8,8 +7,6 @@ import '../meditation/meditation_library_page.dart';
 import '../profile/profile_page.dart';
 import '../expert/expert_list_page.dart';
 import '../streak/streak_history_page.dart';
-import '../admin/admin_badge.dart';
-import '../admin/admin_dashboard_widget.dart';
 import '../chatbot/chatbot_page.dart';
 import '../../services/firestore_service.dart';
 import '../../models/meditation.dart';
@@ -140,8 +137,6 @@ class _HomeTabState extends State<HomeTab> {
   Streak? _streak;
   bool _isLoading = true;
   String? _errorMessage;
-  bool _isAdmin = false; // ⭐ NEW - Track admin status
-  int _totalUsers = 0; // ⭐ NEW - Total users count
 
   // Dynamic colors for meditation cards
   final List<Color> _meditationColors = [
@@ -161,8 +156,7 @@ class _HomeTabState extends State<HomeTab> {
   void initState() {
     super.initState();
     _migrateUser(); // Migrate existing users
-    _loadNonStreamData(); // ⭐ UPDATED - Only load non-stream data
-    _checkAdminStatus(); // ⭐ NEW
+    _loadNonStreamData(); // Load streak data
   }
 
   // Migrate existing Firebase Auth user to Firestore
@@ -170,20 +164,7 @@ class _HomeTabState extends State<HomeTab> {
     await migrateCurrentUser();
   }
 
-  // ⭐ NEW - Check if user is admin
-  Future<void> _checkAdminStatus() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final isAdmin = await _firestoreService.isAdmin(user.uid);
-    if (mounted) {
-      setState(() {
-        _isAdmin = isAdmin;
-      });
-    }
-  }
-
-  // ⭐ UPDATED - Load only streak and total users (meditations use stream now)
+  // Load streak data
   Future<void> _loadNonStreamData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -197,15 +178,11 @@ class _HomeTabState extends State<HomeTab> {
       // Recalculate streak to ensure it's up-to-date
       await _firestoreService.recalculateStreak(user.uid);
       
-      // Load streak and total users in parallel
-      final results = await Future.wait([
-        _firestoreService.getOrCreateStreak(user.uid),
-        _loadTotalUsers(),
-      ]);
+      // Load streak
+      final streak = await _firestoreService.getOrCreateStreak(user.uid);
 
       setState(() {
-        _streak = results[0] as Streak;
-        _totalUsers = results[1] as int;
+        _streak = streak;
         _isLoading = false;
       });
     } catch (e) {
@@ -214,20 +191,6 @@ class _HomeTabState extends State<HomeTab> {
         _isLoading = false;
         _errorMessage = 'Không thể tải dữ liệu. Vui lòng thử lại.';
       });
-    }
-  }
-
-  // ⭐ NEW - Load total users count (excluding admins)
-  Future<int> _loadTotalUsers() async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('role', isEqualTo: 'user') // ⭐ Only count regular users, not admins
-          .get();
-      return snapshot.docs.length;
-    } catch (e) {
-      print('❌ Error loading total users: $e');
-      return 0;
     }
   }
 
@@ -302,7 +265,6 @@ class _HomeTabState extends State<HomeTab> {
     return RefreshIndicator(
       onRefresh: () async {
         await _loadNonStreamData();
-        await _checkAdminStatus(); // ⭐ Refresh admin status too
       },
       color: const Color(0xFF4CAF50),
       child: SafeArea(
@@ -325,26 +287,11 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                       ),
                     ),
-                    // ⭐ Admin Badge
-                    if (_isAdmin) const AdminBadge(),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
 
-              // ⭐ Admin Dashboard (if admin)
-              if (_isAdmin)
-                StreamBuilder<List<Meditation>>(
-                  stream: _firestoreService.streamMeditations(),
-                  builder: (context, snapshot) {
-                    final meditations = snapshot.data ?? [];
-                    return AdminDashboardWidget(
-                      meditations: meditations,
-                      totalUsers: _totalUsers,
-                    );
-                  },
-                ),
-              
               // Today's Mood and Streak with padding
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
