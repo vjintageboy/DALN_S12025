@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'views/auth/welcome_page.dart';
 import 'views/home/home_page.dart';
 import 'views/expert_dashboard/expert_main_page.dart';
+import 'views/admin/admin_main_page.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/mood_provider.dart';
 import 'core/providers/chatbot_provider.dart';
@@ -129,8 +130,15 @@ class AuthWrapper extends StatelessWidget {
                 return const WelcomePage();
               }
 
-              // Check if user is expert
+              // Check if user is expert or admin
               final role = status['role'] as String?;
+              
+              // Admin gets dedicated dashboard
+              if (role == 'admin') {
+                return const AdminMainPage();
+              }
+              
+              // Expert gets expert dashboard
               if (role == 'expert') {
                 return const ExpertMainPage();
               }
