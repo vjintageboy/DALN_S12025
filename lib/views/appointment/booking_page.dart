@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/localization_service.dart';
 import '../../models/expert.dart';
 import '../../models/appointment.dart';
+import '../../models/availability.dart';
 import '../../services/appointment_service.dart';
+import '../../services/availability_service.dart';
 import 'widgets/call_type_selector.dart';
 import 'widgets/duration_selector.dart';
 import 'mock_payment_page.dart';
@@ -25,6 +28,7 @@ class BookingPage extends StatefulWidget {
 
 class _BookingPageState extends State<BookingPage> {
   final AppointmentService _appointmentService = AppointmentService();
+  final AvailabilityService _availabilityService = AvailabilityService();
   final TextEditingController _notesController = TextEditingController();
 
   // Selections
@@ -67,28 +71,94 @@ class _BookingPageState extends State<BookingPage> {
         return;
       }
 
+      // ✅ Load expert's detailed availability schedule
+      // Get expert's uid from expertUsers collection
+      Availability? expertSchedule;
+      try {
+        // Query expertUsers to find which user owns this expert profile
+        final expertUsersQuery = await FirebaseFirestore.instance
+            .collection('expertUsers')
+            .where('expertId', isEqualTo: widget.expert.expertId)
+            .limit(1)
+            .get();
+        
+        if (expertUsersQuery.docs.isNotEmpty) {
+          final expertUid = expertUsersQuery.docs.first.data()['uid'] as String?;
+          
+          if (expertUid != null) {
+            expertSchedule = await _availabilityService.getAvailability(expertUid);
+          }
+        }
+      } catch (e) {
+        print('⚠️ Could not load expert schedule: $e');
+      }
+
+      // Get working hours for this day
+      String startTime = '09:00';
+      String endTime = '17:00';
+      TimeSlot? breakTime;
+
+      if (expertSchedule != null) {
+        final timeSlot = expertSchedule.getTimeSlotForDay(date.weekday);
+        if (timeSlot != null) {
+          startTime = timeSlot.startTime;
+          endTime = timeSlot.endTime;
+          breakTime = expertSchedule.breakTime;
+        }
+      }
+
       // Get booked slots from Firestore
       _bookedTimeSlots = await _appointmentService.getBookedTimeSlots(
         widget.expert.expertId,
         date,
       );
 
-      // Generate all possible slots (09:00 - 17:00)
+      // Generate all possible slots based on expert's working hours
       final allSlots = _appointmentService.generateTimeSlots(
-        startTime: '09:00',
-        endTime: '17:00',
+        startTime: startTime,
+        endTime: endTime,
         intervalMinutes: _selectedDuration,
       );
 
-      // Filter out booked slots and past times
+      // Filter out booked slots, past times, and break times
       _availableTimeSlots = allSlots.where((slot) {
         if (_bookedTimeSlots.contains(slot)) return false;
 
+        // Parse slot time
+        final slotTime = _parseSlotTime(date, slot);
+
         // If selected day is today, filter out past times
         if (_isSameDay(date, DateTime.now())) {
-          final slotTime = _parseSlotTime(date, slot);
           final minAdvanceTime = DateTime.now().add(const Duration(hours: 3));
-          return slotTime.isAfter(minAdvanceTime);
+          if (!slotTime.isAfter(minAdvanceTime)) return false;
+        }
+
+        // ✅ Filter out break time slots
+        if (breakTime != null) {
+          final breakStartParts = breakTime.startTime.split(':');
+          final breakEndParts = breakTime.endTime.split(':');
+          
+          final breakStart = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            int.parse(breakStartParts[0]),
+            int.parse(breakStartParts[1]),
+          );
+          
+          final breakEnd = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            int.parse(breakEndParts[0]),
+            int.parse(breakEndParts[1]),
+          );
+
+          // Check if slot overlaps with break time
+          final slotEnd = slotTime.add(Duration(minutes: _selectedDuration));
+          if (slotTime.isBefore(breakEnd) && slotEnd.isAfter(breakStart)) {
+            return false; // Slot overlaps with break
+          }
         }
 
         return true;

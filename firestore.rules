@@ -153,19 +153,16 @@ service cloud.firestore {
     // EXPERT USERS - Expert applications and profiles
     // ============================================
     match /expertUsers/{expertUserId} {
+      // Anyone can read expertUsers (needed for booking flow to get expert uid)
+      allow read: if true;
+      
       // Users can create their own expert application
       allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
-      
-      // Experts can read their own profile
-      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
       
       // Experts can update their own profile (except status, approvedAt, rejectedAt)
       allow update: if isAuthenticated() && 
                        resource.data.uid == request.auth.uid &&
                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'approvedAt', 'rejectedAt', 'suspendedAt']);
-      
-      // Admin can read all expert applications
-      allow read: if isAdmin();
       
       // Admin can update expert applications (approve, reject, suspend)
       allow update: if isAdmin();
