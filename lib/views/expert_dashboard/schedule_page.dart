@@ -39,7 +39,8 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   final AvailabilityService _availabilityService = AvailabilityService();
-  final String expertId = FirebaseAuth.instance.currentUser!.uid;
+  final String currentUid = FirebaseAuth.instance.currentUser!.uid;
+  String? expertProfileId; // Expert's profile ID (from experts collection)
 
   bool _isLoading = false;
   bool _isSaving = false;
@@ -73,13 +74,42 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   void initState() {
     super.initState();
-    _loadAvailability();
+    _loadExpertProfile();
+  }
+
+  Future<void> _loadExpertProfile() async {
+    setState(() => _isLoading = true);
+    try {
+      // Get expert profile ID from expertUsers collection
+      final expertUserQuery = await FirebaseFirestore.instance
+          .collection('expertUsers')
+          .where('uid', isEqualTo: currentUid)
+          .limit(1)
+          .get();
+
+      if (expertUserQuery.docs.isNotEmpty) {
+        expertProfileId = expertUserQuery.docs.first.data()['expertId'];
+        print('✅ Expert profile ID: $expertProfileId');
+        await _loadAvailability();
+      } else {
+        throw Exception('Expert profile not found');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading expert profile: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _loadAvailability() async {
-    setState(() => _isLoading = true);
     try {
-      final availability = await _availabilityService.getAvailability(expertId);
+      final availability = await _availabilityService.getAvailability(currentUid);
       if (availability != null && mounted) {
         setState(() {
           // Load day availability
@@ -151,7 +181,7 @@ class _SchedulePageState extends State<SchedulePage> {
     try {
       final availability = Availability(
         availabilityId: '',
-        expertId: expertId,
+        expertId: currentUid, // Use uid for availability collection
         monday: _dayAvailability[DateTime.monday]!,
         tuesday: _dayAvailability[DateTime.tuesday]!,
         wednesday: _dayAvailability[DateTime.wednesday]!,
@@ -212,14 +242,27 @@ class _SchedulePageState extends State<SchedulePage> {
   /// ✅ Check if new schedule conflicts with existing confirmed appointments
   Future<List<Appointment>> _checkScheduleConflicts() async {
     try {
+      print('🔍 Checking schedule conflicts...');
+      print('Current schedule:');
+      _dayAvailability.forEach((day, isEnabled) {
+        print('  ${_getDayName(day)}: ${isEnabled ? "ENABLED" : "DISABLED"}');
+      });
+      
+      // Ensure we have expert profile ID
+      if (expertProfileId == null) {
+        print('❌ No expert profile ID - cannot check conflicts');
+        return [];
+      }
+      
       // Get all upcoming confirmed appointments
       final now = DateTime.now();
       final snapshot = await FirebaseFirestore.instance
           .collection('appointments')
-          .where('expertId', isEqualTo: expertId)
+          .where('expertId', isEqualTo: expertProfileId) // Use profile ID, not uid
           .where('status', isEqualTo: AppointmentStatus.confirmed.name)
           .get();
 
+      print('Found ${snapshot.docs.length} confirmed appointments');
       final conflictedAppointments = <Appointment>[];
 
       for (final doc in snapshot.docs) {
@@ -232,10 +275,14 @@ class _SchedulePageState extends State<SchedulePage> {
 
         final weekday = appointment.appointmentDate.weekday;
         final appointmentTime = appointment.appointmentDate;
+        
+        print('Checking appointment: ${appointment.appointmentDate} (${_getDayName(weekday)})');
 
-        // Check 1: Day is disabled
-        if (!_dayAvailability[weekday]!) {
+        // Check 1: Day is disabled in new schedule
+        final isDayEnabled = _dayAvailability[weekday] ?? false;
+        if (!isDayEnabled) {
           conflictedAppointments.add(appointment);
+          print('⚠️ Conflict: Appointment on ${_getDayName(weekday)} - day is disabled');
           continue;
         }
 
@@ -299,6 +346,7 @@ class _SchedulePageState extends State<SchedulePage> {
         }
       }
 
+      print('✅ Conflict check complete: ${conflictedAppointments.length} conflicts found');
       return conflictedAppointments;
     } catch (e) {
       print('Error checking schedule conflicts: $e');
