@@ -409,6 +409,55 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
                     ),
                   ),
                 ],
+
+                // Cancellation Info (if cancelled)
+                if (appointment.status == AppointmentStatus.cancelled) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.orange.shade200,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.cancel_outlined,
+                              size: 16,
+                              color: Colors.orange.shade700,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Cancelled by ${appointment.cancelledBy ?? 'user'}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (appointment.cancellationReason != null &&
+                            appointment.cancellationReason!.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Reason: ${appointment.cancellationReason}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

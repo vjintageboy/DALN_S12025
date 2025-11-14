@@ -438,6 +438,72 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                     ),
                   ],
 
+                  // Cancellation Info (if cancelled)
+                  if (widget.appointment.status == AppointmentStatus.cancelled) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      elevation: 2,
+                      color: Colors.orange.shade50,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: Colors.orange.shade200,
+                          width: 2,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.cancel_outlined,
+                                  size: 24,
+                                  color: Colors.orange.shade700,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Cancellation Information',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange.shade700,
+                                      ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 24),
+                            _buildInfoRow(
+                              Icons.person_outline,
+                              'Cancelled By',
+                              widget.appointment.cancelledBy == 'expert' 
+                                  ? 'Expert' 
+                                  : 'Patient',
+                            ),
+                            if (widget.appointment.cancellationReason != null &&
+                                widget.appointment.cancellationReason!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              _buildInfoRow(
+                                Icons.description_outlined,
+                                'Reason',
+                                widget.appointment.cancellationReason!,
+                              ),
+                            ],
+                            if (widget.appointment.cancelledAt != null) ...[
+                              const SizedBox(height: 12),
+                              _buildInfoRow(
+                                Icons.access_time,
+                                'Cancelled At',
+                                _formatDate(widget.appointment.cancelledAt!),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 24),
 
                   // Action Buttons

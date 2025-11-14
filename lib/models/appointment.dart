@@ -29,6 +29,8 @@ class Appointment {
   
   final DateTime createdAt;
   final DateTime? cancelledAt;
+  final String? cancelledBy; // 'user' or 'expert'
+  final String? cancellationReason; // Only for expert cancellations
 
   Appointment({
     required this.appointmentId,
@@ -44,6 +46,8 @@ class Appointment {
     this.userNotes,
     DateTime? createdAt,
     this.cancelledAt,
+    this.cancelledBy,
+    this.cancellationReason,
   }) : createdAt = createdAt ?? DateTime.now();
 
   // ✅ Getter: Tính giá động
@@ -117,6 +121,8 @@ class Appointment {
       'userNotes': userNotes,
       'createdAt': Timestamp.fromDate(createdAt),
       'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
+      'cancelledBy': cancelledBy,
+      'cancellationReason': cancellationReason,
     };
   }
 
@@ -143,6 +149,8 @@ class Appointment {
       userNotes: data['userNotes'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       cancelledAt: (data['cancelledAt'] as Timestamp?)?.toDate(),
+      cancelledBy: data['cancelledBy'],
+      cancellationReason: data['cancellationReason'],
     );
   }
 
@@ -150,6 +158,8 @@ class Appointment {
   Appointment copyWith({
     AppointmentStatus? status,
     DateTime? cancelledAt,
+    String? cancelledBy,
+    String? cancellationReason,
   }) {
     return Appointment(
       appointmentId: appointmentId,
@@ -157,7 +167,7 @@ class Appointment {
       expertId: expertId,
       expertName: expertName,
       expertAvatarUrl: expertAvatarUrl,
-      expertBasePrice: expertBasePrice, // ✅ NEW
+      expertBasePrice: expertBasePrice,
       callType: callType,
       appointmentDate: appointmentDate,
       durationMinutes: durationMinutes,
@@ -165,6 +175,8 @@ class Appointment {
       userNotes: userNotes,
       createdAt: createdAt,
       cancelledAt: cancelledAt ?? this.cancelledAt,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
+      cancellationReason: cancellationReason ?? this.cancellationReason,
     );
   }
 }
