@@ -42,6 +42,10 @@ service cloud.firestore {
       // Anyone authenticated can read their own user doc
       allow read: if isOwner(userId);
       
+      // Experts can read user info for their appointments
+      // This is needed for appointment detail page
+      allow read: if isExpert();
+      
       // User can create their own profile on signup
       allow create: if isOwner(userId);
       
