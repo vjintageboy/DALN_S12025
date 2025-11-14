@@ -7,6 +7,28 @@ class AppointmentService {
   // Create appointment
   Future<String?> createAppointment(Appointment appointment) async {
     try {
+      // ✅ Check for expert time conflicts
+      final hasExpertConflict = await _checkExpertTimeConflict(
+        appointment.expertId,
+        appointment.appointmentDate,
+        appointment.durationMinutes,
+      );
+
+      if (hasExpertConflict) {
+        throw Exception('This expert is not available at the selected time. Please choose another time slot.');
+      }
+
+      // ✅ Check for user time conflicts
+      final hasUserConflict = await _checkUserTimeConflict(
+        appointment.userId,
+        appointment.appointmentDate,
+        appointment.durationMinutes,
+      );
+
+      if (hasUserConflict) {
+        throw Exception('You already have an appointment at this time. Please choose another time slot.');
+      }
+
       final docRef = _db.collection('appointments').doc();
       final newAppointment = Appointment(
         appointmentId: docRef.id,
@@ -26,7 +48,101 @@ class AppointmentService {
       return docRef.id;
     } catch (e) {
       print('❌ Error creating appointment: $e');
-      return null;
+      rethrow; // Re-throw to show error message to user
+    }
+  }
+
+  // ✅ Check if time slot conflicts with expert's existing appointments
+  Future<bool> _checkExpertTimeConflict(
+    String expertId,
+    DateTime appointmentDate,
+    int durationMinutes,
+  ) async {
+    return _checkTimeConflict(
+      'expertId',
+      expertId,
+      appointmentDate,
+      durationMinutes,
+    );
+  }
+
+  // ✅ Check if time slot conflicts with user's existing appointments
+  Future<bool> _checkUserTimeConflict(
+    String userId,
+    DateTime appointmentDate,
+    int durationMinutes,
+  ) async {
+    return _checkTimeConflict(
+      'userId',
+      userId,
+      appointmentDate,
+      durationMinutes,
+    );
+  }
+
+  // ✅ Generic time conflict checker
+  Future<bool> _checkTimeConflict(
+    String fieldName,
+    String fieldValue,
+    DateTime appointmentDate,
+    int durationMinutes,
+  ) async {
+    try {
+      final appointmentStart = appointmentDate;
+      final appointmentEnd = appointmentDate.add(Duration(minutes: durationMinutes));
+
+      // Get all confirmed appointments for this field on the same day
+      final startOfDay = DateTime(
+        appointmentDate.year,
+        appointmentDate.month,
+        appointmentDate.day,
+      );
+      final endOfDay = DateTime(
+        appointmentDate.year,
+        appointmentDate.month,
+        appointmentDate.day,
+        23,
+        59,
+        59,
+      );
+
+      final snapshot = await _db
+          .collection('appointments')
+          .where(fieldName, isEqualTo: fieldValue)
+          .where('status', isEqualTo: AppointmentStatus.confirmed.name)
+          .get();
+
+      // Check for overlaps
+      for (final doc in snapshot.docs) {
+        final existingAppt = Appointment.fromSnapshot(doc);
+        
+        // Skip if not on the same day
+        if (existingAppt.appointmentDate.isBefore(startOfDay) ||
+            existingAppt.appointmentDate.isAfter(endOfDay)) {
+          continue;
+        }
+
+        final existingStart = existingAppt.appointmentDate;
+        final existingEnd = existingAppt.appointmentDate.add(
+          Duration(minutes: existingAppt.durationMinutes),
+        );
+
+        // Check if times overlap
+        // Overlap happens if:
+        // - New appointment starts before existing ends AND
+        // - New appointment ends after existing starts
+        final overlaps = appointmentStart.isBefore(existingEnd) &&
+                        appointmentEnd.isAfter(existingStart);
+
+        if (overlaps) {
+          return true; // Conflict found
+        }
+      }
+
+      return false; // No conflict
+    } catch (e) {
+      print('❌ Error checking time conflict: $e');
+      return false; // Assume no conflict if error
     }
   }
 

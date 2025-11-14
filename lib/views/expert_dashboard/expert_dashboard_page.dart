@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/expert_user.dart';
 import '../../models/expert.dart';
 import '../../models/appointment.dart';
+import 'appointments_page.dart';
 
 class ExpertDashboardPage extends StatefulWidget {
   const ExpertDashboardPage({super.key});
@@ -415,9 +416,14 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                   Icons.event_note,
                   Colors.blue,
                   () {
-                    // TODO: Navigate to appointments page
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Appointments page coming soon')),
+                    // Navigate to Appointments tab in ExpertMainPage
+                    // Since we're already inside ExpertMainPage, we need to change tab
+                    // We'll use a different approach - navigate to a full page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AppointmentsPage(),
+                      ),
                     );
                   },
                 ),

@@ -91,7 +91,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                 child: Column(
                   children: [
                     _buildInfoRow(
-                      '${widget.appointment.callTypeIcon} ${widget.appointment.callTypeLabel}',
+                      widget.appointment.callTypeLabel,
                       '${widget.appointment.durationMinutes} min',
                     ),
                     const SizedBox(height: 8),

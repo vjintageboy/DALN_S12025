@@ -223,13 +223,13 @@ class _BookingPageState extends State<BookingPage> {
       ),
     );
 
-    // Create appointment
-    final appointmentId = await _appointmentService.createAppointment(appointment);
+    try {
+      // Create appointment (will throw if conflict exists)
+      await _appointmentService.createAppointment(appointment);
 
-    if (mounted) {
-      Navigator.pop(context); // Close loading
+      if (mounted) {
+        Navigator.pop(context); // Close loading
 
-      if (appointmentId != null) {
         // Success - navigate to mock payment
         Navigator.push(
           context,
@@ -239,13 +239,33 @@ class _BookingPageState extends State<BookingPage> {
             ),
           ),
         );
-      } else {
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+
+        // Show error message
+        String errorMessage;
+        if (e.toString().contains('already have an appointment')) {
+          errorMessage = 'You already have an appointment at this time. Please choose another time slot.';
+        } else if (e.toString().contains('not available')) {
+          errorMessage = 'This expert is not available at the selected time. Please choose another time slot.';
+        } else {
+          errorMessage = 'Failed to book appointment. Please try again.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to book appointment'),
+          SnackBar(
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
+
+        // Refresh available slots
+        if (_selectedDay != null) {
+          _loadAvailableSlots(_selectedDay!);
+        }
       }
     }
   }

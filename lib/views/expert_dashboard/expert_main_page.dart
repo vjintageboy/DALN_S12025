@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'expert_dashboard_page.dart';
+import 'appointments_page.dart';
 import '../profile/profile_page.dart';
 import '../chatbot/chatbot_page.dart';
 import '../../core/services/localization_service.dart';
 
 /// Main navigation page for experts with bottom navigation bar
-/// Shows: Dashboard, Appointments (placeholder), Schedule (placeholder), Chatbot, Profile
+/// Shows: Dashboard, Appointments, Schedule (placeholder), Chatbot, Profile
 class ExpertMainPage extends StatefulWidget {
   const ExpertMainPage({super.key});
 
@@ -25,12 +26,7 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
         currentTab = const ExpertDashboardPage();
         break;
       case 1:
-        // TODO: Appointments Management Page (Phase 2 Task 2)
-        currentTab = _buildPlaceholderTab(
-          'Appointments Management',
-          'View and manage your appointments here',
-          Icons.calendar_month_outlined,
-        );
+        currentTab = const AppointmentsPage();
         break;
       case 2:
         // TODO: Schedule Management Page (Phase 2 Task 3)
