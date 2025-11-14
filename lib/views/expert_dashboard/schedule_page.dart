@@ -1,8 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/availability.dart';
+import '../../models/appointment.dart';
 import '../../services/availability_service.dart';
+import 'appointments_page.dart';
 
+/// ✅ Schedule Management Page
+/// 
+/// Expert can set their weekly working hours:
+/// - Enable/disable days (Mon-Sun)
+/// - Set working hours for each day (start time - end time)
+/// - Set optional break time (applies to all days)
+/// 
+/// ⚠️ IMPORTANT: Schedule Conflict Handling
+/// When expert changes schedule, the system checks for conflicts with
+/// existing confirmed appointments:
+/// 
+/// 1. Day disabled → Appointments on that day conflict
+/// 2. Working hours changed → Appointments outside new hours conflict
+/// 3. Break time added → Appointments during break conflict
+/// 
+/// If conflicts found:
+/// - Show warning dialog with list of conflicted appointments
+/// - Expert can:
+///   a) Cancel changes
+///   b) View appointments to reschedule/cancel them
+///   c) Save anyway (appointments remain confirmed but outside working hours)
+/// 
+/// Note: System does NOT auto-cancel appointments. Expert must manually
+/// handle conflicts by contacting patients and rescheduling.
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
 
@@ -106,6 +133,20 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Future<void> _saveAvailability() async {
+    // ✅ Check for conflicts with existing appointments
+    final conflictedAppointments = await _checkScheduleConflicts();
+    
+    if (conflictedAppointments.isNotEmpty && mounted) {
+      // Show warning dialog
+      final shouldContinue = await _showConflictWarningDialog(
+        conflictedAppointments,
+      );
+      
+      if (!shouldContinue) {
+        return; // User cancelled
+      }
+    }
+
     setState(() => _isSaving = true);
     try {
       final availability = Availability(
@@ -166,6 +207,235 @@ class _SchedulePageState extends State<SchedulePage> {
         setState(() => _isSaving = false);
       }
     }
+  }
+
+  /// ✅ Check if new schedule conflicts with existing confirmed appointments
+  Future<List<Appointment>> _checkScheduleConflicts() async {
+    try {
+      // Get all upcoming confirmed appointments
+      final now = DateTime.now();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('appointments')
+          .where('expertId', isEqualTo: expertId)
+          .where('status', isEqualTo: AppointmentStatus.confirmed.name)
+          .get();
+
+      final conflictedAppointments = <Appointment>[];
+
+      for (final doc in snapshot.docs) {
+        final appointment = Appointment.fromSnapshot(doc);
+        
+        // Skip past appointments
+        if (appointment.appointmentDate.isBefore(now)) {
+          continue;
+        }
+
+        final weekday = appointment.appointmentDate.weekday;
+        final appointmentTime = appointment.appointmentDate;
+
+        // Check 1: Day is disabled
+        if (!_dayAvailability[weekday]!) {
+          conflictedAppointments.add(appointment);
+          continue;
+        }
+
+        // Check 2: Outside working hours
+        final timeSlot = _dayTimeSlots[weekday]!;
+        final startParts = timeSlot.startTime.split(':');
+        final endParts = timeSlot.endTime.split(':');
+        
+        final workStart = DateTime(
+          appointmentTime.year,
+          appointmentTime.month,
+          appointmentTime.day,
+          int.parse(startParts[0]),
+          int.parse(startParts[1]),
+        );
+        
+        final workEnd = DateTime(
+          appointmentTime.year,
+          appointmentTime.month,
+          appointmentTime.day,
+          int.parse(endParts[0]),
+          int.parse(endParts[1]),
+        );
+
+        if (appointmentTime.isBefore(workStart) || 
+            appointmentTime.isAfter(workEnd)) {
+          conflictedAppointments.add(appointment);
+          continue;
+        }
+
+        // Check 3: During break time
+        if (_hasBreakTime && _breakTime != null) {
+          final breakStartParts = _breakTime!.startTime.split(':');
+          final breakEndParts = _breakTime!.endTime.split(':');
+          
+          final breakStart = DateTime(
+            appointmentTime.year,
+            appointmentTime.month,
+            appointmentTime.day,
+            int.parse(breakStartParts[0]),
+            int.parse(breakStartParts[1]),
+          );
+          
+          final breakEnd = DateTime(
+            appointmentTime.year,
+            appointmentTime.month,
+            appointmentTime.day,
+            int.parse(breakEndParts[0]),
+            int.parse(breakEndParts[1]),
+          );
+
+          final appointmentEnd = appointmentTime.add(
+            Duration(minutes: appointment.durationMinutes),
+          );
+
+          // Check if appointment overlaps with break time
+          if (appointmentTime.isBefore(breakEnd) && 
+              appointmentEnd.isAfter(breakStart)) {
+            conflictedAppointments.add(appointment);
+          }
+        }
+      }
+
+      return conflictedAppointments;
+    } catch (e) {
+      print('Error checking schedule conflicts: $e');
+      return [];
+    }
+  }
+
+  /// ✅ Show warning dialog about conflicted appointments
+  Future<bool> _showConflictWarningDialog(
+    List<Appointment> conflicts,
+  ) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Text('Schedule Conflict'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Your new schedule conflicts with ${conflicts.length} existing appointment${conflicts.length > 1 ? 's' : ''}:',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              ...conflicts.take(5).map((apt) {
+                final date = apt.appointmentDate;
+                final dateStr = '${date.day}/${date.month}/${date.year}';
+                final timeStr = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.event, size: 16, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$dateStr at $timeStr (${apt.durationMinutes}min)',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              if (conflicts.length > 5)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    '... and ${conflicts.length - 5} more',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, 
+                          size: 18, 
+                          color: Colors.orange.shade700,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Important',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'These appointments are still confirmed. You should:',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      '• Contact patients to reschedule\n'
+                      '• Or adjust your schedule to accommodate them',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, false);
+              // Navigate to appointments page to manage conflicts
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AppointmentsPage(),
+                ),
+              );
+            },
+            child: const Text('View Appointments'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save Anyway'),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   Future<void> _pickTime({
@@ -280,6 +550,33 @@ class _SchedulePageState extends State<SchedulePage> {
                   ),
                 ],
               ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ⚠️ Info Banner
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Changes to your schedule will be checked against existing appointments',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.blue.shade900,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 

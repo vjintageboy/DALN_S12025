@@ -60,9 +60,59 @@ class AvailabilityService {
         );
         await docRef.set(newAvailability.toMap());
       }
+
+      // ✅ Sync summary to experts collection (for easy filtering)
+      await _syncToExpertsCollection(availability);
     } catch (e) {
       print('Error setting availability: $e');
       rethrow;
+    }
+  }
+
+  /// Sync availability summary to experts collection
+  /// This allows filtering experts by available days without querying availability collection
+  Future<void> _syncToExpertsCollection(Availability availability) async {
+    try {
+      // Get expertId (profile ID) from expertUsers collection
+      final expertUserDoc = await _firestore
+          .collection('expertUsers')
+          .doc(availability.expertId) // expertId is actually uid
+          .get();
+
+      if (!expertUserDoc.exists) {
+        print('ExpertUser not found, skipping sync to experts collection');
+        return;
+      }
+
+      final expertProfileId = expertUserDoc.data()?['expertId'] as String?;
+      if (expertProfileId == null) {
+        print('Expert profile ID not found, skipping sync');
+        return;
+      }
+
+      // Build availability array (days enabled)
+      final availableDays = <String>[];
+      if (availability.monday) availableDays.add('Monday');
+      if (availability.tuesday) availableDays.add('Tuesday');
+      if (availability.wednesday) availableDays.add('Wednesday');
+      if (availability.thursday) availableDays.add('Thursday');
+      if (availability.friday) availableDays.add('Friday');
+      if (availability.saturday) availableDays.add('Saturday');
+      if (availability.sunday) availableDays.add('Sunday');
+
+      // Update experts collection
+      await _firestore
+          .collection('experts')
+          .doc(expertProfileId)
+          .update({
+        'availability': availableDays,
+        'isAvailable': availableDays.isNotEmpty,
+      });
+
+      print('✅ Synced availability to experts collection');
+    } catch (e) {
+      print('⚠️ Error syncing to experts collection: $e');
+      // Don't rethrow - this is optional sync, shouldn't fail main operation
     }
   }
 
