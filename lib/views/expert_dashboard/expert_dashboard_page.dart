@@ -5,6 +5,7 @@ import '../../models/expert_user.dart';
 import '../../models/expert.dart';
 import '../../models/appointment.dart';
 import 'appointments_page.dart';
+import 'schedule_page.dart';
 
 class ExpertDashboardPage extends StatefulWidget {
   const ExpertDashboardPage({super.key});
@@ -435,9 +436,11 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                   Icons.calendar_month,
                   Colors.purple,
                   () {
-                    // TODO: Navigate to schedule page
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Schedule page coming soon')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SchedulePage(),
+                      ),
                     );
                   },
                 ),

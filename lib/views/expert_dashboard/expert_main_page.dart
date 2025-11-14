@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'expert_dashboard_page.dart';
 import 'appointments_page.dart';
+import 'schedule_page.dart';
 import '../profile/profile_page.dart';
 import '../chatbot/chatbot_page.dart';
 import '../../core/services/localization_service.dart';
@@ -29,12 +30,7 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
         currentTab = const AppointmentsPage();
         break;
       case 2:
-        // TODO: Schedule Management Page (Phase 2 Task 3)
-        currentTab = _buildPlaceholderTab(
-          'Schedule Management',
-          'Set your availability and working hours',
-          Icons.schedule_outlined,
-        );
+        currentTab = const SchedulePage();
         break;
       case 3:
         currentTab = const ChatbotPage();
@@ -134,88 +130,6 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderTab(String title, String subtitle, IconData icon) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 64,
-                    color: const Color(0xFF4CAF50),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.orange.shade200,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.construction,
-                        size: 20,
-                        color: Colors.orange.shade700,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Coming Soon in Phase 2',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.orange.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
