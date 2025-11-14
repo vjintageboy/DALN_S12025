@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/appointment.dart';
+import '../../services/appointment_service.dart';
 
 class AppointmentDetailPage extends StatefulWidget {
   final Appointment appointment;
@@ -16,6 +17,7 @@ class AppointmentDetailPage extends StatefulWidget {
 
 class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final AppointmentService _appointmentService = AppointmentService();
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
   bool _isProcessing = false;
@@ -134,14 +136,10 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
     });
 
     try {
-      await _db
-          .collection('appointments')
-          .doc(widget.appointment.appointmentId)
-          .update({
-        'status': AppointmentStatus.cancelled.name,
-        'cancelledAt': FieldValue.serverTimestamp(),
-        'cancellationReason': reason,
-      });
+      await _appointmentService.cancelAppointmentWithReason(
+        widget.appointment.appointmentId,
+        reason,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

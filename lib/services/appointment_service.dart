@@ -186,12 +186,30 @@ class AppointmentService {
         });
   }
 
-  // Cancel appointment
+  // Cancel appointment (user)
   Future<void> cancelAppointment(String appointmentId) async {
     try {
       await _db.collection('appointments').doc(appointmentId).update({
         'status': AppointmentStatus.cancelled.name,
         'cancelledAt': Timestamp.now(),
+      });
+    } catch (e) {
+      print('❌ Error cancelling appointment: $e');
+      rethrow;
+    }
+  }
+
+  // Cancel appointment with reason (expert/admin)
+  Future<void> cancelAppointmentWithReason(
+    String appointmentId,
+    String reason,
+  ) async {
+    try {
+      await _db.collection('appointments').doc(appointmentId).update({
+        'status': AppointmentStatus.cancelled.name,
+        'cancelledAt': Timestamp.now(),
+        'cancellationReason': reason,
+        'cancelledBy': 'expert', // Track who cancelled
       });
     } catch (e) {
       print('❌ Error cancelling appointment: $e');
