@@ -61,7 +61,12 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
           ),
         ),
         centerTitle: true,
-        automaticallyImplyLeading: false,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
