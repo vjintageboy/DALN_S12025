@@ -177,6 +177,13 @@ service cloud.firestore {
       // Experts can read appointments for their expertId
       allow read: if isExpert() && isExpertOwner(resource.data.expertId);
       
+      // ⭐ NEW: Allow authenticated users to query appointments by expertId
+      // This is needed for:
+      // 1. Checking booked time slots when booking (conflict detection)
+      // 2. Filtering available slots for a specific expert
+      // Note: Users can only list appointments, not read individual documents
+      allow list: if isAuthenticated();
+      
       // Users can create appointments for themselves
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       
@@ -191,6 +198,21 @@ service cloud.firestore {
       
       // Admin can read/update/delete all appointments
       allow read, update, delete: if isAdmin();
+    }
+    
+    // ============================================
+    // AVAILABILITY - Expert schedule management
+    // ============================================
+    match /availability/{availabilityId} {
+      // Anyone can read expert availability (for booking)
+      allow read: if true;
+      
+      // Experts can create/update their own availability
+      allow create: if isExpert() && request.resource.data.expertId == getExpertId();
+      allow update: if isExpert() && resource.data.expertId == getExpertId();
+      
+      // Admin can read/update all availability
+      allow read, update: if isAdmin();
     }
     
     // ============================================
