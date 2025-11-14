@@ -8,6 +8,7 @@ import '../profile/profile_page.dart';
 import '../expert/expert_list_page.dart';
 import '../streak/streak_history_page.dart';
 import '../chatbot/chatbot_page.dart';
+import '../news/news_feed_page.dart';
 import '../../services/firestore_service.dart';
 import '../../models/meditation.dart';
 import '../../models/streak.dart';
@@ -36,12 +37,15 @@ class _HomePageState extends State<HomePage> {
         currentTab = const MoodHistoryPage();
         break;
       case 2:
-        currentTab = const ExpertListPage();
+        currentTab = const NewsFeedPage();
         break;
       case 3:
-        currentTab = const ChatbotPage();
+        currentTab = const ExpertListPage();
         break;
       case 4:
+        currentTab = const ChatbotPage();
+        break;
+      case 5:
         currentTab = const ProfilePage();
         break;
       default:
@@ -69,9 +73,10 @@ class _HomePageState extends State<HomePage> {
               children: [
                 _buildNavItem(0, Icons.home_outlined, Icons.home, context.l10n.home),
                 _buildNavItem(1, Icons.mood_outlined, Icons.mood, context.l10n.mood),
-                _buildNavItem(2, Icons.spa_outlined, Icons.spa, context.l10n.experts),
-                _buildNavItem(3, Icons.chat_bubble_outline, Icons.chat_bubble, context.l10n.chatbot),
-                _buildNavItem(4, Icons.person_outline, Icons.person, context.l10n.profile),
+                _buildNavItem(2, Icons.article_outlined, Icons.article, 'News'),
+                _buildNavItem(3, Icons.spa_outlined, Icons.spa, context.l10n.experts),
+                _buildNavItem(4, Icons.chat_bubble_outline, Icons.chat_bubble, context.l10n.chatbot),
+                _buildNavItem(5, Icons.person_outline, Icons.person, context.l10n.profile),
               ],
             ),
           ),
