@@ -6,6 +6,7 @@ import '../../models/expert.dart';
 import '../../models/appointment.dart';
 import 'appointments_page.dart';
 import 'schedule_page.dart';
+import 'analytics_page.dart';
 
 class ExpertDashboardPage extends StatefulWidget {
   const ExpertDashboardPage({super.key});
@@ -452,9 +453,11 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                   Icons.analytics,
                   Colors.teal,
                   () {
-                    // TODO: Navigate to analytics page
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Analytics page coming soon')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AnalyticsPage(),
+                      ),
                     );
                   },
                 ),
