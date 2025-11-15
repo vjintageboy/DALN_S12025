@@ -66,6 +66,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     if (expertProfileId == null) return;
 
     try {
+      if (mounted) {
+        setState(() => _isLoading = true);
+      }
+      
       // Get date range based on selected period
       final dateRange = _getDateRange();
 
@@ -82,6 +86,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       }
 
       final snapshot = await query.get();
+      
+      if (!mounted) return;
+      
       final appointments = snapshot.docs
           .map((doc) => Appointment.fromSnapshot(doc))
           .toList();
@@ -113,9 +120,14 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           ? (_cancelledCount / _totalAppointments) * 100
           : 0.0;
 
-      setState(() {});
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     } catch (e) {
       debugPrint('Error loading analytics: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -170,10 +182,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 );
               }).toList(),
               onChanged: (value) {
-                if (value != null) {
+                if (value != null && mounted) {
                   setState(() {
                     _selectedPeriod = value;
-                    _isLoading = true;
                   });
                   _loadAnalytics();
                 }

@@ -64,17 +64,24 @@ class _PostDetailPageState extends State<PostDetailPage> {
       );
 
       await _newsService.addComment(comment);
+      
+      if (!mounted) return;
+      
       _commentController.clear();
       
       // Hide keyboard
-      FocusScope.of(context).unfocus();
+      if (mounted) {
+        FocusScope.of(context).unfocus();
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error posting comment: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error posting comment: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
