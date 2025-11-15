@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'signup_page.dart';
+import '../home/home_page.dart';
+import '../expert_dashboard/expert_main_page.dart';
+import '../admin/admin_main_page.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/localization_service.dart';
 import '../../core/constants/app_strings.dart';
@@ -61,9 +66,36 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (!mounted) return;
 
     if (success) {
-      // Don't navigate manually - AuthWrapper in main.dart will handle it
-      // The StreamBuilder will detect the user is logged in and show appropriate page
-      // This preserves the navigation stack properly
+      print('🎉 Login successful! Checking user role...');
+      
+      // Get user role from Firestore
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        
+        final role = userDoc.data()?['role'] ?? 'user';
+        print('👤 User role: $role');
+        
+        if (!mounted) return;
+        
+        // Navigate based on role - clear entire stack
+        Widget destinationPage;
+        if (role == 'admin') {
+          destinationPage = const AdminMainPage();
+        } else if (role == 'expert') {
+          destinationPage = const ExpertMainPage();
+        } else {
+          destinationPage = const HomePage();
+        }
+        
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => destinationPage),
+          (route) => false,
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

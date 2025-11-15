@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
+import '../home/home_page.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/localization_service.dart';
 import '../../core/constants/app_strings.dart';
@@ -67,10 +70,15 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
     if (!mounted) return;
 
     if (success) {
-      // Don't navigate manually - AuthWrapper in main.dart will handle it
-      // The StreamBuilder will detect the user is logged in and show HomePage
-      // This preserves the navigation stack properly
-    } else {
+      print('🎉 Signup successful! Navigating to HomePage...');
+      
+      // For new signups, role is always 'user'
+      // Navigate and clear entire stack
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const HomePage()),
+        (route) => false,
+      );
+    } else{
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.errorMessage ?? AppStrings.signUpFailed),
