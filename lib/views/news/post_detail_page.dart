@@ -374,13 +374,30 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         StreamBuilder<List<PostComment>>(
                           stream: _newsService.streamComments(widget.post.postId),
                           builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
+                            // Show loading only on first load
+                            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                               return const Center(
-                                child: CircularProgressIndicator(),
+                                child: Padding(
+                                  padding: EdgeInsets.all(32.0),
+                                  child: CircularProgressIndicator(),
+                                ),
                               );
                             }
 
-                            final comments = snapshot.data!;
+                            // Handle error
+                            if (snapshot.hasError) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 32),
+                                child: Center(
+                                  child: Text(
+                                    'Error loading comments',
+                                    style: TextStyle(color: Colors.grey.shade500),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final comments = snapshot.data ?? [];
 
                             if (comments.isEmpty) {
                               return Padding(

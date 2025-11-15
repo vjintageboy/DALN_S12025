@@ -127,6 +127,10 @@ class NewsService {
         .where('postId', isEqualTo: postId)
         .orderBy('createdAt', descending: false)
         .snapshots()
+        .handleError((error) {
+          debugPrint('Error streaming comments: $error');
+          return <PostComment>[];
+        })
         .map((snapshot) {
       return snapshot.docs.map((doc) => PostComment.fromSnapshot(doc)).toList();
     });
