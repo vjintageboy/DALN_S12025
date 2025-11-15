@@ -233,19 +233,27 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                   // Avatar
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                    backgroundImage: post.authorAvatarUrl != null
+                    backgroundColor: post.authorName == 'Anonymous'
+                        ? Colors.grey.shade300
+                        : const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                    backgroundImage: post.authorName != 'Anonymous' && post.authorAvatarUrl != null
                         ? NetworkImage(post.authorAvatarUrl!)
                         : null,
-                    child: post.authorAvatarUrl == null
-                        ? Text(
-                            post.authorName[0].toUpperCase(),
-                            style: const TextStyle(
-                              color: Color(0xFF6C63FF),
-                              fontWeight: FontWeight.bold,
-                            ),
+                    child: post.authorName == 'Anonymous'
+                        ? Icon(
+                            Icons.visibility_off,
+                            size: 20,
+                            color: Colors.grey.shade700,
                           )
-                        : null,
+                        : (post.authorAvatarUrl == null
+                            ? Text(
+                                post.authorName[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Color(0xFF6C63FF),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null),
                   ),
                   const SizedBox(width: 12),
                   // Author info

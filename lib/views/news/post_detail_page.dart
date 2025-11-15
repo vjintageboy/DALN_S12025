@@ -21,6 +21,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
   final NewsService _newsService = NewsService();
   final TextEditingController _commentController = TextEditingController();
   final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  bool _commentAnonymously = false; // Anonymous comment toggle
 
   @override
   void dispose() {
@@ -34,21 +35,31 @@ class _PostDetailPageState extends State<PostDetailPage> {
     try {
       final user = FirebaseAuth.instance.currentUser!;
       
-      // Get user info
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      // Determine user info based on anonymous toggle
+      String userName;
+      String? userAvatarUrl;
       
-      final userData = userDoc.data();
-      final userName = userData?['displayName'] ?? user.displayName ?? 'User';
+      if (_commentAnonymously) {
+        userName = 'Anonymous';
+        userAvatarUrl = null;
+      } else {
+        // Get user info
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        
+        final userData = userDoc.data();
+        userName = userData?['displayName'] ?? user.displayName ?? 'User';
+        userAvatarUrl = user.photoURL;
+      }
 
       final comment = PostComment(
         commentId: '',
         postId: widget.post.postId,
-        userId: user.uid,
+        userId: user.uid, // Keep real ID for moderation
         userName: userName,
-        userAvatarUrl: user.photoURL,
+        userAvatarUrl: userAvatarUrl,
         content: _commentController.text.trim(),
       );
 
@@ -117,20 +128,28 @@ class _PostDetailPageState extends State<PostDetailPage> {
                           children: [
                             CircleAvatar(
                               radius: 24,
-                              backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                              backgroundImage: widget.post.authorAvatarUrl != null
+                              backgroundColor: widget.post.authorName == 'Anonymous'
+                                  ? Colors.grey.shade300
+                                  : const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                              backgroundImage: widget.post.authorName != 'Anonymous' && widget.post.authorAvatarUrl != null
                                   ? NetworkImage(widget.post.authorAvatarUrl!)
                                   : null,
-                              child: widget.post.authorAvatarUrl == null
-                                  ? Text(
-                                      widget.post.authorName[0].toUpperCase(),
-                                      style: const TextStyle(
-                                        color: Color(0xFF6C63FF),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
+                              child: widget.post.authorName == 'Anonymous'
+                                  ? Icon(
+                                      Icons.visibility_off,
+                                      size: 24,
+                                      color: Colors.grey.shade700,
                                     )
-                                  : null,
+                                  : (widget.post.authorAvatarUrl == null
+                                      ? Text(
+                                          widget.post.authorName[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            color: Color(0xFF6C63FF),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                        )
+                                      : null),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -422,43 +441,83 @@ class _PostDetailPageState extends State<PostDetailPage> {
             padding: EdgeInsets.only(
               left: 16,
               right: 16,
-              top: 12,
+              top: 8,
               bottom: MediaQuery.of(context).viewInsets.bottom + 12,
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    decoration: InputDecoration(
-                      hintText: 'Write a comment...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(color: Color(0xFF6C63FF)),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                // Anonymous toggle
+                Row(
+                  children: [
+                    Icon(
+                      Icons.visibility_off,
+                      size: 16,
+                      color: _commentAnonymously ? const Color(0xFF6C63FF) : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Comment anonymously',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _commentAnonymously ? const Color(0xFF6C63FF) : Colors.grey.shade600,
                       ),
                     ),
-                    maxLines: null,
-                  ),
+                    const SizedBox(width: 8),
+                    Transform.scale(
+                      scale: 0.8,
+                      child: Switch(
+                        value: _commentAnonymously,
+                        onChanged: (value) {
+                          setState(() {
+                            _commentAnonymously = value;
+                          });
+                        },
+                        activeColor: const Color(0xFF6C63FF),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF6C63FF),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                    onPressed: _submitComment,
-                  ),
+                const SizedBox(height: 8),
+                // Comment input row
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _commentController,
+                        decoration: InputDecoration(
+                          hintText: _commentAnonymously 
+                              ? 'Comment as Anonymous...' 
+                              : 'Write a comment...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: const BorderSide(color: Color(0xFF6C63FF)),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                        maxLines: null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    CircleAvatar(
+                      backgroundColor: const Color(0xFF6C63FF),
+                      child: IconButton(
+                        icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                        onPressed: _submitComment,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -474,20 +533,28 @@ class _PostDetailPageState extends State<PostDetailPage> {
       children: [
         CircleAvatar(
           radius: 18,
-          backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-          backgroundImage: comment.userAvatarUrl != null
+          backgroundColor: comment.userName == 'Anonymous'
+              ? Colors.grey.shade300
+              : const Color(0xFF6C63FF).withValues(alpha: 0.2),
+          backgroundImage: comment.userName != 'Anonymous' && comment.userAvatarUrl != null
               ? NetworkImage(comment.userAvatarUrl!)
               : null,
-          child: comment.userAvatarUrl == null
-              ? Text(
-                  comment.userName[0].toUpperCase(),
-                  style: const TextStyle(
-                    color: Color(0xFF6C63FF),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+          child: comment.userName == 'Anonymous'
+              ? Icon(
+                  Icons.visibility_off,
+                  size: 18,
+                  color: Colors.grey.shade700,
                 )
-              : null,
+              : (comment.userAvatarUrl == null
+                  ? Text(
+                      comment.userName[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF6C63FF),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    )
+                  : null),
         ),
         const SizedBox(width: 12),
         Expanded(

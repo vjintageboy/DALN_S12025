@@ -18,6 +18,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   
   PostCategory _selectedCategory = PostCategory.community;
   bool _isSubmitting = false;
+  bool _postAnonymously = false; // ✅ NEW: Anonymous toggle
 
   @override
   void dispose() {
@@ -46,22 +47,35 @@ class _CreatePostPageState extends State<CreatePostPage> {
     try {
       final user = FirebaseAuth.instance.currentUser!;
       
-      // Get user info from Firestore
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      // Determine author info based on anonymous toggle
+      String authorName;
+      String? authorAvatarUrl;
+      String authorRole;
       
-      final userData = userDoc.data();
-      final userName = userData?['displayName'] ?? user.displayName ?? 'User';
-      final userRole = userData?['role'] ?? 'user';
+      if (_postAnonymously) {
+        // Use anonymous identity
+        authorName = 'Anonymous';
+        authorAvatarUrl = null;
+        authorRole = 'user';
+      } else {
+        // Get real user info from Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        
+        final userData = userDoc.data();
+        authorName = userData?['displayName'] ?? user.displayName ?? 'User';
+        authorAvatarUrl = user.photoURL;
+        authorRole = userData?['role'] ?? 'user';
+      }
 
       final post = NewsPost(
         postId: '',
-        authorId: user.uid,
-        authorName: userName,
-        authorAvatarUrl: user.photoURL,
-        authorRole: userRole,
+        authorId: user.uid, // Keep real ID for moderation
+        authorName: authorName,
+        authorAvatarUrl: authorAvatarUrl,
+        authorRole: authorRole,
         title: _titleController.text.trim(),
         content: _contentController.text.trim(),
         category: _selectedCategory,
@@ -168,6 +182,32 @@ class _CreatePostPageState extends State<CreatePostPage> {
                             }).toList(),
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Anonymous posting toggle
+                  Card(
+                    child: SwitchListTile(
+                      title: const Text(
+                        'Post Anonymously',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: const Text(
+                        'Hide your identity from other users',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                      value: _postAnonymously,
+                      onChanged: (value) {
+                        setState(() {
+                          _postAnonymously = value;
+                        });
+                      },
+                      activeColor: const Color(0xFF6C63FF),
+                      secondary: Icon(
+                        _postAnonymously ? Icons.visibility_off : Icons.visibility,
+                        color: const Color(0xFF6C63FF),
                       ),
                     ),
                   ),
