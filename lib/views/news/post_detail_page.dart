@@ -451,99 +451,122 @@ class _PostDetailPageState extends State<PostDetailPage> {
           ),
 
           // Comment input
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
+          SafeArea(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.grey.shade200,
+                    width: 1,
+                  ),
                 ),
-              ],
-            ),
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 8,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 12,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Anonymous toggle
-                Row(
-                  children: [
-                    Icon(
-                      Icons.visibility_off,
-                      size: 16,
-                      color: _commentAnonymously ? const Color(0xFF6C63FF) : Colors.grey,
+              ),
+              padding: EdgeInsets.only(
+                left: 12,
+                right: 12,
+                top: 8,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 8,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // User avatar
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: FutureBuilder<User?>(
+                      future: Future.value(FirebaseAuth.instance.currentUser),
+                      builder: (context, snapshot) {
+                        final user = snapshot.data;
+                        return CircleAvatar(
+                          radius: 18,
+                          backgroundColor: _commentAnonymously
+                              ? Colors.grey.shade300
+                              : const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                          backgroundImage: !_commentAnonymously && user?.photoURL != null
+                              ? NetworkImage(user!.photoURL!)
+                              : null,
+                          child: _commentAnonymously
+                              ? Icon(Icons.visibility_off, size: 18, color: Colors.grey.shade700)
+                              : (user?.photoURL == null
+                                  ? Text(
+                                      (user?.displayName ?? user?.email ?? 'U')[0].toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Color(0xFF6C63FF),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    )
+                                  : null),
+                        );
+                      },
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Comment anonymously',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _commentAnonymously ? const Color(0xFF6C63FF) : Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 12),
+                  // Comment input field
+                  Expanded(
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        maxHeight: 100,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _commentController,
+                              decoration: InputDecoration(
+                                hintText: _commentAnonymously
+                                    ? 'Comment as Anonymous...'
+                                    : 'Write a comment...',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 15,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                              ),
+                              maxLines: null,
+                              textInputAction: TextInputAction.newline,
+                            ),
+                          ),
+                          // Anonymous toggle icon
+                          IconButton(
+                            icon: Icon(
+                              _commentAnonymously ? Icons.visibility_off : Icons.visibility,
+                              color: _commentAnonymously ? const Color(0xFF6C63FF) : Colors.grey.shade600,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _commentAnonymously = !_commentAnonymously;
+                              });
+                            },
+                            tooltip: _commentAnonymously ? 'Comment as yourself' : 'Comment anonymously',
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Transform.scale(
-                      scale: 0.8,
-                      child: Switch(
-                        value: _commentAnonymously,
-                        onChanged: (value) {
-                          setState(() {
-                            _commentAnonymously = value;
-                          });
-                        },
-                        activeColor: const Color(0xFF6C63FF),
-                      ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Send button
+                  IconButton(
+                    icon: const Icon(
+                      Icons.send,
+                      color: Color(0xFF6C63FF),
+                      size: 24,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Comment input row
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _commentController,
-                        decoration: InputDecoration(
-                          hintText: _commentAnonymously 
-                              ? 'Comment as Anonymous...' 
-                              : 'Write a comment...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: const BorderSide(color: Color(0xFF6C63FF)),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                        ),
-                        maxLines: null,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    CircleAvatar(
-                      backgroundColor: const Color(0xFF6C63FF),
-                      child: IconButton(
-                        icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                        onPressed: _submitComment,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    onPressed: _submitComment,
+                    padding: const EdgeInsets.all(8),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
