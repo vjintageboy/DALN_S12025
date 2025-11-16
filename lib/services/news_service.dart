@@ -9,16 +9,31 @@ class NewsService {
 
   /// Stream all posts, ordered by createdAt descending
   Stream<List<NewsPost>> streamPosts({PostCategory? category}) {
-    Query query = _db.collection('newsPosts')
-        .orderBy('createdAt', descending: true);
+    try {
+      Query query;
+      
+      if (category != null) {
+        // Server-side filtering with composite index (now enabled!)
+        query = _db.collection('newsPosts')
+            .where('category', isEqualTo: category.name)
+            .orderBy('createdAt', descending: true);
+      } else {
+        // No filter, just orderBy
+        query = _db.collection('newsPosts')
+            .orderBy('createdAt', descending: true);
+      }
 
-    if (category != null) {
-      query = query.where('category', isEqualTo: category.name);
+      return query.snapshots().handleError((error) {
+        debugPrint('❌ Error streaming posts: $error');
+        throw Exception('Failed to load posts: $error');
+      }).map((snapshot) {
+        debugPrint('✅ Loaded ${snapshot.docs.length} posts');
+        return snapshot.docs.map((doc) => NewsPost.fromSnapshot(doc)).toList();
+      });
+    } catch (e) {
+      debugPrint('❌ Error creating query: $e');
+      rethrow;
     }
-
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => NewsPost.fromSnapshot(doc)).toList();
-    });
   }
 
   /// Get single post by ID

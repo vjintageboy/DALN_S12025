@@ -75,17 +75,53 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
               stream: _newsService.streamPosts(category: _selectedCategory),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
+                  // Log the actual error for debugging
+                  print('❌ Error loading posts: ${snapshot.error}');
+                  
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error loading posts',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Error loading posts',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${snapshot.error}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _selectedCategory = null;
+                              });
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Try Again'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6C63FF),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
