@@ -5,7 +5,9 @@ import '../../models/news_post.dart';
 import '../../services/news_service.dart';
 
 class CreatePostPage extends StatefulWidget {
-  const CreatePostPage({super.key});
+  final NewsPost? postToEdit; // ✅ Add optional post for editing
+  
+  const CreatePostPage({super.key, this.postToEdit});
 
   @override
   State<CreatePostPage> createState() => _CreatePostPageState();
@@ -18,7 +20,19 @@ class _CreatePostPageState extends State<CreatePostPage> {
   
   PostCategory _selectedCategory = PostCategory.community;
   bool _isSubmitting = false;
-  bool _postAnonymously = false; // ✅ NEW: Anonymous toggle
+  bool _postAnonymously = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // If editing, populate fields
+    if (widget.postToEdit != null) {
+      _titleController.text = widget.postToEdit!.title;
+      _contentController.text = widget.postToEdit!.content;
+      _selectedCategory = widget.postToEdit!.category;
+      _postAnonymously = widget.postToEdit!.authorName == 'Anonymous';
+    }
+  }
 
   @override
   void dispose() {
@@ -85,7 +99,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
       }
 
       final post = NewsPost(
-        postId: '',
+        postId: widget.postToEdit?.postId ?? '', // Use existing ID if editing
         authorId: user.uid, // Keep real ID for moderation
         authorName: authorName,
         authorAvatarUrl: authorAvatarUrl,
@@ -95,16 +109,33 @@ class _CreatePostPageState extends State<CreatePostPage> {
         category: _selectedCategory,
       );
 
-      await _newsService.createPost(post);
+      // Update or create based on mode
+      if (widget.postToEdit != null) {
+        // Edit mode - update existing post
+        await _newsService.updatePost(post);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Post updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        // Create mode - create new post
+        await _newsService.createPost(post);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✓ Post created successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Post created successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -124,12 +155,14 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditMode = widget.postToEdit != null;
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
-          'Create Post',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          isEditMode ? 'Edit Post' : 'Create Post',
+          style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF6C63FF),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -137,7 +170,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
           TextButton(
             onPressed: _isSubmitting ? null : _submitPost,
             child: Text(
-              'Post',
+              isEditMode ? 'Update' : 'Post',
               style: TextStyle(
                 color: _isSubmitting ? Colors.white54 : Colors.white,
                 fontWeight: FontWeight.bold,

@@ -240,8 +240,10 @@ service cloud.firestore {
                        request.resource.data.authorId == request.auth.uid;
       
       // Authors can update/delete their own posts
-      allow update, delete: if isAuthenticated() && 
-                               resource.data.authorId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+                       resource.data.authorId == request.auth.uid;
+      allow delete: if isAuthenticated() && 
+                       resource.data.authorId == request.auth.uid;
       
       // ⭐ Authenticated users can update posts to toggle likes or update comment count
       // Only allow updating the 'likedBy' and 'commentCount' fields
@@ -267,6 +269,11 @@ service cloud.firestore {
       // Authors can delete their own comments
       allow delete: if isAuthenticated() && 
                        resource.data.userId == request.auth.uid;
+      
+      // ⭐ Post authors can delete any comment on their posts
+      // We need to get the post document to check if current user is the post author
+      allow delete: if isAuthenticated() && 
+                       get(/databases/$(database)/documents/newsPosts/$(resource.data.postId)).data.authorId == request.auth.uid;
       
       // Admin can manage all comments
       allow write: if isAdmin();

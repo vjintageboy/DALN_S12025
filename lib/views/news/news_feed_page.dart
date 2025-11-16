@@ -364,6 +364,34 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       ),
                     ),
                   ),
+                  // Menu button (3 dots) - Only show for own posts or admin
+                  if (post.authorId == currentUserId)
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert, color: Colors.grey.shade600, size: 20),
+                      onSelected: (value) => _handlePostAction(value, post),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, size: 18),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -524,6 +552,75 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Handle post menu actions (Edit/Delete)
+  void _handlePostAction(String action, NewsPost post) {
+    switch (action) {
+      case 'edit':
+        _editPost(post);
+        break;
+      case 'delete':
+        _deletePost(post);
+        break;
+    }
+  }
+
+  /// Edit post
+  void _editPost(NewsPost post) {
+    // Navigate to edit page (we'll create this)
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreatePostPage(postToEdit: post),
+      ),
+    );
+  }
+
+  /// Delete post with confirmation
+  Future<void> _deletePost(NewsPost post) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _newsService.deletePost(post.postId);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Post deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting post: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 }
