@@ -100,7 +100,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -147,175 +147,291 @@ class _MoodLogPageState extends State<MoodLogPage> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Question
-              Text(
-                context.l10n.howAreYouFeelingToday,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
-                ),
+      body: Stack(
+        children: [
+          Container(
+            height: 220,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF43A047),
+                  Color(0xFF81C784),
+                ],
               ),
-              const SizedBox(height: 32),
-
-              // Mood selector
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: _moodLevels.map((mood) {
-                  final isSelected = _selectedMoodLevel == mood['level'];
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedMoodLevel = mood['level']),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: isSelected 
-                                ? const Color(0xFF81C784).withOpacity(0.2)
-                                : Colors.orange.shade50,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected 
-                                  ? const Color(0xFF4CAF50)
-                                  : Colors.transparent,
-                              width: 3,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              mood['emoji'],
-                              style: const TextStyle(fontSize: 32),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _getMoodLabel(context, mood['labelKey']),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isSelected 
-                                ? const Color(0xFF4CAF50)
-                                : Colors.grey.shade700,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 40),
-
-              // Notes section
-              Text(
-                context.l10n.notes,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _noteController,
-                  maxLines: 5,
-                  decoration: InputDecoration(
-                    hintText: context.l10n.notesHint,
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 15,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                  style: const TextStyle(fontSize: 15),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // What's influencing your mood
-              Text(
-                context.l10n.emotionFactors,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: _emotionFactorKeys.map((factorKey) {
-                  final factor = _getEmotionFactorLabel(context, factorKey);
-                  final isSelected = _selectedFactors.contains(factorKey);
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (isSelected) {
-                          _selectedFactors.remove(factorKey);
-                        } else {
-                          _selectedFactors.add(factorKey);
-                        }
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected 
-                            ? const Color(0xFF81C784).withOpacity(0.3)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(
-                          color: isSelected 
-                              ? const Color(0xFF4CAF50)
-                              : Colors.grey.shade300,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Text(
-                        factor,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                          color: isSelected 
-                              ? const Color(0xFF2E7D32)
-                              : Colors.grey.shade700,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 80), // Space for FAB
-            ],
+            ),
           ),
-        ),
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildMoodSelectorCard(context),
+                const SizedBox(height: 24),
+                _buildFactorsCard(context),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  Widget _buildMoodSelectorCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 36, 24, 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF43A047),
+            Color(0xFF4CAF50),
+            Color(0xFF66BB6A),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.l10n.howAreYouFeelingToday,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            context.l10n.trackMoodDescription,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 28),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: _moodLevels.map((mood) {
+              final isSelected = _selectedMoodLevel == mood['level'];
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedMoodLevel = mood['level']),
+                  child: Column(
+                    children: [
+                      AnimatedScale(
+                        duration: const Duration(milliseconds: 200),
+                        scale: isSelected ? 1.15 : 1,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(isSelected ? 0.3 : 0.15),
+                            border: isSelected
+                                ? Border.all(color: Colors.white, width: 2)
+                                : null,
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: Text(
+                            mood['emoji'],
+                            style: const TextStyle(fontSize: 34),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _getMoodLabel(context, mood['labelKey']),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: Colors.white.withOpacity(isSelected ? 1 : 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 28),
+          Text(
+            context.l10n.notes,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _noteController,
+            maxLines: 4,
+            cursorColor: Colors.white,
+            decoration: InputDecoration(
+              hintText: context.l10n.moodNotePlaceholder,
+              hintStyle: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 14,
+              ),
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: const BorderSide(color: Colors.white, width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            style: const TextStyle(
+              fontSize: 15,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFactorsCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Color(0xFFF57C00),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.emotionFactors,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.l10n.emotionFactorsHint,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _emotionFactorKeys.map((factorKey) {
+              final factor = _getEmotionFactorLabel(context, factorKey);
+              final isSelected = _selectedFactors.contains(factorKey);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _selectedFactors.remove(factorKey);
+                    } else {
+                      _selectedFactors.add(factorKey);
+                    }
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF43A047).withOpacity(0.12) : const Color(0xFFF5F7FB),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+                      width: 1.4,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF2E7D32).withOpacity(0.15),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: Text(
+                    factor,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected ? const Color(0xFF1B5E20) : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
   String _getMoodLabel(BuildContext context, String labelKey) {
     switch (labelKey) {
       case 'veryPoor':

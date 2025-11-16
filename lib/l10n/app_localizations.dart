@@ -500,6 +500,24 @@ abstract class AppLocalizations {
   /// **'Excellent'**
   String get excellent;
 
+  /// Subtitle encouraging users to select a mood emoji
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on the emoji that matches your day'**
+  String get trackMoodDescription;
+
+  /// Helper text describing mood factors selection
+  ///
+  /// In en, this message translates to:
+  /// **'Pick what\'s influencing your feelings (optional)'**
+  String get emotionFactorsHint;
+
+  /// Placeholder for mood note text field
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note...'**
+  String get moodNotePlaceholder;
+
   /// No description provided for @meditationLibrary.
   ///
   /// In en, this message translates to:

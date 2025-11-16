@@ -91,6 +91,18 @@
   "okay": "Bình thường",
   "good": "Tốt",
   "excellent": "Xuất sắc",
+  "trackMoodDescription": "Chạm vào biểu tượng cảm xúc phù hợp với ngày của bạn",
+  "@trackMoodDescription": {
+    "description": "Phụ đề khuyến khích chọn biểu tượng cảm xúc"
+  },
+  "emotionFactorsHint": "Chọn những điều ảnh hưởng tới cảm xúc (tùy chọn)",
+  "@emotionFactorsHint": {
+    "description": "Mô tả phần lựa chọn yếu tố ảnh hưởng"
+  },
+  "moodNotePlaceholder": "Thêm ghi chú...",
+  "@moodNotePlaceholder": {
+    "description": "Placeholder cho ô nhập ghi chú tâm trạng"
+  },
   
   "meditationLibrary": "Thư viện thiền định",
   "findYourPeace": "Tìm sự bình yên của bạn",

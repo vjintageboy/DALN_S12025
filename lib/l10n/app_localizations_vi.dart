@@ -216,6 +216,17 @@ class AppLocalizationsVi extends AppLocalizations {
   String get excellent => 'Xuất sắc';
 
   @override
+  String get trackMoodDescription =>
+      'Chạm vào biểu tượng cảm xúc phù hợp với ngày của bạn';
+
+  @override
+  String get emotionFactorsHint =>
+      'Chọn những điều ảnh hưởng tới cảm xúc (tùy chọn)';
+
+  @override
+  String get moodNotePlaceholder => 'Thêm ghi chú...';
+
+  @override
   String get meditationLibrary => 'Thư viện thiền định';
 
   @override

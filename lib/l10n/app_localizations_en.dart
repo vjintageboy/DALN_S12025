@@ -211,6 +211,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get excellent => 'Excellent';
 
   @override
+  String get trackMoodDescription => 'Tap on the emoji that matches your day';
+
+  @override
+  String get emotionFactorsHint =>
+      'Pick what\'s influencing your feelings (optional)';
+
+  @override
+  String get moodNotePlaceholder => 'Add a note...';
+
+  @override
   String get meditationLibrary => 'Meditation Library';
 
   @override

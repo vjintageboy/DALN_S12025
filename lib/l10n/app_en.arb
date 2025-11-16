@@ -91,6 +91,18 @@
   "okay": "Okay",
   "good": "Good",
   "excellent": "Excellent",
+  "trackMoodDescription": "Tap on the emoji that matches your day",
+  "@trackMoodDescription": {
+    "description": "Subtitle encouraging users to select a mood emoji"
+  },
+  "emotionFactorsHint": "Pick what's influencing your feelings (optional)",
+  "@emotionFactorsHint": {
+    "description": "Helper text describing mood factors selection"
+  },
+  "moodNotePlaceholder": "Add a note...",
+  "@moodNotePlaceholder": {
+    "description": "Placeholder for mood note text field"
+  },
   
   "meditationLibrary": "Meditation Library",
   "findYourPeace": "Find your peace",
