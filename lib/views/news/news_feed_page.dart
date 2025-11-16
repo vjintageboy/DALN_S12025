@@ -207,6 +207,8 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
           _buildCategoryChip('Tips', PostCategory.tips),
           const SizedBox(width: 8),
           _buildCategoryChip('Community', PostCategory.community),
+          const SizedBox(width: 8),
+          _buildCategoryChip('News', PostCategory.news),
         ],
       ),
     );
