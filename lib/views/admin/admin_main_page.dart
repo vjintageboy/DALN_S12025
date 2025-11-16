@@ -3,6 +3,7 @@ import 'admin_dashboard_page.dart';
 import 'admin_user_management_page.dart';
 import 'admin_expert_management_page.dart';
 import 'meditation_management_page.dart';
+import '../news/news_manager_page.dart';
 import '../profile/profile_page.dart';
 import '../../core/services/localization_service.dart';
 
@@ -39,9 +40,12 @@ class _AdminMainPageState extends State<AdminMainPage> {
         currentTab = const AdminExpertManagementPage();
         break;
       case 3:
-        currentTab = const MeditationManagementPage();
+        currentTab = const NewsManagerPage();
         break;
       case 4:
+        currentTab = const MeditationManagementPage();
+        break;
+      case 5:
         currentTab = const ProfilePage();
         break;
       default:
@@ -87,12 +91,18 @@ class _AdminMainPageState extends State<AdminMainPage> {
                 ),
                 _buildNavItem(
                   3,
+                  Icons.article_outlined,
+                  Icons.article,
+                  'News Manager',
+                ),
+                _buildNavItem(
+                  4,
                   Icons.spa_outlined,
                   Icons.spa,
                   'Meditations',
                 ),
                 _buildNavItem(
-                  4,
+                  5,
                   Icons.person_outline,
                   Icons.person,
                   context.l10n.profile,

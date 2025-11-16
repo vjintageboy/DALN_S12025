@@ -4,6 +4,7 @@ import 'appointments_page.dart';
 import 'schedule_page.dart';
 import '../profile/profile_page.dart';
 import '../chatbot/chatbot_page.dart';
+import '../news/news_feed_page.dart';
 import '../../core/services/localization_service.dart';
 
 /// Main navigation page for experts with bottom navigation bar
@@ -30,12 +31,15 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
         currentTab = const AppointmentsPage();
         break;
       case 2:
-        currentTab = const SchedulePage();
+        currentTab = const NewsFeedPage();
         break;
       case 3:
-        currentTab = const ChatbotPage();
+        currentTab = const SchedulePage();
         break;
       case 4:
+        currentTab = const ChatbotPage();
+        break;
+      case 5:
         currentTab = const ProfilePage();
         break;
       default:
@@ -75,18 +79,24 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
                 ),
                 _buildNavItem(
                   2,
+                  Icons.article_outlined,
+                  Icons.article,
+                  'News',
+                ),
+                _buildNavItem(
+                  3,
                   Icons.schedule_outlined,
                   Icons.schedule,
                   'Schedule',
                 ),
                 _buildNavItem(
-                  3,
+                  4,
                   Icons.chat_bubble_outline,
                   Icons.chat_bubble,
                   context.l10n.chatbot,
                 ),
                 _buildNavItem(
-                  4,
+                  5,
                   Icons.person_outline,
                   Icons.person,
                   context.l10n.profile,
