@@ -64,9 +64,23 @@ class _CreatePostPageState extends State<CreatePostPage> {
             .doc(user.uid)
             .get();
         
+        // Also check profiles collection for avatar
+        final profileDoc = await FirebaseFirestore.instance
+            .collection('profiles')
+            .doc(user.uid)
+            .get();
+        
         final userData = userDoc.data();
+        final profileData = profileDoc.data();
+        
         authorName = userData?['displayName'] ?? user.displayName ?? 'User';
-        authorAvatarUrl = user.photoURL;
+        
+        // Try to get avatar from multiple sources
+        authorAvatarUrl = userData?['photoBase64'] ?? 
+                         profileData?['photoBase64'] ??
+                         userData?['photoURL'] ?? 
+                         profileData?['photoURL'] ??
+                         user.photoURL;
         authorRole = userData?['role'] ?? 'user';
       }
 

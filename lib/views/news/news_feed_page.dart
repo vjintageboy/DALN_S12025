@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
 import 'create_post_page.dart';
@@ -275,7 +276,9 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                         ? Colors.grey.shade300
                         : const Color(0xFF6C63FF).withValues(alpha: 0.2),
                     backgroundImage: post.authorName != 'Anonymous' && post.authorAvatarUrl != null
-                        ? NetworkImage(post.authorAvatarUrl!)
+                        ? (_isBase64(post.authorAvatarUrl!)
+                            ? MemoryImage(base64Decode(post.authorAvatarUrl!))
+                            : NetworkImage(post.authorAvatarUrl!)) as ImageProvider
                         : null,
                     child: post.authorName == 'Anonymous'
                         ? Icon(
@@ -506,6 +509,21 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
         return Colors.pink;
       case PostCategory.news:
         return Colors.teal;
+    }
+  }
+
+  /// Check if string is Base64 encoded
+  bool _isBase64(String str) {
+    // Base64 strings don't start with http/https
+    if (str.startsWith('http://') || str.startsWith('https://')) {
+      return false;
+    }
+    // Try to decode to verify it's valid Base64
+    try {
+      base64Decode(str);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 }

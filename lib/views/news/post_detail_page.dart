@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import '../../models/news_post.dart';
 import '../../models/post_comment.dart';
 import '../../services/news_service.dart';
@@ -29,6 +30,41 @@ class _PostDetailPageState extends State<PostDetailPage> {
     super.dispose();
   }
 
+  /// Load user avatar from Firestore
+  Future<Map<String, dynamic>> _loadUserAvatar() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return {'avatarUrl': null, 'displayName': 'User'};
+
+      // Get from users collection
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      
+      // Also check profiles collection
+      final profileDoc = await FirebaseFirestore.instance
+          .collection('profiles')
+          .doc(user.uid)
+          .get();
+      
+      final userData = userDoc.data();
+      final profileData = profileDoc.data();
+      
+      final avatarUrl = userData?['photoBase64'] ?? 
+                       profileData?['photoBase64'] ??
+                       userData?['photoURL'] ?? 
+                       profileData?['photoURL'] ??
+                       user.photoURL;
+      
+      final displayName = userData?['displayName'] ?? user.displayName ?? 'User';
+      
+      return {'avatarUrl': avatarUrl, 'displayName': displayName};
+    } catch (e) {
+      return {'avatarUrl': null, 'displayName': 'User'};
+    }
+  }
+
   Future<void> _submitComment() async {
     if (_commentController.text.trim().isEmpty) return;
 
@@ -43,15 +79,29 @@ class _PostDetailPageState extends State<PostDetailPage> {
         userName = 'Anonymous';
         userAvatarUrl = null;
       } else {
-        // Get user info
+        // Get user info from users collection
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
         
+        // Also check profiles collection for avatar
+        final profileDoc = await FirebaseFirestore.instance
+            .collection('profiles')
+            .doc(user.uid)
+            .get();
+        
         final userData = userDoc.data();
+        final profileData = profileDoc.data();
+        
         userName = userData?['displayName'] ?? user.displayName ?? 'User';
-        userAvatarUrl = user.photoURL;
+        
+        // Try to get avatar from multiple sources
+        userAvatarUrl = userData?['photoBase64'] ?? 
+                       profileData?['photoBase64'] ??
+                       userData?['photoURL'] ?? 
+                       profileData?['photoURL'] ??
+                       user.photoURL;
       }
 
       final comment = PostComment(
@@ -139,7 +189,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                   ? Colors.grey.shade300
                                   : const Color(0xFF6C63FF).withValues(alpha: 0.2),
                               backgroundImage: widget.post.authorName != 'Anonymous' && widget.post.authorAvatarUrl != null
-                                  ? NetworkImage(widget.post.authorAvatarUrl!)
+                                  ? (_isBase64(widget.post.authorAvatarUrl!)
+                                      ? MemoryImage(base64Decode(widget.post.authorAvatarUrl!))
+                                      : NetworkImage(widget.post.authorAvatarUrl!)) as ImageProvider
                                   : null,
                               child: widget.post.authorName == 'Anonymous'
                                   ? Icon(
@@ -474,10 +526,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   // User avatar - tap to toggle anonymous
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: FutureBuilder<User?>(
-                      future: Future.value(FirebaseAuth.instance.currentUser),
+                    child: FutureBuilder<Map<String, dynamic>>(
+                      future: _loadUserAvatar(),
                       builder: (context, snapshot) {
-                        final user = snapshot.data;
+                        final avatarUrl = snapshot.data?['avatarUrl'] as String?;
+                        final displayName = snapshot.data?['displayName'] as String?;
+                        
                         return GestureDetector(
                           onTap: () {
                             setState(() {
@@ -489,14 +543,16 @@ class _PostDetailPageState extends State<PostDetailPage> {
                             backgroundColor: _commentAnonymously
                                 ? Colors.grey.shade300
                                 : const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                            backgroundImage: !_commentAnonymously && user?.photoURL != null
-                                ? NetworkImage(user!.photoURL!)
+                            backgroundImage: !_commentAnonymously && avatarUrl != null
+                                ? (_isBase64(avatarUrl)
+                                    ? MemoryImage(base64Decode(avatarUrl))
+                                    : NetworkImage(avatarUrl)) as ImageProvider
                                 : null,
                             child: _commentAnonymously
                                 ? Icon(Icons.visibility_off, size: 18, color: Colors.grey.shade700)
-                                : (user?.photoURL == null
+                                : (avatarUrl == null
                                     ? Text(
-                                        (user?.displayName ?? user?.email ?? 'U')[0].toUpperCase(),
+                                        (displayName ?? 'U')[0].toUpperCase(),
                                         style: const TextStyle(
                                           color: Color(0xFF6C63FF),
                                           fontWeight: FontWeight.bold,
@@ -580,7 +636,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
               ? Colors.grey.shade300
               : const Color(0xFF6C63FF).withValues(alpha: 0.2),
           backgroundImage: comment.userName != 'Anonymous' && comment.userAvatarUrl != null
-              ? NetworkImage(comment.userAvatarUrl!)
+              ? (_isBase64(comment.userAvatarUrl!)
+                  ? MemoryImage(base64Decode(comment.userAvatarUrl!))
+                  : NetworkImage(comment.userAvatarUrl!)) as ImageProvider
               : null,
           child: comment.userName == 'Anonymous'
               ? Icon(
@@ -653,6 +711,21 @@ class _PostDetailPageState extends State<PostDetailPage> {
         return Colors.pink;
       case PostCategory.news:
         return Colors.teal;
+    }
+  }
+
+  /// Check if string is Base64 encoded
+  bool _isBase64(String str) {
+    // Base64 strings don't start with http/https
+    if (str.startsWith('http://') || str.startsWith('https://')) {
+      return false;
+    }
+    // Try to decode to verify it's valid Base64
+    try {
+      base64Decode(str);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 }
