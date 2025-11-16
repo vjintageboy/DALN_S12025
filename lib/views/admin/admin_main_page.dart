@@ -69,43 +69,54 @@ class _AdminMainPageState extends State<AdminMainPage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(
-                  0,
-                  Icons.dashboard_outlined,
-                  Icons.dashboard,
-                  'Dashboard',
+                Expanded(
+                  child: _buildNavItem(
+                    0,
+                    Icons.dashboard_outlined,
+                    Icons.dashboard,
+                    'Dashboard',
+                  ),
                 ),
-                _buildNavItem(
-                  1,
-                  Icons.people_outline,
-                  Icons.people,
-                  'Users',
+                Expanded(
+                  child: _buildNavItem(
+                    1,
+                    Icons.people_outline,
+                    Icons.people,
+                    'Users',
+                  ),
                 ),
-                _buildNavItem(
-                  2,
-                  Icons.psychology_outlined,
-                  Icons.psychology,
-                  'Experts',
+                Expanded(
+                  child: _buildNavItem(
+                    2,
+                    Icons.psychology_outlined,
+                    Icons.psychology,
+                    'Experts',
+                  ),
                 ),
-                _buildNavItem(
-                  3,
-                  Icons.article_outlined,
-                  Icons.article,
-                  'News Manager',
+                Expanded(
+                  child: _buildNavItem(
+                    3,
+                    Icons.article_outlined,
+                    Icons.article,
+                    'News',
+                  ),
                 ),
-                _buildNavItem(
-                  4,
-                  Icons.spa_outlined,
-                  Icons.spa,
-                  'Meditations',
+                Expanded(
+                  child: _buildNavItem(
+                    4,
+                    Icons.spa_outlined,
+                    Icons.spa,
+                    'Meditations',
+                  ),
                 ),
-                _buildNavItem(
-                  5,
-                  Icons.person_outline,
-                  Icons.person,
-                  context.l10n.profile,
+                Expanded(
+                  child: _buildNavItem(
+                    5,
+                    Icons.person_outline,
+                    Icons.person,
+                    context.l10n.profile,
+                  ),
                 ),
               ],
             ),
@@ -130,6 +141,7 @@ class _AdminMainPageState extends State<AdminMainPage> {
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(
             isSelected ? filledIcon : outlinedIcon,
@@ -139,8 +151,10 @@ class _AdminMainPageState extends State<AdminMainPage> {
           const SizedBox(height: 4),
           Text(
             label,
+            softWrap: false,
+            overflow: TextOverflow.fade,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               color: isSelected ? const Color(0xFF7B2BB0) : Colors.grey,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),

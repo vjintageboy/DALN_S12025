@@ -69,14 +69,25 @@ class _HomePageState extends State<HomePage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.home_outlined, Icons.home, context.l10n.home),
-                _buildNavItem(1, Icons.mood_outlined, Icons.mood, context.l10n.mood),
-                _buildNavItem(2, Icons.article_outlined, Icons.article, 'News'),
-                _buildNavItem(3, Icons.spa_outlined, Icons.spa, context.l10n.experts),
-                _buildNavItem(4, Icons.chat_bubble_outline, Icons.chat_bubble, context.l10n.chatbot),
-                _buildNavItem(5, Icons.person_outline, Icons.person, context.l10n.profile),
+                Expanded(
+                  child: _buildNavItem(0, Icons.home_outlined, Icons.home, context.l10n.home),
+                ),
+                Expanded(
+                  child: _buildNavItem(1, Icons.mood_outlined, Icons.mood, context.l10n.mood),
+                ),
+                Expanded(
+                  child: _buildNavItem(2, Icons.article_outlined, Icons.article, 'News'),
+                ),
+                Expanded(
+                  child: _buildNavItem(3, Icons.spa_outlined, Icons.spa, context.l10n.experts),
+                ),
+                Expanded(
+                  child: _buildNavItem(4, Icons.chat_bubble_outline, Icons.chat_bubble, context.l10n.chatbot),
+                ),
+                Expanded(
+                  child: _buildNavItem(5, Icons.person_outline, Icons.person, context.l10n.profile),
+                ),
               ],
             ),
           ),
@@ -95,6 +106,7 @@ class _HomePageState extends State<HomePage> {
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(
             isSelected ? filledIcon : outlinedIcon,
@@ -104,8 +116,10 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 4),
           Text(
             label,
+            softWrap: false,
+            overflow: TextOverflow.fade,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               color: isSelected ? const Color(0xFF4CAF50) : Colors.grey,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),

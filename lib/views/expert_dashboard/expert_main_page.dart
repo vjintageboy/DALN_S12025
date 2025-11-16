@@ -63,43 +63,54 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(
-                  0,
-                  Icons.dashboard_outlined,
-                  Icons.dashboard,
-                  'Dashboard',
+                Expanded(
+                  child: _buildNavItem(
+                    0,
+                    Icons.dashboard_outlined,
+                    Icons.dashboard,
+                    'Dashboard',
+                  ),
                 ),
-                _buildNavItem(
-                  1,
-                  Icons.calendar_month_outlined,
-                  Icons.calendar_month,
-                  'Appointments',
+                Expanded(
+                  child: _buildNavItem(
+                    1,
+                    Icons.calendar_month_outlined,
+                    Icons.calendar_month,
+                    'Appointments',
+                  ),
                 ),
-                _buildNavItem(
-                  2,
-                  Icons.article_outlined,
-                  Icons.article,
-                  'News',
+                Expanded(
+                  child: _buildNavItem(
+                    2,
+                    Icons.article_outlined,
+                    Icons.article,
+                    'News',
+                  ),
                 ),
-                _buildNavItem(
-                  3,
-                  Icons.schedule_outlined,
-                  Icons.schedule,
-                  'Schedule',
+                Expanded(
+                  child: _buildNavItem(
+                    3,
+                    Icons.schedule_outlined,
+                    Icons.schedule,
+                    'Schedule',
+                  ),
                 ),
-                _buildNavItem(
-                  4,
-                  Icons.chat_bubble_outline,
-                  Icons.chat_bubble,
-                  context.l10n.chatbot,
+                Expanded(
+                  child: _buildNavItem(
+                    4,
+                    Icons.chat_bubble_outline,
+                    Icons.chat_bubble,
+                    context.l10n.chatbot,
+                  ),
                 ),
-                _buildNavItem(
-                  5,
-                  Icons.person_outline,
-                  Icons.person,
-                  context.l10n.profile,
+                Expanded(
+                  child: _buildNavItem(
+                    5,
+                    Icons.person_outline,
+                    Icons.person,
+                    context.l10n.profile,
+                  ),
                 ),
               ],
             ),
@@ -124,6 +135,7 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(
             isSelected ? filledIcon : outlinedIcon,
@@ -133,8 +145,10 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
           const SizedBox(height: 4),
           Text(
             label,
+            softWrap: false,
+            overflow: TextOverflow.fade,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               color: isSelected ? const Color(0xFF4CAF50) : Colors.grey,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),

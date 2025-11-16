@@ -759,19 +759,20 @@ class _ProfilePageState extends State<ProfilePage> {
     return showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
+        final l10n = dialogContext.l10n;
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           title: Text(
-            context.l10n.logoutConfirmTitle,
+            l10n.logoutConfirmTitle,
             style: const TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 18,
             ),
           ),
           content: Text(
-            context.l10n.logoutConfirmMessage,
+            l10n.logoutConfirmMessage,
             style: const TextStyle(
               fontSize: 14,
               color: Colors.black87,
@@ -781,7 +782,7 @@ class _ProfilePageState extends State<ProfilePage> {
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: Text(
-                context.l10n.cancel,
+                l10n.cancel,
                 style: const TextStyle(
                   color: Colors.grey,
                   fontWeight: FontWeight.w600,
@@ -798,7 +799,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               child: Text(
-                context.l10n.logout,
+                l10n.logout,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),

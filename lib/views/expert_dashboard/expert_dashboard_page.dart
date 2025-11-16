@@ -154,6 +154,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
     return Container(
       color: Colors.grey.shade50,
       child: SafeArea(
+        top: false, // extend green header behind status bar
         child: RefreshIndicator(
           onRefresh: _loadDashboardData,
           color: const Color(0xFF4CAF50),

@@ -100,6 +100,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Container(
       color: Colors.grey.shade50,
       child: SafeArea(
+        top: false, // allow the purple header to extend behind the status bar
         child: RefreshIndicator(
           onRefresh: _loadDashboardData,
           color: const Color(0xFF7B2BB0),
