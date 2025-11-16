@@ -471,33 +471,40 @@ class _PostDetailPageState extends State<PostDetailPage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // User avatar
+                  // User avatar - tap to toggle anonymous
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: FutureBuilder<User?>(
                       future: Future.value(FirebaseAuth.instance.currentUser),
                       builder: (context, snapshot) {
                         final user = snapshot.data;
-                        return CircleAvatar(
-                          radius: 18,
-                          backgroundColor: _commentAnonymously
-                              ? Colors.grey.shade300
-                              : const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                          backgroundImage: !_commentAnonymously && user?.photoURL != null
-                              ? NetworkImage(user!.photoURL!)
-                              : null,
-                          child: _commentAnonymously
-                              ? Icon(Icons.visibility_off, size: 18, color: Colors.grey.shade700)
-                              : (user?.photoURL == null
-                                  ? Text(
-                                      (user?.displayName ?? user?.email ?? 'U')[0].toUpperCase(),
-                                      style: const TextStyle(
-                                        color: Color(0xFF6C63FF),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    )
-                                  : null),
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _commentAnonymously = !_commentAnonymously;
+                            });
+                          },
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: _commentAnonymously
+                                ? Colors.grey.shade300
+                                : const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                            backgroundImage: !_commentAnonymously && user?.photoURL != null
+                                ? NetworkImage(user!.photoURL!)
+                                : null,
+                            child: _commentAnonymously
+                                ? Icon(Icons.visibility_off, size: 18, color: Colors.grey.shade700)
+                                : (user?.photoURL == null
+                                    ? Text(
+                                        (user?.displayName ?? user?.email ?? 'U')[0].toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Color(0xFF6C63FF),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      )
+                                    : null),
+                          ),
                         );
                       },
                     ),
@@ -505,53 +512,42 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   const SizedBox(width: 12),
                   // Comment input field
                   Expanded(
-                    child: Container(
-                      constraints: const BoxConstraints(
-                        maxHeight: 100,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _commentController,
-                              decoration: InputDecoration(
-                                hintText: _commentAnonymously
-                                    ? 'Comment as Anonymous...'
-                                    : 'Write a comment...',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 15,
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
-                                ),
+                    child: FutureBuilder<User?>(
+                      future: Future.value(FirebaseAuth.instance.currentUser),
+                      builder: (context, userSnapshot) {
+                        final user = userSnapshot.data;
+                        final userName = user?.displayName ?? 
+                                        (user?.email?.split('@')[0] ?? 'User');
+                        
+                        return Container(
+                          constraints: const BoxConstraints(
+                            maxHeight: 100,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: TextField(
+                            controller: _commentController,
+                            decoration: InputDecoration(
+                              hintText: _commentAnonymously
+                                  ? 'Comment as Anonymous...'
+                                  : 'Comment as $userName...',
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 15,
                               ),
-                              maxLines: null,
-                              textInputAction: TextInputAction.newline,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                             ),
+                            maxLines: null,
+                            textInputAction: TextInputAction.newline,
                           ),
-                          // Anonymous toggle icon
-                          IconButton(
-                            icon: Icon(
-                              _commentAnonymously ? Icons.visibility_off : Icons.visibility,
-                              color: _commentAnonymously ? const Color(0xFF6C63FF) : Colors.grey.shade600,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _commentAnonymously = !_commentAnonymously;
-                              });
-                            },
-                            tooltip: _commentAnonymously ? 'Comment as yourself' : 'Comment anonymously',
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 8),
