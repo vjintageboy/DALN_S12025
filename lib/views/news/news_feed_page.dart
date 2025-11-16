@@ -411,23 +411,32 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                     ),
                   ),
                   const SizedBox(width: 24),
-                  // Comment button
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        color: Colors.grey.shade600,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${post.commentCount}',
-                        style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                  // Comment button with real-time count
+                  StreamBuilder<List<dynamic>>(
+                    stream: _newsService.streamComments(post.postId),
+                    builder: (context, commentSnapshot) {
+                      final commentCount = commentSnapshot.hasData 
+                          ? commentSnapshot.data!.length 
+                          : post.commentCount;
+                      
+                      return Row(
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            color: Colors.grey.shade600,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$commentCount',
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const Spacer(),
                   // Share button
