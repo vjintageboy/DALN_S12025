@@ -243,6 +243,12 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && 
                                resource.data.authorId == request.auth.uid;
       
+      // ⭐ NEW: Authenticated users can update posts to toggle likes
+      // Only allow updating the 'likedBy' field (array of user IDs who liked)
+      allow update: if isAuthenticated() &&
+                       request.resource.data.diff(resource.data)
+                       .affectedKeys().hasOnly(['likedBy']);
+      
       // Admin can manage all posts
       allow write: if isAdmin();
     }
