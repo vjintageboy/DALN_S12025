@@ -6,6 +6,20 @@ import '../../services/news_service.dart';
 import 'create_post_page.dart';
 import 'post_detail_page.dart';
 
+enum SortBy {
+  latest,    // Mới nhất
+  hot,       // Hot nhất (likes + comments)
+  mostLiked, // Nhiều likes nhất
+  mostDiscussed, // Nhiều comments nhất
+}
+
+enum AuthorFilter {
+  all,
+  myPosts,
+  expertPosts,
+  anonymous,
+}
+
 class NewsFeedPage extends StatefulWidget {
   const NewsFeedPage({super.key});
 
@@ -18,6 +32,8 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
   
   PostCategory? _selectedCategory;
+  SortBy _sortBy = SortBy.latest;
+  AuthorFilter _authorFilter = AuthorFilter.all;
 
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
@@ -67,9 +83,8 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
       ),
       body: Column(
         children: [
-          // Category filter
-          _buildCategoryFilter(),
-          
+          // Filters button (opens bottom sheet with category, sort + author controls)
+          _buildFilterButton(),
           // Posts list
           Expanded(
             child: StreamBuilder<List<NewsPost>>(
@@ -136,8 +151,12 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                 }
 
                 final posts = snapshot.data!;
+                // Filter by author
+                final filteredPosts = _filterPostsByAuthor(posts);
+                // Sort posts based on selected sort option
+                final sortedPosts = _sortPosts(filteredPosts);
 
-                if (posts.isEmpty) {
+                if (sortedPosts.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -175,9 +194,9 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                   color: const Color(0xFF6C63FF),
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: posts.length,
+                    itemCount: sortedPosts.length,
                     itemBuilder: (context, index) {
-                      return _buildPostCard(posts[index]);
+                      return _buildPostCard(sortedPosts[index]);
                     },
                   ),
                 );
@@ -187,6 +206,36 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
         ],
       ),
     );
+  }
+
+  /// Sort posts based on selected option
+  List<NewsPost> _sortPosts(List<NewsPost> posts) {
+    final sorted = List<NewsPost>.from(posts);
+    
+    switch (_sortBy) {
+      case SortBy.latest:
+        // Already sorted by createdAt descending from Firestore
+        break;
+        
+      case SortBy.hot:
+        // Hot = combination of likes and comments (weighted)
+        sorted.sort((a, b) {
+          final scoreA = (a.likeCount * 2) + a.commentCount;
+          final scoreB = (b.likeCount * 2) + b.commentCount;
+          return scoreB.compareTo(scoreA);
+        });
+        break;
+        
+      case SortBy.mostLiked:
+        sorted.sort((a, b) => b.likeCount.compareTo(a.likeCount));
+        break;
+        
+      case SortBy.mostDiscussed:
+        sorted.sort((a, b) => b.commentCount.compareTo(a.commentCount));
+        break;
+    }
+    
+    return sorted;
   }
 
   Widget _buildCategoryFilter() {
@@ -233,6 +282,333 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
       checkmarkColor: const Color(0xFF6C63FF),
+    );
+  }
+
+  Widget _buildSortFilter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white,
+      child: Row(
+        children: [
+          Icon(Icons.sort, size: 20, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Text(
+            'Sort by:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<SortBy>(
+                  value: _sortBy,
+                  isExpanded: true,
+                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade800,
+                  ),
+                  onChanged: (SortBy? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _sortBy = newValue;
+                      });
+                    }
+                  },
+                  items: [
+                    DropdownMenuItem(
+                      value: SortBy.latest,
+                      child: Row(
+                        children: [
+                          Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
+                          const SizedBox(width: 8),
+                          const Text('Latest'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: SortBy.hot,
+                      child: Row(
+                        children: [
+                          Icon(Icons.local_fire_department, size: 16, color: Colors.orange.shade600),
+                          const SizedBox(width: 8),
+                          const Text('Hot'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: SortBy.mostLiked,
+                      child: Row(
+                        children: [
+                          Icon(Icons.favorite, size: 16, color: Colors.red.shade400),
+                          const SizedBox(width: 8),
+                          const Text('Most Liked'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: SortBy.mostDiscussed,
+                      child: Row(
+                        children: [
+                          Icon(Icons.chat_bubble, size: 16, color: Colors.blue.shade600),
+                          const SizedBox(width: 8),
+                          const Text('Most Discussed'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthorFilter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white,
+      child: Row(
+        children: [
+          Icon(Icons.person, size: 20, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Text(
+            'Author:',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<AuthorFilter>(
+                  value: _authorFilter,
+                  isExpanded: true,
+                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade800,
+                  ),
+                  onChanged: (AuthorFilter? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _authorFilter = newValue;
+                      });
+                    }
+                  },
+                  items: [
+                    DropdownMenuItem(
+                      value: AuthorFilter.all,
+                      child: Row(
+                        children: [
+                          Icon(Icons.people, size: 16, color: Colors.grey.shade600),
+                          const SizedBox(width: 8),
+                          const Text('All'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: AuthorFilter.myPosts,
+                      child: Row(
+                        children: [
+                          Icon(Icons.account_circle, size: 16, color: Colors.blue.shade600),
+                          const SizedBox(width: 8),
+                          const Text('My Posts'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: AuthorFilter.expertPosts,
+                      child: Row(
+                        children: [
+                          Icon(Icons.verified, size: 16, color: Colors.green.shade600),
+                          const SizedBox(width: 8),
+                          const Text('Expert Posts'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: AuthorFilter.anonymous,
+                      child: Row(
+                        children: [
+                          Icon(Icons.visibility_off, size: 16, color: Colors.grey.shade600),
+                          const SizedBox(width: 8),
+                          const Text('Anonymous'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<NewsPost> _filterPostsByAuthor(List<NewsPost> posts) {
+    switch (_authorFilter) {
+      case AuthorFilter.all:
+        return posts;
+      case AuthorFilter.myPosts:
+        return posts.where((p) => p.authorId == currentUserId).toList();
+      case AuthorFilter.expertPosts:
+        return posts.where((p) => p.authorRole == 'expert').toList();
+      case AuthorFilter.anonymous:
+        return posts.where((p) => p.authorName == 'Anonymous').toList();
+    }
+  }
+
+  /// Filter button that opens a bottom sheet with filter options
+  Widget _buildFilterButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          onPressed: _showFilterSheet,
+          icon: Icon(Icons.filter_list, color: Colors.grey.shade700),
+          label: const Text('Filters'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.grey.shade800,
+            backgroundColor: Colors.white,
+            side: BorderSide(color: Colors.grey.shade300),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Show modal bottom sheet with sort + author filters
+  void _showFilterSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.4,
+          minChildSize: 0.2,
+          maxChildSize: 0.9,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              padding: const EdgeInsets.only(top: 12, bottom: 24),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        children: [
+                          // Reuse existing filter widgets
+                          _buildCategoryFilter(),
+                          const SizedBox(height: 12),
+                          _buildSortFilter(),
+                          const SizedBox(height: 12),
+                          _buildAuthorFilter(),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    // Reset filters
+                                    setState(() {
+                                      _selectedCategory = null;
+                                      _sortBy = SortBy.latest;
+                                      _authorFilter = AuthorFilter.all;
+                                    });
+                                    Navigator.of(context).pop();
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF6C63FF),
+                                    side: BorderSide(color: Colors.grey.shade300),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(28),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  child: const Text('Reset'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6C63FF),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(28),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  child: const Text('Done'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
