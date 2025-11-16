@@ -462,11 +462,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   ),
                 ),
               ),
-              padding: EdgeInsets.only(
+              padding: const EdgeInsets.only(
                 left: 12,
                 right: 12,
                 top: 8,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 8,
+                bottom: 8,
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
