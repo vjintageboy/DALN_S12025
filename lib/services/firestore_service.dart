@@ -191,7 +191,6 @@ class FirestoreService {
   Future<void> updateStreak(Streak streak) async {
     try {
       await _db.collection('streaks').doc(streak.userId).set(streak.toMap());
-      print('✅ Streak updated successfully');
     } catch (e) {
       print('❌ Error updating streak: $e');
       rethrow;
@@ -219,8 +218,6 @@ class FirestoreService {
       
       // Save to Firestore
       await _db.collection('streaks').doc(userId).set(updatedStreak.toMap());
-      
-      print('✅ Streak updated: ${updatedStreak.currentStreak} days (longest: ${updatedStreak.longestStreak})');
     } catch (e) {
       print('❌ Error updating streak: $e');
       rethrow;
@@ -238,7 +235,6 @@ class FirestoreService {
         'lastActivityDate': null,
         'totalActivities': 0,
       });
-      print('✅ Streak reset successfully');
     } catch (e) {
       print('❌ Error resetting streak: $e');
       rethrow;
@@ -310,8 +306,6 @@ class FirestoreService {
         'lastActivityDate': lastDate != null ? Timestamp.fromDate(lastDate) : null,
         'totalActivities': activityDates.length,
       });
-      
-      print('✅ Streak recalculated: current=$currentStreak, longest=$longestStreak, total=${activityDates.length}');
     } catch (e) {
       print('❌ Error recalculating streak: $e');
       rethrow;

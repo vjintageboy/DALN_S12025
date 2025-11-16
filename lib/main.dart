@@ -95,9 +95,6 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Debug: Print auth state
-        print('🔐 AuthWrapper: connectionState=${snapshot.connectionState}, hasData=${snapshot.hasData}, user=${snapshot.data?.uid}');
-        
         // Show loading while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -112,7 +109,6 @@ class AuthWrapper extends StatelessWidget {
         
         // If user is logged in, check ban status before showing HomePage
         if (snapshot.hasData) {
-          print('✅ User logged in: ${snapshot.data!.uid}');
           return FutureBuilder<Map<String, dynamic>>(
             future: _checkUserStatus(snapshot.data!.uid),
             builder: (context, statusSnapshot) {
@@ -130,11 +126,8 @@ class AuthWrapper extends StatelessWidget {
 
               final status = statusSnapshot.data ?? {};
               
-              print('📊 User status: $status');
-              
               // User is banned - force logout
               if (status['isBanned'] == true) {
-                print('🚫 User is banned, logging out...');
                 _handleBannedUser(context, snapshot.data!.uid);
                 return const WelcomePage();
               }
@@ -142,17 +135,13 @@ class AuthWrapper extends StatelessWidget {
               // Check if user is expert or admin
               final role = status['role'] as String?;
               
-              print('👤 User role: $role');
-              
               // Admin gets dedicated dashboard
               if (role == 'admin') {
-                print('🔧 Showing AdminMainPage');
                 return const AdminMainPage();
               }
               
               // Expert gets expert dashboard
               if (role == 'expert') {
-                print('👨‍⚕️ Showing ExpertMainPage');
                 return const ExpertMainPage();
               }
 

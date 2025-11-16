@@ -66,8 +66,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (!mounted) return;
 
     if (success) {
-      print('🎉 Login successful! Checking user role...');
-      
       // Get user role from Firestore
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -77,7 +75,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             .get();
         
         final role = userDoc.data()?['role'] ?? 'user';
-        print('👤 User role: $role');
         
         if (!mounted) return;
         

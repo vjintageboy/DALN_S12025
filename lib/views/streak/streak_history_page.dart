@@ -49,7 +49,6 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
         });
       }
     } catch (e) {
-      print('❌ Error loading streak: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }

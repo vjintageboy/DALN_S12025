@@ -27,7 +27,6 @@ class NewsService {
         debugPrint('❌ Error streaming posts: $error');
         throw Exception('Failed to load posts: $error');
       }).map((snapshot) {
-        debugPrint('✅ Loaded ${snapshot.docs.length} posts');
         return snapshot.docs.map((doc) => NewsPost.fromSnapshot(doc)).toList();
       });
     } catch (e) {
