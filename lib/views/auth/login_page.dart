@@ -158,77 +158,90 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               }
             }
 
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Text(
-                'Đặt lại mật khẩu',
-                style: TextStyle(fontWeight: FontWeight.w700),
+            final bottomInset = MediaQuery.of(parentContext).viewInsets.bottom;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                bottom: bottomInset > 0 ? bottomInset : 24,
+                top: 24,
               ),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: dialogFormKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Nhập email để nhận liên kết đặt lại mật khẩu.',
-                        style: TextStyle(fontSize: 14),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: AlertDialog(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    title: const Text(
+                      'Đặt lại mật khẩu',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    content: Form(
+                      key: dialogFormKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Nhập email để nhận liên kết đặt lại mật khẩu.',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 16),
+                          ModernTextField(
+                            controller: _forgotPasswordController,
+                            label: context.l10n.emailAddress,
+                            hint: context.l10n.email,
+                            icon: Icons.mail_outline,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return context.l10n.emailAddress;
+                              }
+                              final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                              if (!emailRegex.hasMatch(value.trim())) {
+                                return context.l10n.emailAddress;
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      ModernTextField(
-                        controller: _forgotPasswordController,
-                        label: context.l10n.emailAddress,
-                        hint: context.l10n.email,
-                        icon: Icons.mail_outline,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return context.l10n.emailAddress;
-                          }
-                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                          if (!emailRegex.hasMatch(value.trim())) {
-                            return context.l10n.emailAddress;
-                          }
-                          return null;
+                    ),
+                    actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop();
                         },
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.textSecondary,
+                        ),
+                        child: const Text('Hủy'),
+                      ),
+                      ElevatedButton(
+                        onPressed: isSubmitting ? null : _submitRequest,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                        ),
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text(
+                                'Gửi yêu cầu',
+                                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+                              ),
                       ),
                     ],
                   ),
                 ),
               ),
-              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                  ),
-                  child: const Text('Hủy'),
-                ),
-                ElevatedButton(
-                  onPressed: isSubmitting ? null : _submitRequest,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  ),
-                  child: isSubmitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text(
-                          'Gửi yêu cầu',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                ),
-              ],
             );
           },
         );
