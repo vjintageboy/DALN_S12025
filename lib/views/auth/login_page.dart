@@ -25,6 +25,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _forgotPasswordController = TextEditingController();
   bool _obscurePassword = true;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -47,6 +48,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _forgotPasswordController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -104,6 +106,134 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ),
       );
     }
+  }
+
+  void _showForgotPasswordDialog() {
+    final parentContext = context;
+    _forgotPasswordController.text = _emailController.text.trim();
+    final dialogFormKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: parentContext,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> _submitRequest() async {
+              if (isSubmitting) return;
+              if (!dialogFormKey.currentState!.validate()) return;
+
+              if (!context.mounted) return;
+              setState(() => isSubmitting = true);
+
+              final authProvider = parentContext.read<AuthProvider>();
+              final success = await authProvider.resetPassword(_forgotPasswordController.text.trim());
+
+              if (!mounted) return;
+
+              if (success) {
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(parentContext).showSnackBar(
+                  SnackBar(
+                    content: const Text('Nếu email này đã được đăng ký, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu vào hộp thư của bạn.'),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              } else {
+                if (!context.mounted) return;
+                setState(() => isSubmitting = false);
+                ScaffoldMessenger.of(parentContext).showSnackBar(
+                  SnackBar(
+                    content: Text(authProvider.errorMessage ?? AppStrings.signInFailed),
+                    backgroundColor: AppColors.error,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              }
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Đặt lại mật khẩu',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: dialogFormKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Nhập email để nhận liên kết đặt lại mật khẩu.',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 16),
+                      ModernTextField(
+                        controller: _forgotPasswordController,
+                        label: context.l10n.emailAddress,
+                        hint: context.l10n.email,
+                        icon: Icons.mail_outline,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return context.l10n.emailAddress;
+                          }
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          if (!emailRegex.hasMatch(value.trim())) {
+                            return context.l10n.emailAddress;
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                  ),
+                  child: const Text('Hủy'),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting ? null : _submitRequest,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  ),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text(
+                          'Gửi yêu cầu',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -229,9 +359,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {
-                          // TODO: Implement forgot password
-                        },
+                        onPressed: _showForgotPasswordDialog,
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         ),
