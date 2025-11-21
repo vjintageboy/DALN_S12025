@@ -264,7 +264,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                   Icons.spa,
                                   Colors.green,
                                   () {
-                                    widget.onNavigate?.call(3);
+                                    widget.onNavigate?.call(4);
                                   },
                                 ),
                               ),

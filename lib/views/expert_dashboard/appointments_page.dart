@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
 import '../../models/appointment.dart';
 import 'appointment_detail_page.dart';
 
@@ -15,11 +17,16 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   late TabController _tabController;
   String? _expertId;
+  
+  // Calendar view state
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+  Map<DateTime, List<Appointment>> _appointmentsByDate = {};
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _loadExpertId();
   }
 
@@ -82,6 +89,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
             Tab(text: 'Upcoming'),
             Tab(text: 'Completed'),
             Tab(text: 'Cancelled'),
+            Tab(text: 'Calendar'),
           ],
         ),
       ),
@@ -94,6 +102,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
                 _buildAppointmentsList('confirmed'), // Upcoming
                 _buildAppointmentsList('completed'), // Completed
                 _buildAppointmentsList('cancelled'), // Cancelled
+                _buildCalendarView(), // Calendar
               ],
             ),
     );
@@ -540,5 +549,330 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
     final hour = dateTime.hour.toString().padLeft(2, '0');
     final minute = dateTime.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  // ============= CALENDAR VIEW METHODS =============
+
+  Widget _buildCalendarView() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _db
+          .collection('appointments')
+          .where('expertId', isEqualTo: _expertId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                const SizedBox(height: 16),
+                Text(
+                  'Error: ${snapshot.error}',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+          );
+        }
+
+        // Parse appointments
+        final appointments = snapshot.data!.docs
+            .map((doc) {
+              try {
+                return Appointment.fromSnapshot(doc);
+              } catch (e) {
+                debugPrint('Error parsing appointment: $e');
+                return null;
+              }
+            })
+            .whereType<Appointment>()
+            .toList();
+
+        // Group appointments by date
+        _appointmentsByDate = {};
+        for (final apt in appointments) {
+          final date = DateTime(
+            apt.appointmentDate.year,
+            apt.appointmentDate.month,
+            apt.appointmentDate.day,
+          );
+          if (_appointmentsByDate[date] == null) {
+            _appointmentsByDate[date] = [];
+          }
+          _appointmentsByDate[date]!.add(apt);
+        }
+
+        return CustomScrollView(
+          slivers: [
+            // Calendar
+            SliverToBoxAdapter(
+              child: Card(
+                margin: const EdgeInsets.all(16),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.grey.shade200),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: TableCalendar(
+                    firstDay: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDay: DateTime.now().add(const Duration(days: 365)),
+                    focusedDay: _focusedDay,
+                    selectedDayPredicate: (day) {
+                      return _selectedDay != null && _isSameDay(day, _selectedDay!);
+                    },
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
+                    },
+                    calendarFormat: CalendarFormat.month,
+                    eventLoader: (day) {
+                      final date = DateTime(day.year, day.month, day.day);
+                      return _appointmentsByDate[date] ?? [];
+                    },
+                    calendarStyle: CalendarStyle(
+                      todayDecoration: BoxDecoration(
+                        color: const Color(0xFF4CAF50).withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      selectedDecoration: const BoxDecoration(
+                        color: Color(0xFF4CAF50),
+                        shape: BoxShape.circle,
+                      ),
+                      markerDecoration: const BoxDecoration(
+                        color: Color(0xFF2196F3),
+                        shape: BoxShape.circle,
+                      ),
+                      markersMaxCount: 3,
+                    ),
+                    headerStyle: const HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    calendarBuilders: CalendarBuilders(
+                      markerBuilder: (context, date, events) {
+                        if (events.isEmpty) return null;
+                        
+                        return Positioned(
+                          bottom: 1,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2196F3),
+                              shape: BoxShape.circle,
+                            ),
+                            width: 6,
+                            height: 6,
+                            child: Center(
+                              child: Text(
+                                '${events.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Legend
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildLegendItem(
+                      color: const Color(0xFF4CAF50).withOpacity(0.3),
+                      label: 'Today',
+                    ),
+                    const SizedBox(width: 16),
+                    _buildLegendItem(
+                      color: const Color(0xFF4CAF50),
+                      label: 'Selected',
+                    ),
+                    const SizedBox(width: 16),
+                    _buildLegendItem(
+                      color: const Color(0xFF2196F3),
+                      label: 'Has Appointments',
+                      isCircle: true,
+                      size: 6,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Divider
+            SliverToBoxAdapter(
+              child: Divider(
+                height: 32,
+                thickness: 1,
+                color: Colors.grey.shade200,
+                indent: 16,
+                endIndent: 16,
+              ),
+            ),
+
+            // Selected day header (if day is selected)
+            if (_selectedDay != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.event,
+                        color: Colors.grey.shade700,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Appointments on ${DateFormat('EEE, MMM d, yyyy').format(_selectedDay!)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Appointments list or empty state
+            if (_selectedDay == null)
+              SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 64,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Select a date to view appointments',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              _buildSelectedDayAppointmentsSlivers(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLegendItem({
+    required Color color,
+    required String label,
+    bool isCircle = true,
+    double size = 12,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: color,
+            shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+            borderRadius: isCircle ? null : BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectedDayAppointmentsSlivers() {
+    final date = DateTime(
+      _selectedDay!.year,
+      _selectedDay!.month,
+      _selectedDay!.day,
+    );
+    final dayAppointments = _appointmentsByDate[date] ?? [];
+
+    // Sort by time
+    dayAppointments.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+
+    if (dayAppointments.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.event_available,
+                size: 64,
+                color: Colors.grey.shade300,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No appointments on this day',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            return _buildAppointmentCard(dayAppointments[index]);
+          },
+          childCount: dayAppointments.length,
+        ),
+      ),
+    );
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
