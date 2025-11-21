@@ -38,25 +38,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      // Load all stats in parallel
+      // Load all stats in parallel (no need to fetch 'experts' collection for counting)
       final results = await Future.wait([
         _db.collection('users').get(),
-        _db.collection('experts').get(),
         _db.collection('meditations').get(),
         _db.collection('appointments').get(),
         _db.collection('expertUsers').get(),
       ]);
 
       final usersSnapshot = results[0];
-      final expertsSnapshot = results[1];
-      final meditationsSnapshot = results[2];
-      final appointmentsSnapshot = results[3];
-      final expertUsersSnapshot = results[4];
+      final meditationsSnapshot = results[1];
+      final appointmentsSnapshot = results[2];
+      final expertUsersSnapshot = results[3];
       
-      // Filter users by role (count only regular users)
+      // Filter users by role (count regular users and experts separately)
       final regularUsersCount = usersSnapshot.docs.where((doc) {
         final data = doc.data();
         return data['role'] == 'user';
+      }).length;
+      // Count users that have role 'expert' (more reliable than raw 'experts' collection)
+      final expertUsersCount = usersSnapshot.docs.where((doc) {
+        final data = doc.data();
+        return data['role'] == 'expert';
       }).length;
       
       // Filter expertUsers by status (count pending applications)
@@ -76,7 +79,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
       setState(() {
         _totalUsers = regularUsersCount;
-        _totalExperts = expertsSnapshot.docs.length;
+        // Use expertUsersCount (users with role 'expert') as the authoritative expert count
+        _totalExperts = expertUsersCount;
         _totalMeditations = meditationsSnapshot.docs.length;
         _totalAppointments = appointmentsSnapshot.docs.length;
         _pendingExpertApplications = pendingExpertsCount;
