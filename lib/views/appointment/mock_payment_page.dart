@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import thêm
 import '../../core/services/localization_service.dart';
 import '../../models/appointment.dart';
+import '../../services/momo_service.dart'; // Import Service mới tạo
 import 'my_appointments_page.dart';
 
 class MockPaymentPage extends StatefulWidget {
@@ -18,23 +20,88 @@ class MockPaymentPage extends StatefulWidget {
 }
 
 class _MockPaymentPageState extends State<MockPaymentPage> {
-  String _selectedMethod = 'card';
+  String _selectedMethod = 'card'; // Mặc định
   bool _isProcessing = false;
+  final MomoService _momoService = MomoService(); // Khởi tạo service
 
+  // Hàm xử lý thanh toán
   Future<void> _processPayment() async {
     setState(() => _isProcessing = true);
 
-    // Simulate payment processing
-    await Future.delayed(const Duration(seconds: 2));
+  if (_selectedMethod == 'momo') {
+    String orderId = "MOMO${DateTime.now().millisecondsSinceEpoch}";
+    String orderInfo =
+        "Thanh toan lich hen voi ${widget.appointment.expertName}";
 
-    if (mounted) {
-      setState(() => _isProcessing = false);
+    final response = await _momoService.createPayment(
+      orderId: orderId,
+      amount: widget.appointment.price,
+      orderInfo: orderInfo,
+    );
 
-      // Show success dialog
-      _showSuccessDialog();
+    if (response != null && response['resultCode'] == 0) {
+      String payUrl = response["payUrl"]; // LUÔN CÓ TRONG SANDBOX
+
+      final uri = Uri.parse(payUrl);
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+        // Không hiển thị thành công ngay, mà hỏi người dùng
+        if (mounted) {
+           showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              title: const Text("Xác nhận thanh toán"),
+              content: const Text("Bạn đã hoàn tất thanh toán trên MoMo chưa?"),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx); // Đóng dialog hỏi
+                    // Không làm gì thêm, coi như hủy hoặc chưa xong
+                  },
+                  child: const Text("Chưa"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx); // Đóng dialog hỏi
+                    _showSuccessDialog(); // Hiện dialog thành công của app
+                  },
+                  child: const Text("Rồi, đã thanh toán"),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        _showError("Không mở được MoMo");
+      }
+    } else {
+      String errorMsg = response?['message'] ?? "Tạo giao dịch MoMo thất bại";
+      if (response?['details'] != null) {
+         errorMsg += "\n${response!['details']}";
+      }
+      _showError(errorMsg);
+    }
+  }
+else {
+      // --- LOGIC GIẢ LẬP CŨ (Thẻ/Ngân hàng) ---
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        _showSuccessDialog();
+      }
     }
   }
 
+  void _showError(String message) {
+    setState(() => _isProcessing = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  // ... (Giữ nguyên các hàm _showSuccessDialog và build UI như file gốc)
+  // ...
   void _showSuccessDialog() {
     showDialog(
       context: context,

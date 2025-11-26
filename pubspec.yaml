@@ -50,6 +50,9 @@ dependencies:
   flutter_dotenv: ^5.2.1
   image_picker: ^1.2.0
 
+  crypto: ^3.0.3        # Để mã hóa chữ ký (Signature)
+  url_launcher: ^6.3.0 # Để mở app MoMo hoặc Web thanh toán
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
