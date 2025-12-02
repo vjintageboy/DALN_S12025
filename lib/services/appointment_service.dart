@@ -1,17 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/appointment.dart';
 import 'momo_service.dart';
+import 'chat_service.dart';
 import 'notification_service.dart';
 
 class AppointmentService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final MomoService _momoService = MomoService();
   final NotificationService _notificationService = NotificationService();
+  final ChatService _chatService = ChatService();
 
-  // Create appointment
+  // ===========================================================================
+  //  CREATE APPOINTMENT
+  // ===========================================================================
+
   Future<String?> createAppointment(Appointment appointment) async {
     try {
-      // ✅ Check for expert time conflicts
+      // Kiểm tra trùng giờ (chuyên gia)
       final hasExpertConflict = await _checkExpertTimeConflict(
         appointment.expertId,
         appointment.appointmentDate,
@@ -19,10 +24,11 @@ class AppointmentService {
       );
 
       if (hasExpertConflict) {
-        throw Exception('This expert is not available at the selected time. Please choose another time slot.');
+        throw Exception(
+            'Chuyên gia không rảnh vào giờ này. Vui lòng chọn khung giờ khác.');
       }
 
-      // ✅ Check for user time conflicts
+      // Kiểm tra trùng giờ (người dùng)
       final hasUserConflict = await _checkUserTimeConflict(
         appointment.userId,
         appointment.appointmentDate,
@@ -30,23 +36,35 @@ class AppointmentService {
       );
 
       if (hasUserConflict) {
-        throw Exception('You already have an appointment at this time. Please choose another time slot.');
+        throw Exception(
+            'Bạn đã có lịch hẹn trong khung giờ này. Vui lòng chọn giờ khác.');
       }
 
+      // Tạo document ID
       final docRef = _db.collection('appointments').doc();
-      final newAppointment = appointment.copyWith(
+      final newAppointment = appointment.copyWith(appointmentId: docRef.id);
+
+      // Lưu vào DB
+      await docRef.set(newAppointment.toMap());
+
+      // Tạo phòng chat
+      await _chatService.createChatRoom(
         appointmentId: docRef.id,
+        userId: appointment.userId,
+        expertId: appointment.expertId,
       );
 
-      await docRef.set(newAppointment.toMap());
       return docRef.id;
     } catch (e) {
       print('❌ Error creating appointment: $e');
-      rethrow; // Re-throw to show error message to user
+      rethrow;
     }
   }
 
-  // Update payment ID after successful payment
+  // ===========================================================================
+  // UPDATE PAYMENT INFORMATION
+  // ===========================================================================
+
   Future<void> updateAppointmentPaymentId(
     String appointmentId,
     String paymentId,
@@ -68,7 +86,10 @@ class AppointmentService {
     }
   }
 
-  // ✅ Check if time slot conflicts with expert's existing appointments
+  // ===========================================================================
+  // CHECK TIME CONFLICT
+  // ===========================================================================
+
   Future<bool> _checkExpertTimeConflict(
     String expertId,
     DateTime appointmentDate,
@@ -82,7 +103,6 @@ class AppointmentService {
     );
   }
 
-  // ✅ Check if time slot conflicts with user's existing appointments
   Future<bool> _checkUserTimeConflict(
     String userId,
     DateTime appointmentDate,
@@ -96,7 +116,7 @@ class AppointmentService {
     );
   }
 
-  // ✅ Generic time conflict checker
+  /// Kiểm tra trùng giờ chung
   Future<bool> _checkTimeConflict(
     String fieldName,
     String fieldValue,
@@ -105,14 +125,11 @@ class AppointmentService {
   ) async {
     try {
       final appointmentStart = appointmentDate;
-      final appointmentEnd = appointmentDate.add(Duration(minutes: durationMinutes));
+      final appointmentEnd =
+          appointmentDate.add(Duration(minutes: durationMinutes));
 
-      // Get all confirmed appointments for this field on the same day
-      final startOfDay = DateTime(
-        appointmentDate.year,
-        appointmentDate.month,
-        appointmentDate.day,
-      );
+      final startOfDay =
+          DateTime(appointmentDate.year, appointmentDate.month, appointmentDate.day);
       final endOfDay = DateTime(
         appointmentDate.year,
         appointmentDate.month,
@@ -128,41 +145,36 @@ class AppointmentService {
           .where('status', isEqualTo: AppointmentStatus.confirmed.name)
           .get();
 
-      // Check for overlaps
       for (final doc in snapshot.docs) {
-        final existingAppt = Appointment.fromSnapshot(doc);
-        
-        // Skip if not on the same day
-        if (existingAppt.appointmentDate.isBefore(startOfDay) ||
-            existingAppt.appointmentDate.isAfter(endOfDay)) {
+        final existing = Appointment.fromSnapshot(doc);
+
+        if (existing.appointmentDate.isBefore(startOfDay) ||
+            existing.appointmentDate.isAfter(endOfDay)) {
           continue;
         }
 
-        final existingStart = existingAppt.appointmentDate;
-        final existingEnd = existingAppt.appointmentDate.add(
-          Duration(minutes: existingAppt.durationMinutes),
+        final existingStart = existing.appointmentDate;
+        final existingEnd = existingStart.add(
+          Duration(minutes: existing.durationMinutes),
         );
 
-        // Check if times overlap
-        // Overlap happens if:
-        // - New appointment starts before existing ends AND
-        // - New appointment ends after existing starts
         final overlaps = appointmentStart.isBefore(existingEnd) &&
-                        appointmentEnd.isAfter(existingStart);
+            appointmentEnd.isAfter(existingStart);
 
-        if (overlaps) {
-          return true; // Conflict found
-        }
+        if (overlaps) return true;
       }
 
-      return false; // No conflict
+      return false;
     } catch (e) {
       print('❌ Error checking time conflict: $e');
-      return false; // Assume no conflict if error
+      return false;
     }
   }
 
-  // Get user appointments
+  // ===========================================================================
+  //  GET USER APPOINTMENTS
+  // ===========================================================================
+
   Future<List<Appointment>> getUserAppointments(String userId) async {
     try {
       final snapshot = await _db
@@ -170,43 +182,42 @@ class AppointmentService {
           .where('userId', isEqualTo: userId)
           .get();
 
-      final appointments = snapshot.docs
+      final list = snapshot.docs
           .map((doc) => Appointment.fromSnapshot(doc))
           .toList();
-      
-      // Sort trong code thay vì Firestore
-      appointments.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
-      
-      return appointments;
+
+      list.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
+
+      return list;
     } catch (e) {
       print('❌ Error getting appointments: $e');
       return [];
     }
   }
 
-  // Stream user appointments (real-time)
   Stream<List<Appointment>> streamUserAppointments(String userId) {
     return _db
         .collection('appointments')
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-          final appointments = snapshot.docs
-              .map((doc) => Appointment.fromSnapshot(doc))
-              .toList();
-          
-          // Sort trong code thay vì Firestore
-          appointments.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
-          
-          return appointments;
-        });
+      final list =
+          snapshot.docs.map((doc) => Appointment.fromSnapshot(doc)).toList();
+
+      list.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
+
+      return list;
+    });
   }
 
-  // Cancel appointment (user)
+  // ===========================================================================
+  // CANCEL APPOINTMENT (USER)
+  // ===========================================================================
+
   Future<RefundStatus> cancelAppointment(String appointmentId) async {
     try {
       if (appointmentId.isEmpty) {
-         throw Exception('Appointment ID is empty');
+        throw Exception('Appointment ID is empty');
       }
 
       final docRef = _db.collection('appointments').doc(appointmentId);
@@ -214,107 +225,86 @@ class AppointmentService {
       if (!doc.exists) throw Exception('Appointment not found');
 
       final appointment = Appointment.fromSnapshot(doc);
-
-      // Determine refund status
       RefundStatus refundStatus = RefundStatus.none;
-      
-      // Check if we have payment info, or at least paymentId to query transId
+
       String? paymentId = appointment.paymentId;
       String? transId = appointment.paymentTransId;
 
       print('ℹ️ Cancelling Appointment: ${appointment.appointmentId}');
-      print('   - Payment ID: $paymentId');
-      print('   - Trans ID: $transId');
+      print('   Payment ID: $paymentId');
+      print('   Trans ID: $transId');
 
       if (paymentId != null) {
-        // Handle Mock Payments
+        // Mock Payment
         if (paymentId.startsWith('MOCK_')) {
           refundStatus = RefundStatus.success;
-          print('✅ [MOCK REFUND] Refund Successful for Appointment: ${appointment.appointmentId}');
-          
+
           await _notificationService.sendNotification(
             userId: appointment.userId,
             title: 'Refund Successful',
-            message: 'Your appointment with ${appointment.expertName} has been cancelled and refunded successfully (Mock).',
+            message:
+                'Your appointment with ${appointment.expertName} has been cancelled and refunded successfully (Mock).',
             type: 'refund',
           );
-        } 
-        // Handle Real MoMo Payments
-        else {
-          // If transId is missing or invalid (0), try to fetch/check it
+        } else {
+          // Real MoMo Payment
           if (transId == null || transId == '0') {
             try {
-              final queryRes = await _momoService.checkStatus(paymentId);
-              if (queryRes != null && queryRes['resultCode'] == 0) {
-                final fetchedTransId = queryRes['transId'];
-                // Only update if we get a valid positive transId
-                if (fetchedTransId != null && fetchedTransId is num && fetchedTransId > 0) {
-                   transId = fetchedTransId.toString();
-                   await docRef.update({'paymentTransId': transId});
-                   print('✅ Fetched valid Trans ID: $transId');
-                } else {
-                   print('⚠️ Query success but Trans ID is invalid/pending: $fetchedTransId');
+              final query = await _momoService.checkStatus(paymentId);
+              if (query != null && query['resultCode'] == 0) {
+                final fetched = query['transId'];
+                if (fetched != null && fetched is num && fetched > 0) {
+                  transId = fetched.toString();
+                  await docRef.update({'paymentTransId': transId});
                 }
               }
-            } catch (e) {
-              print("Error fetching missing transId: $e");
-            }
+            } catch (_) {}
           }
 
-          // Only proceed with refund if we have a valid transId (not null, not '0')
           if (transId != null && transId != '0') {
-            // Call refund API
-            final refundRes = await _momoService.refundPayment(
+            final refund = await _momoService.refundPayment(
               orderId: paymentId,
               amount: appointment.price,
               transId: transId,
             );
 
-            if (refundRes != null && refundRes['resultCode'] == 0) {
+            if (refund != null && refund['resultCode'] == 0) {
               refundStatus = RefundStatus.success;
-              print('✅ [MOMO REFUND] Refund Successful for Appointment: ${appointment.appointmentId}');
-              print('   - Trans ID: $transId');
 
-              // Refund success notification
               await _notificationService.sendNotification(
                 userId: appointment.userId,
                 title: 'Refund Successful',
-                message: 'Your appointment with ${appointment.expertName} has been cancelled and refunded successfully.',
+                message:
+                    'Your appointment with ${appointment.expertName} has been cancelled and refunded.',
                 type: 'refund',
               );
             } else {
               refundStatus = RefundStatus.failed;
-              print('❌ [REFUND FAILED] MoMo Refund Failed for Appointment: ${appointment.appointmentId}');
-              print('   - Error: ${refundRes?['message']}');
 
-              // Refund failed notification
               await _notificationService.sendNotification(
                 userId: appointment.userId,
                 title: 'Refund Failed',
-                message: 'Your appointment was cancelled but refund failed. Please contact support.',
+                message: 'Appointment cancelled but refund failed.',
                 type: 'refund_error',
               );
             }
           } else {
-             // Payment ID exists but Trans ID is invalid (0 or null) -> Transaction not confirmed/captured
-             print('⚠️ [REFUND SKIP] Payment ID exists but Trans ID is invalid (0 or null). Transaction likely not completed/captured.');
-             
-             // Notify cancellation but mention check status
-             await _notificationService.sendNotification(
+            await _notificationService.sendNotification(
               userId: appointment.userId,
               title: 'Appointment Cancelled',
-              message: 'Your appointment with ${appointment.expertName} has been cancelled.',
+              message:
+                  'Your appointment with ${appointment.expertName} has been cancelled.',
               type: 'cancellation',
             );
           }
         }
       } else {
-        // No payment info found - just cancel
-        print('ℹ️ [CANCEL] Appointment cancelled without refund (No payment info).');
+        // No payment
         await _notificationService.sendNotification(
           userId: appointment.userId,
           title: 'Appointment Cancelled',
-          message: 'Your appointment with ${appointment.expertName} has been cancelled.',
+          message:
+              'Your appointment with ${appointment.expertName} has been cancelled.',
           type: 'cancellation',
         );
       }
@@ -333,105 +323,102 @@ class AppointmentService {
     }
   }
 
-  // Cancel appointment with reason (expert/admin)
+  // ===========================================================================
+  // CANCEL (ADMIN / EXPERT)
+  // ===========================================================================
+
   Future<void> cancelAppointmentWithReason(
     String appointmentId,
     String reason,
   ) async {
     try {
-      if (appointmentId.isEmpty) {
-         throw Exception('Appointment ID is empty');
-      }
+      if (appointmentId.isEmpty) throw Exception('Appointment ID is empty');
 
       final docRef = _db.collection('appointments').doc(appointmentId);
       final doc = await docRef.get();
       if (!doc.exists) throw Exception('Appointment not found');
 
       final appointment = Appointment.fromSnapshot(doc);
-
-      // Determine refund status
       RefundStatus refundStatus = RefundStatus.none;
-      
+
       String? paymentId = appointment.paymentId;
       String? transId = appointment.paymentTransId;
 
-      print('ℹ️ Expert Cancelling Appointment: ${appointment.appointmentId}');
+      print('ℹ️ Expert/Admin cancelling: ${appointment.appointmentId}');
 
       if (paymentId != null) {
-        // Handle Mock
+        // Mock refund
         if (paymentId.startsWith('MOCK_')) {
-           refundStatus = RefundStatus.success;
-           await _notificationService.sendNotification(
-              userId: appointment.userId,
-              title: 'Appointment Cancelled & Refunded',
-              message: 'Expert ${appointment.expertName} cancelled the appointment. Reason: $reason. Refund has been processed (Mock).',
-              type: 'refund',
-            );
-        }
-        else {
-           // Real MoMo
-           if (transId == null || transId == '0') {
+          refundStatus = RefundStatus.success;
+
+          await _notificationService.sendNotification(
+            userId: appointment.userId,
+            title: 'Appointment Cancelled & Refunded',
+            message:
+                'Expert ${appointment.expertName} cancelled the appointment. Reason: $reason. (Mock refund)',
+            type: 'refund',
+          );
+        } else {
+          // Real MoMo
+          if (transId == null || transId == '0') {
             try {
-              final queryRes = await _momoService.checkStatus(paymentId);
-              if (queryRes != null && queryRes['resultCode'] == 0) {
-                 final fetchedTransId = queryRes['transId'];
-                 if (fetchedTransId != null && fetchedTransId is num && fetchedTransId > 0) {
-                   transId = fetchedTransId.toString();
-                   await docRef.update({'paymentTransId': transId});
-                 }
+              final status = await _momoService.checkStatus(paymentId);
+              if (status != null && status['resultCode'] == 0) {
+                final fetched = status['transId'];
+                if (fetched != null && fetched is num && fetched > 0) {
+                  transId = fetched.toString();
+                  await docRef.update({'paymentTransId': transId});
+                }
               }
-            } catch (e) {
-              print("Error fetching missing transId: $e");
-            }
+            } catch (_) {}
           }
 
           if (transId != null && transId != '0') {
-            // Call refund API
-            final refundRes = await _momoService.refundPayment(
+            final refund = await _momoService.refundPayment(
               orderId: paymentId,
               amount: appointment.price,
               transId: transId,
             );
 
-            if (refundRes != null && refundRes['resultCode'] == 0) {
-               refundStatus = RefundStatus.success;
-               print('✅ [MOMO REFUND] Expert Cancel - Refund Success');
-               
+            if (refund != null && refund['resultCode'] == 0) {
+              refundStatus = RefundStatus.success;
+
               await _notificationService.sendNotification(
                 userId: appointment.userId,
                 title: 'Appointment Cancelled & Refunded',
-                message: 'Expert ${appointment.expertName} cancelled the appointment. Reason: $reason. Refund has been processed.',
+                message:
+                    'Expert ${appointment.expertName} cancelled the appointment. Reason: $reason.',
                 type: 'refund',
               );
             } else {
-               refundStatus = RefundStatus.failed;
-               print('❌ [REFUND FAILED] Expert Cancel - Refund Failed');
-               
-               await _notificationService.sendNotification(
+              refundStatus = RefundStatus.failed;
+
+              await _notificationService.sendNotification(
                 userId: appointment.userId,
                 title: 'Refund Failed',
-                message: 'Expert cancelled the appointment but refund failed. Please contact support.',
+                message:
+                    'Expert cancelled the appointment but refund failed.',
                 type: 'refund_error',
               );
             }
           } else {
-             // No valid transId
-             await _notificationService.sendNotification(
-                userId: appointment.userId,
-                title: 'Appointment Cancelled',
-                message: 'Expert ${appointment.expertName} cancelled the appointment. Reason: $reason.',
-                type: 'cancellation',
-              );
+            await _notificationService.sendNotification(
+              userId: appointment.userId,
+              title: 'Appointment Cancelled',
+              message:
+                  'Expert ${appointment.expertName} cancelled the appointment. Reason: $reason.',
+              type: 'cancellation',
+            );
           }
         }
       } else {
-        // No payment
         await _notificationService.sendNotification(
-            userId: appointment.userId,
-            title: 'Appointment Cancelled',
-            message: 'Expert ${appointment.expertName} cancelled the appointment. Reason: $reason.',
-            type: 'cancellation',
-          );
+          userId: appointment.userId,
+          title: 'Appointment Cancelled',
+          message:
+              'Expert ${appointment.expertName} cancelled the appointment. Reason: $reason.',
+          type: 'cancellation',
+        );
       }
 
       await docRef.update({
@@ -447,73 +434,83 @@ class AppointmentService {
     }
   }
 
-  // Get booked time slots for expert on specific date
+// ===========================================================================
+// GET APPOINTMENT BY ID
+// ===========================================================================
+
+  Future<Appointment?> getAppointmentById(String appointmentId) async {
+  if (appointmentId.isEmpty) return null;
+  try {
+    final doc = await _db.collection('appointments').doc(appointmentId).get();
+    if (!doc.exists) return null;
+    return Appointment.fromSnapshot(doc);
+  } catch (e) {
+    print('❌ Error getting appointment by ID: $e');
+    return null;
+  }
+}
+
+
+  // ===========================================================================
+  // TIME SLOT HANDLING
+  // ===========================================================================
+
   Future<List<String>> getBookedTimeSlots(
     String expertId,
     DateTime date,
   ) async {
     try {
-      final startOfDay = DateTime(date.year, date.month, date.day);
-      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+      final start = DateTime(date.year, date.month, date.day);
+      final end = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
-      // Simplified query - chỉ filter theo expertId
       final snapshot = await _db
           .collection('appointments')
           .where('expertId', isEqualTo: expertId)
           .get();
 
-      // Filter trong code thay vì Firestore
-      final bookedSlots = snapshot.docs
+      final slots = snapshot.docs
           .map((doc) => Appointment.fromSnapshot(doc))
           .where((apt) {
-            // Filter: status = confirmed
-            if (apt.status != AppointmentStatus.confirmed) return false;
-            
-            // Filter: date trong khoảng startOfDay -> endOfDay
-            return apt.appointmentDate.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
-                   apt.appointmentDate.isBefore(endOfDay.add(const Duration(seconds: 1)));
-          })
-          .map((apt) => _formatTimeSlot(apt.appointmentDate))
-          .toList();
+        if (apt.status != AppointmentStatus.confirmed) return false;
 
-      return bookedSlots;
+        return apt.appointmentDate.isAfter(start.subtract(const Duration(seconds: 1))) &&
+            apt.appointmentDate.isBefore(end.add(const Duration(seconds: 1)));
+      }).map((apt) => _formatTimeSlot(apt.appointmentDate)).toList();
+
+      return slots;
     } catch (e) {
       print('❌ Error getting booked slots: $e');
       return [];
     }
   }
 
-  String _formatTimeSlot(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
-
-  // Generate available time slots
   List<String> generateTimeSlots({
     required String startTime,
     required String endTime,
     required int intervalMinutes,
   }) {
-    final slots = <String>[];
-    
-    final start = _parseTime(startTime);
-    final end = _parseTime(endTime);
-    
-    DateTime current = start;
+    final List<String> slots = [];
+    DateTime current = _parseTime(startTime);
+    final DateTime end = _parseTime(endTime);
+
     while (current.isBefore(end)) {
       final hour = current.hour.toString().padLeft(2, '0');
       final minute = current.minute.toString().padLeft(2, '0');
       slots.add('$hour:$minute');
       current = current.add(Duration(minutes: intervalMinutes));
     }
-    
+
     return slots;
+  }
+
+  String _formatTimeSlot(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   DateTime _parseTime(String time) {
     final parts = time.split(':');
     final now = DateTime.now();
+
     return DateTime(
       now.year,
       now.month,

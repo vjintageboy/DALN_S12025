@@ -16,6 +16,7 @@ import '../../scripts/migrate_existing_users.dart';
 import '../../core/services/localization_service.dart';
 import '../notification/notifications_page.dart';
 import '../../services/notification_service.dart';
+import '../chat/chat_list_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -308,6 +309,20 @@ class _HomeTabState extends State<HomeTab> {
                         ),
                       ),
                     ),
+                    // Chat Icon
+                    IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ChatListPage(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.message_outlined, size: 28),
+                      color: Colors.black87,
+                    ),
+                    const SizedBox(width: 8), // Spacing between icons
                     // Notification Icon
                     StreamBuilder<List<Map<String, dynamic>>>(
                       stream: NotificationService().streamNotifications(FirebaseAuth.instance.currentUser?.uid ?? ''),
