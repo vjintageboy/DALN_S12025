@@ -7,6 +7,8 @@ import '../../services/appointment_service.dart';
 import '../../models/chat_room.dart';
 import '../../models/appointment.dart';
 import 'chat_detail_page.dart';
+import '../../services/firestore_service.dart';
+import '../../models/user_profile.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -17,8 +19,9 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage> {
   final ChatService _chatService = ChatService();
-  AppointmentService get _appointmentService => AppointmentService();
-  final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final AppointmentService _appointmentService = AppointmentService();
+  final FirestoreService _firestoreService = FirestoreService();
+  final String _currentAuthId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   @override
   Widget build(BuildContext context) {
@@ -33,9 +36,10 @@ class _ChatListPageState extends State<ChatListPage> {
         iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: StreamBuilder<List<ChatRoom>>(
-        stream: _chatService.getUserChats(_currentUserId),
+        stream: _chatService.getUserChats(_currentAuthId),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
+            print('❌ Chat List Error: ${snapshot.error}');
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
@@ -44,17 +48,30 @@ class _ChatListPageState extends State<ChatListPage> {
           }
 
           final chatRooms = snapshot.data ?? [];
-
+          
           if (chatRooms.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
+                children: [
+                  const Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
                     'Chưa có tin nhắn nào',
                     style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  // DEBUG INFO
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    color: Colors.grey[200],
+                    child: Column(
+                      children: [
+                        Text('Current Auth ID: $_currentAuthId', style: const TextStyle(fontSize: 11)),
+                        const Text('Querying: participants array-contains Auth ID', style: TextStyle(fontSize: 11)),
+                        Text('Chats Found: ${chatRooms.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -78,132 +95,172 @@ class _ChatListPageState extends State<ChatListPage> {
     return FutureBuilder<Appointment?>(
       future: _appointmentService.getAppointmentById(chatRoom.appointmentId),
       builder: (context, snapshot) {
-        // Default values while loading or if error
-        String displayName = 'Đang tải...';
-        String appointmentTime = '';
-        String avatarUrl = '';
-        String statusText = '';
-        Color statusColor = Colors.grey;
-
         if (snapshot.hasData && snapshot.data != null) {
           final appointment = snapshot.data!;
-          displayName = appointment.expertName;
-          avatarUrl = appointment.expertAvatarUrl ?? '';
+          // Use _currentAuthId for comparison
+          // Note: appointment.expertId is Profile ID, but we are comparing Auth IDs?
+          // Wait, if we use Auth ID for chat, then chatRoom.participants has Auth IDs.
+          // But appointment.expertId is still Profile ID.
+          // So we need to check if _currentAuthId is in participants AND is NOT the user.
+          // OR, we can just check if _currentAuthId == appointment.userId.
+          // If I am the user, then isExpert = false.
+          // If I am the expert, then _currentAuthId != appointment.userId.
           
-          final dateStr = DateFormat('dd/MM/yyyy').format(appointment.appointmentDate);
-          final timeStr = DateFormat('HH:mm').format(appointment.appointmentDate);
-          appointmentTime = 'Lịch hẹn: $timeStr - $dateStr';
+          final isExpert = _currentAuthId != appointment.userId;
 
-          // Determine status text and color
-          switch (appointment.status) {
-            case AppointmentStatus.cancelled:
-              statusText = ' • Đã hủy';
-              statusColor = Colors.red;
-              break;
-            case AppointmentStatus.completed:
-              statusText = ' • Đã hoàn thành';
-              statusColor = Colors.green;
-              break;
-            case AppointmentStatus.confirmed:
-              // Optional: ' • Sắp tới'
-              break;
-            default:
-              break;
+          if (isExpert) {
+            // If I am the expert, I want to see the User's info
+            return FutureBuilder<UserProfile?>(
+              future: _firestoreService.getUserProfile(appointment.userId),
+              builder: (context, userSnapshot) {
+                String displayName = 'Người dùng';
+                String avatarUrl = '';
+                
+                if (userSnapshot.hasData && userSnapshot.data != null) {
+                  displayName = userSnapshot.data!.fullName;
+                  avatarUrl = userSnapshot.data!.avatarUrl ?? '';
+                }
+                
+                return _buildTile(context, chatRoom, appointment, displayName, avatarUrl, isExpert);
+              },
+            );
+          } else {
+            // If I am the user, I want to see the Expert's info
+            return _buildTile(
+              context, 
+              chatRoom, 
+              appointment, 
+              appointment.expertName, 
+              appointment.expertAvatarUrl ?? '', 
+              isExpert
+            );
           }
-
         } else if (snapshot.connectionState == ConnectionState.done && snapshot.data == null) {
-           // Fallback if appointment not found (rare)
+           // Fallback if appointment not found
            final otherUserId = chatRoom.participants.firstWhere(
-            (id) => id != _currentUserId,
+            (id) => id != _currentAuthId,
             orElse: () => 'Unknown',
           );
-           displayName = 'Expert (ID: ${otherUserId.substring(0, min(5, otherUserId.length))}...)';
+           return ListTile(
+             title: Text('Người dùng (ID: ${otherUserId.substring(0, min(5, otherUserId.length))}...)'),
+             subtitle: Text(chatRoom.lastMessage ?? ''),
+           );
         }
+        
+        // Loading state
+        return const SizedBox.shrink(); 
+      },
+    );
+  }
 
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          leading: CircleAvatar(
-            radius: 24,
-            backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-            child: avatarUrl.isEmpty ? const Icon(Icons.person) : null,
+  Widget _buildTile(
+    BuildContext context, 
+    ChatRoom chatRoom, 
+    Appointment appointment, 
+    String displayName, 
+    String avatarUrl,
+    bool isExpert,
+  ) {
+    String appointmentTime = '';
+    String statusText = '';
+    Color statusColor = Colors.grey;
+
+    final dateStr = DateFormat('dd/MM/yyyy').format(appointment.appointmentDate);
+    final timeStr = DateFormat('HH:mm').format(appointment.appointmentDate);
+    appointmentTime = 'Lịch hẹn: $timeStr - $dateStr';
+
+    // Determine status text and color
+    switch (appointment.status) {
+      case AppointmentStatus.cancelled:
+        statusText = ' • Đã hủy';
+        statusColor = Colors.red;
+        break;
+      case AppointmentStatus.completed:
+        statusText = ' • Đã hoàn thành';
+        statusColor = Colors.green;
+        break;
+      case AppointmentStatus.confirmed:
+        // Optional: ' • Sắp tới'
+        break;
+      default:
+        break;
+    }
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: CircleAvatar(
+        radius: 24,
+        backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+        child: avatarUrl.isEmpty ? const Icon(Icons.person) : null,
+      ),
+      title: Text(
+        displayName,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Text(
+            chatRoom.lastMessage ?? 'Chưa có tin nhắn',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.grey[800],
+              fontWeight: FontWeight.w400,
+            ),
           ),
-          title: Text(
-            displayName,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Text(
-                chatRoom.lastMessage ?? 'Chưa có tin nhắn',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.grey[800],
-                  fontWeight: FontWeight.w400,
+          if (appointmentTime.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Text(
+                  appointmentTime,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue[700],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              if (appointmentTime.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      appointmentTime,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue[700],
-                        fontWeight: FontWeight.w500,
-                      ),
+                if (statusText.isNotEmpty)
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: statusColor,
+                      fontWeight: FontWeight.bold,
                     ),
-                    if (statusText.isNotEmpty)
-                      Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: statusColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                  ],
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+      trailing: chatRoom.lastMessageTime != null
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  DateFormat('HH:mm').format(chatRoom.lastMessageTime!),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
-            ],
-          ),
-          trailing: chatRoom.lastMessageTime != null
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      DateFormat('HH:mm').format(chatRoom.lastMessageTime!),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                )
-              : null,
-          onTap: () {
-            // Determine expertId for navigation
-            String expertId = '';
-             if (snapshot.hasData && snapshot.data != null) {
-                expertId = snapshot.data!.expertId;
-             } else {
-                expertId = chatRoom.participants.firstWhere(
-                  (id) => id != _currentUserId,
-                  orElse: () => '',
-                );
-             }
+            )
+          : null,
+      onTap: () {
+        // If I am expert, target is User (appointment.userId)
+        // If I am user, target is Expert (appointment.expertId)
+        final targetId = isExpert ? appointment.userId : appointment.expertId;
 
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChatDetailPage(
-                  roomId: chatRoom.id,
-                  expertName: displayName,
-                  expertId: expertId,
-                ),
-              ),
-            );
-          },
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatDetailPage(
+              roomId: chatRoom.id,
+              expertName: displayName, // Reusing this field for "Target Name"
+              expertId: targetId,      // Reusing this field for "Target ID"
+            ),
+          ),
         );
       },
     );

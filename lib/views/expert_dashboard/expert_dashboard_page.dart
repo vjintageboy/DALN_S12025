@@ -7,6 +7,7 @@ import '../../models/appointment.dart';
 import 'appointments_page.dart';
 import 'schedule_page.dart';
 import 'analytics_page.dart';
+import '../chat/chat_list_page.dart';
 
 class ExpertDashboardPage extends StatefulWidget {
   const ExpertDashboardPage({super.key});
@@ -411,6 +412,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
             ),
           ),
           const SizedBox(height: 16),
+          // Row 1
           Row(
             children: [
               Expanded(
@@ -419,9 +421,6 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                   Icons.event_note,
                   Colors.blue,
                   () {
-                    // Navigate to Appointments tab in ExpertMainPage
-                    // Since we're already inside ExpertMainPage, we need to change tab
-                    // We'll use a different approach - navigate to a full page
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -447,7 +446,12 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Row 2
+          Row(
+            children: [
               Expanded(
                 child: _buildActionButton(
                   'View\nAnalytics',
@@ -458,6 +462,22 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AnalyticsPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  'Tin nhắn\n(Chats)',
+                  Icons.message,
+                  Colors.indigo,
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChatListPage(),
                       ),
                     );
                   },

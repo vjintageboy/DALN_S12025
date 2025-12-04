@@ -7,6 +7,7 @@ import '../../models/appointment.dart';
 import '../../services/momo_service.dart'; // Import Service mới tạo
 import '../../services/appointment_service.dart';
 import 'my_appointments_page.dart';
+import '../../services/chat_service.dart';
 
 class MockPaymentPage extends StatefulWidget {
   final Appointment appointment;
@@ -23,6 +24,7 @@ class MockPaymentPage extends StatefulWidget {
 class _MockPaymentPageState extends State<MockPaymentPage> {
   final AppointmentService _appointmentService = AppointmentService(); // Instantiate
   final MomoService _momoService = MomoService(); // Khởi tạo service
+  final ChatService _chatService = ChatService();
   String? _currentOrderId; // Lưu orderId để kiểm tra trạng thái
   String _selectedMethod = 'card'; // Mặc định
   bool _isProcessing = false;
@@ -84,6 +86,19 @@ else {
         print("Error saving mock payment info: $e");
         // Continue to success dialog anyway for mock flow
       }
+
+      // --- AUTO CREATE CHAT ROOM ---
+      try {
+        await _chatService.createOrGetChatRoom(
+          appointmentId: widget.appointment.appointmentId,
+          userId: widget.appointment.userId,
+          expertId: widget.appointment.expertId,
+        );
+        print("✅ Chat room created/updated successfully");
+      } catch (e) {
+        print("❌ Error creating chat room: $e");
+      }
+      // -----------------------------
 
       if (mounted) {
         setState(() => _isProcessing = false);
@@ -153,6 +168,19 @@ else {
           }
           // Still proceed to success dialog as payment was successful
         }
+
+        // --- AUTO CREATE CHAT ROOM ---
+        try {
+          await _chatService.createOrGetChatRoom(
+            appointmentId: widget.appointment.appointmentId,
+            userId: widget.appointment.userId,
+            expertId: widget.appointment.expertId,
+          );
+          print("✅ Chat room created/updated successfully");
+        } catch (e) {
+          print("❌ Error creating chat room: $e");
+        }
+        // -----------------------------
 
         if (mounted) {
           Navigator.pop(context); // Đóng dialog loading

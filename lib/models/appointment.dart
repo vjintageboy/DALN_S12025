@@ -179,6 +179,7 @@ class Appointment {
   // Copy with method for updating fields
   Appointment copyWith({
     String? appointmentId,
+    String? expertId, // Added expertId
     AppointmentStatus? status,
     DateTime? cancelledAt,
     String? cancelledBy,
@@ -190,7 +191,7 @@ class Appointment {
     return Appointment(
       appointmentId: appointmentId ?? this.appointmentId,
       userId: userId,
-      expertId: expertId,
+      expertId: expertId ?? this.expertId, // Use new expertId if provided
       expertName: expertName,
       expertAvatarUrl: expertAvatarUrl,
       expertBasePrice: expertBasePrice,

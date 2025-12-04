@@ -6,24 +6,52 @@ import '../models/appointment.dart';
 class ChatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Create a new chat room linked to an appointment
-  Future<String> createChatRoom({
+  // Create or get existing chat room
+  Future<String> createOrGetChatRoom({
     required String appointmentId,
     required String userId,
     required String expertId,
   }) async {
     try {
-      // Check if room already exists for this appointment
-      final existingQuery = await _db
+      // 1. Check if a chat room already exists between these two participants
+      // Firestore limitation: array-contains can only check one value.
+      // We check for userId, then filter for expertId.
+      final querySnapshot = await _db
           .collection('chat_rooms')
-          .where('appointmentId', isEqualTo: appointmentId)
-          .limit(1)
+          .where('participants', arrayContains: userId)
           .get();
 
-      if (existingQuery.docs.isNotEmpty) {
-        return existingQuery.docs.first.id;
+      DocumentSnapshot? existingRoom;
+
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final participants = List<String>.from(data['participants'] ?? []);
+        if (participants.contains(expertId)) {
+          existingRoom = doc;
+          break;
+        }
       }
 
+      if (existingRoom != null) {
+        // Update the existing room with the new appointmentId
+        await existingRoom.reference.update({
+          'appointmentId': appointmentId,
+          'lastMessage': 'System: Cuộc trò chuyện đã được tạo sau khi đặt lịch.',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+        });
+        
+        // Send system message
+        await sendMessage(
+          roomId: existingRoom.id,
+          senderId: 'system',
+          content: 'Bạn đã được kết nối với Expert cho buổi tư vấn mới.',
+          type: MessageType.system,
+        );
+
+        return existingRoom.id;
+      }
+
+      // 2. Create new room if not exists
       final docRef = _db.collection('chat_rooms').doc();
       final chatRoom = ChatRoom(
         id: docRef.id,
@@ -31,7 +59,7 @@ class ChatService {
         participants: [userId, expertId],
         status: ChatRoomStatus.active,
         createdAt: DateTime.now(),
-        lastMessage: 'Chat room created',
+        lastMessage: 'System: Cuộc trò chuyện đã được tạo sau khi đặt lịch.',
         lastMessageTime: DateTime.now(),
       );
 
@@ -41,15 +69,28 @@ class ChatService {
       await sendMessage(
         roomId: docRef.id,
         senderId: 'system',
-        content: 'Phòng chat đã được tạo. Bạn có thể gửi câu hỏi ngắn cho chuyên gia.',
+        content: 'Bạn đã được kết nối với Expert cho buổi tư vấn. Hãy bắt đầu trò chuyện nếu bạn muốn trao đổi trước buổi hẹn.',
         type: MessageType.system,
       );
 
       return docRef.id;
     } catch (e) {
-      print('❌ Error creating chat room: $e');
+      print('❌ Error creating/getting chat room: $e');
       rethrow;
     }
+  }
+
+  // Wrapper for backward compatibility
+  Future<String> createChatRoom({
+    required String appointmentId,
+    required String userId,
+    required String expertId,
+  }) async {
+    return createOrGetChatRoom(
+      appointmentId: appointmentId,
+      userId: userId,
+      expertId: expertId,
+    );
   }
 
   // Send a message

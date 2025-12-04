@@ -65,7 +65,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     
     // Permission Check
     if (_appointment != null) {
-      final canSend = _chatService.canSendMessage(_appointment!, false); // false = user role (assuming)
+      // Fix: Compare with userId to determine if expert.
+      final isExpert = _currentUserId != _appointment!.userId;
+      final canSend = _chatService.canSendMessage(_appointment!, isExpert);
       if (!canSend) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Bạn chưa thể gửi tin nhắn vào lúc này.')),
@@ -91,13 +93,19 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     String? restrictionMessage;
 
     if (_appointment != null) {
-      canSend = _chatService.canSendMessage(_appointment!, false);
+      // Fix: Compare with userId to determine if expert.
+      // If I am NOT the user, I must be the expert.
+      // (Assuming only 2 participants: user and expert)
+      final isExpert = _currentUserId != _appointment!.userId;
+      
+      canSend = _chatService.canSendMessage(_appointment!, isExpert);
       canVideo = _chatService.canJoinVideoCall(_appointment!);
       
       if (!canSend) {
         restrictionMessage = 'Chat bị khóa. Vui lòng đợi đến giờ hẹn.';
-      } else if (_appointment!.status == AppointmentStatus.confirmed && 
+      } else if (!isExpert && _appointment!.status == AppointmentStatus.confirmed && 
                  DateTime.now().isBefore(_appointment!.appointmentDate)) {
+        // Only show this restriction message to the User, not the Expert
         restrictionMessage = 'Bạn chỉ có thể gửi câu hỏi ngắn trước buổi hẹn.';
       }
     }
@@ -112,7 +120,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 ? () {
                     // Video call logic
                      ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Video call feature coming soon')),
+                      const SnackBar(content: Text('Tính năng gọi video sắp ra mắt')),
                     );
                   }
                 : () {
@@ -136,6 +144,26 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 textAlign: TextAlign.center,
               ),
             ),
+          // DEBUG INFO
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(4),
+            color: Colors.yellow.shade100,
+            child: Column(
+              children: [
+                Text('Room ID: ${widget.roomId}', style: const TextStyle(fontSize: 10)),
+                FutureBuilder<ChatRoom?>(
+                  future: _chatService.getChatRoom(widget.roomId),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return Text('Participants: ${snapshot.data!.participants}', style: const TextStyle(fontSize: 10));
+                    }
+                    return const Text('Loading participants...', style: TextStyle(fontSize: 10));
+                  },
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: StreamBuilder<List<ChatMessage>>(
               stream: _chatService.getChatStream(widget.roomId),
@@ -219,7 +247,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     controller: _messageController,
                     enabled: canSend,
                     decoration: InputDecoration(
-                      hintText: canSend ? 'Type a message...' : 'Chat is currently restricted',
+                      hintText: canSend ? 'Nhập tin nhắn...' : 'Chat đang bị khóa',
                       border: const OutlineInputBorder(),
                       filled: !canSend,
                       fillColor: !canSend ? Colors.grey.shade100 : null,

@@ -40,19 +40,48 @@ class AppointmentService {
             'Bạn đã có lịch hẹn trong khung giờ này. Vui lòng chọn giờ khác.');
       }
 
+      // Fetch Expert Auth UID
+      String expertAuthId = appointment.expertId; // Default fallback
+      print('🔍 Resolving Auth ID for Expert Profile ID: ${appointment.expertId}');
+      
+      try {
+        final expertUserQuery = await _db
+            .collection('expertUsers')
+            .where('expertId', isEqualTo: appointment.expertId)
+            .limit(1)
+            .get();
+        
+        if (expertUserQuery.docs.isNotEmpty) {
+          expertAuthId = expertUserQuery.docs.first.id; // This is the Auth UID
+          print('✅ Found Expert Auth ID: $expertAuthId');
+        } else {
+          print('⚠️ Could not find Expert Auth ID for ${appointment.expertId}. Using Profile ID as fallback.');
+        }
+      } catch (e) {
+        print('❌ Error fetching expert auth ID: $e');
+      }
+
       // Tạo document ID
       final docRef = _db.collection('appointments').doc();
-      final newAppointment = appointment.copyWith(appointmentId: docRef.id);
+      
+      // ✅ FIX: Save Auth UID as expertId in Appointment
+      final newAppointment = appointment.copyWith(
+        appointmentId: docRef.id,
+        expertId: expertAuthId, 
+      );
 
       // Lưu vào DB
+      print('💾 Saving Appointment with Expert ID: $expertAuthId');
       await docRef.set(newAppointment.toMap());
 
       // Tạo phòng chat
+      print('💬 Creating Chat Room for User: ${appointment.userId} and Expert: $expertAuthId');
       await _chatService.createChatRoom(
         appointmentId: docRef.id,
         userId: appointment.userId,
-        expertId: appointment.expertId,
+        expertId: expertAuthId, // Use Auth UID
       );
+      print('✅ Chat Room Created/Updated');
 
       return docRef.id;
     } catch (e) {
