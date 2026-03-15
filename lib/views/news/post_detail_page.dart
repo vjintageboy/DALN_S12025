@@ -4,6 +4,7 @@ import '../../models/news_post.dart';
 import '../../models/post_comment.dart';
 import '../../services/news_service.dart';
 import '../../services/supabase_service.dart';
+import '../../core/constants/app_colors.dart';
 
 class PostDetailPage extends StatefulWidget {
   final NewsPost post;
@@ -17,6 +18,7 @@ class PostDetailPage extends StatefulWidget {
 class _PostDetailPageState extends State<PostDetailPage> {
   final NewsService _newsService = NewsService();
   final TextEditingController _commentController = TextEditingController();
+  final FocusNode _commentFocusNode = FocusNode();
   late final String currentUserId;
   bool _commentAnonymously = false; // Anonymous comment toggle
   bool _hasChanges = false;
@@ -24,6 +26,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
   bool? _optimisticIsLiked;
   int? _optimisticLikeCount;
   int _pendingCommentDelta = 0;
+  String? _replyingToCommentId;
+  String? _replyingToUserName;
 
   @override
   void initState() {
@@ -34,6 +38,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
   @override
   void dispose() {
     _commentController.dispose();
+    _commentFocusNode.dispose();
     super.dispose();
   }
 
@@ -97,6 +102,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         isAnonymous: _commentAnonymously,
         userName: userName,
         userAvatarUrl: userAvatarUrl,
+        parentCommentId: _replyingToCommentId,
         content: content,
       );
 
@@ -105,6 +111,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
       if (!mounted) return;
 
       _hasChanges = true;
+      _replyingToCommentId = null;
+      _replyingToUserName = null;
       setState(() {});
 
       // Hide keyboard
@@ -161,7 +169,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
           title: const Text('Post', style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF6C63FF),
+          backgroundColor: AppColors.primaryLight,
           iconTheme: const IconThemeData(color: Colors.white),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -192,9 +200,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                               backgroundColor:
                                   widget.post.authorName == 'Anonymous'
                                   ? Colors.grey.shade300
-                                  : const Color(
-                                      0xFF6C63FF,
-                                    ).withValues(alpha: 0.2),
+                                  : AppColors.primaryLight.withValues(alpha: 0.2),
                               backgroundImage:
                                   widget.post.authorName != 'Anonymous' &&
                                           widget.post.authorAvatarUrl != null &&
@@ -221,7 +227,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                             widget.post.authorName[0]
                                                 .toUpperCase(),
                                             style: const TextStyle(
-                                              color: Color(0xFF6C63FF),
+                                              color: AppColors.primaryLight,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 18,
                                             ),
@@ -251,9 +257,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: const Color(
-                                              0xFF6C63FF,
-                                            ).withValues(alpha: 0.1),
+                                            color: AppColors.primaryLight.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(
                                               4,
                                             ),
@@ -263,7 +267,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
-                                              color: Color(0xFF6C63FF),
+                                              color: AppColors.primaryLight,
                                             ),
                                           ),
                                         ),
@@ -575,17 +579,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                               );
                             }
 
-                            return ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: comments.length,
-                              separatorBuilder: (context, index) =>
-                                  const Divider(height: 24),
-                              itemBuilder: (context, index) {
-                                final comment = comments[index];
-                                return _buildCommentItem(comment);
-                              },
-                            );
+                            return _buildCommentsTree(comments);
                           },
                         ),
                       ],
@@ -605,114 +599,145 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   top: BorderSide(color: Colors.grey.shade200, width: 1),
                 ),
               ),
-              padding: const EdgeInsets.only(
-                left: 12,
-                right: 12,
-                top: 8,
-                bottom: 8,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              padding: const EdgeInsets.only(left: 12, right: 12, top: 8, bottom: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // User avatar - tap to toggle anonymous
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: FutureBuilder<Map<String, dynamic>>(
-                      future: _loadUserAvatar(),
-                      builder: (context, snapshot) {
-                        final avatarUrl =
-                            snapshot.data?['avatarUrl'] as String?;
-                        final displayName =
-                            snapshot.data?['displayName'] as String?;
-
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _commentAnonymously = !_commentAnonymously;
-                            });
-                          },
-                          child: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: _commentAnonymously
-                                ? Colors.grey.shade300
-                                : const Color(
-                                    0xFF6C63FF,
-                                  ).withValues(alpha: 0.2),
-                            backgroundImage:
-                                !_commentAnonymously && avatarUrl != null && avatarUrl.isNotEmpty
-                                ? (_isBase64(avatarUrl)
-                                          ? MemoryImage(base64Decode(avatarUrl))
-                                          : NetworkImage(avatarUrl))
-                                      as ImageProvider
-                                : null,
-                            child: _commentAnonymously
-                                ? Icon(
-                                    Icons.visibility_off,
-                                    size: 18,
-                                    color: Colors.grey.shade700,
-                                  )
-                                : (avatarUrl == null || avatarUrl.isEmpty
-                                      ? Text(
-                                          (displayName ?? 'U')[0].toUpperCase(),
-                                          style: const TextStyle(
-                                            color: Color(0xFF6C63FF),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        )
-                                      : null),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Comment input field
-                  Expanded(
-                    child: FutureBuilder<Map<String, dynamic>>(
-                      future: _loadUserAvatar(),
-                      builder: (context, userSnapshot) {
-                        final userName = userSnapshot.data?['displayName'] ?? 'User';
-
-                        return Container(
-                          constraints: const BoxConstraints(maxHeight: 100),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: TextField(
-                            controller: _commentController,
-                            decoration: InputDecoration(
-                              hintText: _commentAnonymously
-                                  ? 'Comment as Anonymous...'
-                                  : 'Comment as $userName...',
-                              hintStyle: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 15,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
+                  if (_replyingToCommentId != null)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Replying to ${_replyingToUserName ?? 'comment'}',
+                              style: TextStyle(
+                                color: Colors.grey.shade800,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            maxLines: null,
-                            textInputAction: TextInputAction.newline,
                           ),
-                        );
-                      },
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: () {
+                              setState(() {
+                                _replyingToCommentId = null;
+                                _replyingToUserName = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Send button
-                  IconButton(
-                    icon: const Icon(
-                      Icons.send,
-                      color: Color(0xFF6C63FF),
-                      size: 24,
-                    ),
-                    onPressed: _submitComment,
-                    padding: const EdgeInsets.all(8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: FutureBuilder<Map<String, dynamic>>(
+                          future: _loadUserAvatar(),
+                          builder: (context, snapshot) {
+                            final avatarUrl = snapshot.data?['avatarUrl'] as String?;
+                            final displayName = snapshot.data?['displayName'] as String?;
+
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _commentAnonymously = !_commentAnonymously;
+                                });
+                              },
+                              child: CircleAvatar(
+                                radius: 18,
+                                backgroundColor: _commentAnonymously
+                                    ? Colors.grey.shade300
+                                    : AppColors.primaryLight.withValues(alpha: 0.2),
+                                backgroundImage: !_commentAnonymously &&
+                                        avatarUrl != null &&
+                                        avatarUrl.isNotEmpty
+                                    ? (_isBase64(avatarUrl)
+                                          ? MemoryImage(base64Decode(avatarUrl))
+                                          : NetworkImage(avatarUrl)) as ImageProvider
+                                    : null,
+                                child: _commentAnonymously
+                                    ? Icon(
+                                        Icons.visibility_off,
+                                        size: 18,
+                                        color: Colors.grey.shade700,
+                                      )
+                                    : (avatarUrl == null || avatarUrl.isEmpty
+                                          ? Text(
+                                              (displayName ?? 'U')[0].toUpperCase(),
+                                              style: const TextStyle(
+                                                color: AppColors.primaryLight,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            )
+                                          : null),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FutureBuilder<Map<String, dynamic>>(
+                          future: _loadUserAvatar(),
+                          builder: (context, userSnapshot) {
+                            final userName = userSnapshot.data?['displayName'] ?? 'User';
+                            return Container(
+                              constraints: const BoxConstraints(maxHeight: 100),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: TextField(
+                                controller: _commentController,
+                                focusNode: _commentFocusNode,
+                                decoration: InputDecoration(
+                                  hintText: _replyingToCommentId != null
+                                      ? (_commentAnonymously
+                                            ? 'Reply anonymously...'
+                                            : 'Write a reply...')
+                                      : _commentAnonymously
+                                          ? 'Comment as Anonymous...'
+                                          : 'Comment as $userName...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 15,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
+                                ),
+                                maxLines: null,
+                                textInputAction: TextInputAction.newline,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.send,
+                          color: AppColors.primaryLight,
+                          size: 24,
+                        ),
+                        onPressed: _submitComment,
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -725,14 +750,22 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 
   Widget _buildCommentItem(PostComment comment) {
+    final isReply = comment.parentCommentId != null;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (isReply)
+          Container(
+            width: 2,
+            height: 44,
+            margin: const EdgeInsets.only(right: 10, top: 4),
+            color: Colors.grey.shade300,
+          ),
         CircleAvatar(
           radius: 18,
-          backgroundColor: comment.userName == 'Anonymous'
+            backgroundColor: comment.userName == 'Anonymous'
               ? Colors.grey.shade300
-              : const Color(0xFF6C63FF).withValues(alpha: 0.2),
+              : AppColors.primaryLight.withValues(alpha: 0.2),
           backgroundImage:
               comment.userName != 'Anonymous' && comment.userAvatarUrl != null && comment.userAvatarUrl!.isNotEmpty
               ? (_isBase64(comment.userAvatarUrl!)
@@ -750,7 +783,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     ? Text(
                         comment.userName[0].toUpperCase(),
                         style: const TextStyle(
-                          color: Color(0xFF6C63FF),
+                          color: AppColors.primaryLight,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -771,6 +804,32 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       fontSize: 14,
                     ),
                   ),
+                  if (comment.userRole == 'expert' || comment.userRole == 'admin') ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (comment.userRole == 'admin'
+                                ? Colors.orange
+                                : AppColors.primaryLight)
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        comment.userRole == 'admin' ? 'Admin' : 'Expert',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: comment.userRole == 'admin'
+                              ? Colors.orange.shade700
+                              : AppColors.primaryLight,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(width: 8),
                   Text(
                     _formatTime(comment.createdAt),
@@ -787,10 +846,72 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   height: 1.4,
                 ),
               ),
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _replyingToCommentId = comment.commentId;
+                    _replyingToUserName = comment.userName;
+                  });
+                  _commentFocusNode.requestFocus();
+                },
+                child: Text(
+                  'Reply',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryLight,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCommentsTree(List<PostComment> comments) {
+    final commentsById = {for (final c in comments) c.commentId: c};
+    final childrenMap = <String, List<PostComment>>{};
+    final roots = <PostComment>[];
+
+    for (final comment in comments) {
+      final parentId = comment.parentCommentId;
+      if (parentId == null || parentId.isEmpty || !commentsById.containsKey(parentId)) {
+        roots.add(comment);
+      } else {
+        childrenMap.putIfAbsent(parentId, () => []).add(comment);
+      }
+    }
+
+    List<Widget> buildNode(PostComment node, int depth) {
+      final childComments = childrenMap[node.commentId] ?? const <PostComment>[];
+      final widgets = <Widget>[
+        Padding(
+          padding: EdgeInsets.only(left: depth * 20.0),
+          child: _buildCommentItem(node),
+        ),
+      ];
+
+      for (final child in childComments) {
+        widgets.add(const SizedBox(height: 12));
+        widgets.addAll(buildNode(child, depth + 1));
+      }
+
+      return widgets;
+    }
+
+    final allWidgets = <Widget>[];
+    for (var i = 0; i < roots.length; i++) {
+      allWidgets.addAll(buildNode(roots[i], 0));
+      if (i < roots.length - 1) {
+        allWidgets.add(const Divider(height: 24));
+      }
+    }
+
+    return Column(
+      children: allWidgets,
     );
   }
 

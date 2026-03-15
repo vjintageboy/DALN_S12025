@@ -91,7 +91,7 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -124,7 +124,7 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
             backgroundColor: Colors.orange,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -433,12 +433,13 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                               ],
                             ),
                             const Divider(height: 24),
-                            _buildInfoRow(
-                              Icons.person_outline,
-                              'Cancelled By',
-                              widget.appointment.cancelledBy == 'expert'
-                                  ? 'Expert'
-                                  : 'Patient',
+                                      _buildInfoRow(
+                                        Icons.person_outline,
+                                        'Cancelled By',
+                                        (widget.appointment.cancelledRole ??
+                                            widget.appointment.cancelledBy) == 'expert'
+                                            ? 'Expert'
+                                            : 'Patient',
                             ),
                             if (widget.appointment.cancellationReason != null &&
                                 widget.appointment.cancellationReason!.isNotEmpty) ...[

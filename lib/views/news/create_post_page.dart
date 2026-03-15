@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
 import '../../services/supabase_service.dart';
+import '../../core/constants/app_colors.dart';
 
 class CreatePostPage extends StatefulWidget {
   final NewsPost? postToEdit; // ✅ Add optional post for editing
@@ -146,7 +147,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
           isEditMode ? 'Edit Post' : 'Create Post',
           style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFF6C63FF),
+        backgroundColor: AppColors.primaryLight,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           TextButton(
@@ -198,12 +199,10 @@ class _CreatePostPageState extends State<CreatePostPage> {
                                     });
                                   }
                                 },
-                                selectedColor: const Color(
-                                  0xFF6C63FF,
-                                ).withValues(alpha: 0.2),
+                                selectedColor: AppColors.primaryLight.withValues(alpha: 0.2),
                                 labelStyle: TextStyle(
                                   color: _selectedCategory == category
-                                      ? const Color(0xFF6C63FF)
+                                      ? AppColors.primaryLight
                                       : Colors.grey.shade700,
                                   fontWeight: _selectedCategory == category
                                       ? FontWeight.w600
@@ -235,12 +234,12 @@ class _CreatePostPageState extends State<CreatePostPage> {
                           _postAnonymously = value;
                         });
                       },
-                      activeThumbColor: const Color(0xFF6C63FF),
+                      activeThumbColor: AppColors.primaryLight,
                       secondary: Icon(
                         _postAnonymously
                             ? Icons.visibility_off
                             : Icons.visibility,
-                        color: const Color(0xFF6C63FF),
+                        color: AppColors.primaryLight,
                       ),
                     ),
                   ),

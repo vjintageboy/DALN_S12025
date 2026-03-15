@@ -269,10 +269,35 @@ class ChatbotProvider extends ChangeNotifier {
     return _chatbotService.getQuickReplies(isAdmin: false);
   }
 
-  /// Clear chat history
-  void clearChat() {
+  Future<void> deleteConversation(String conversationId) async {
+    if (conversationId.isEmpty) return;
+
+    final wasActive = conversationId == _activeConversationId;
+    await _chatbotService.archiveConversation(conversationId);
+    await refreshConversations();
+
+    if (!wasActive) {
+      return;
+    }
+
+    if (_conversations.isNotEmpty) {
+      await loadConversation(_conversations.first.id);
+      return;
+    }
+
+    await startNewConversation();
+  }
+
+  /// Clear current chat history (archive current conversation and start fresh)
+  Future<void> clearChat() async {
     _chatbotService.resetChatSession();
-    startNewConversation();
+
+    final currentId = _activeConversationId;
+    if (currentId != null) {
+      await _chatbotService.archiveConversation(currentId);
+    }
+
+    await startNewConversation();
   }
 
   @override

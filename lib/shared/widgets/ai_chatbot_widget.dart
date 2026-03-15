@@ -212,6 +212,40 @@ class _ChatHeader extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.redAccent,
+                                ),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogContext) => AlertDialog(
+                                      title: const Text('Xóa đoạn chat'),
+                                      content: const Text(
+                                        'Bạn có chắc muốn xóa đoạn chat này khỏi lịch sử?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(dialogContext, false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(dialogContext, true),
+                                          child: const Text(
+                                            'Delete',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+
+                                  if (confirm == true) {
+                                    await chatbot.deleteConversation(c.id);
+                                  }
+                                },
+                              ),
                               onTap: () async {
                                 await chatbot.loadConversation(c.id);
                                 if (context.mounted) Navigator.pop(context);

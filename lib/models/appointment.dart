@@ -40,6 +40,7 @@ class Appointment {
   final DateTime createdAt;
   final DateTime? cancelledAt;
   final String? cancelledBy; 
+  final String? cancelledRole;
   final String? cancellationReason; 
   final String? paymentId; 
   final String? paymentTransId; 
@@ -62,6 +63,7 @@ class Appointment {
     DateTime? createdAt,
     this.cancelledAt,
     this.cancelledBy,
+    this.cancelledRole,
     this.cancellationReason,
     this.paymentId,
     this.paymentTransId,
@@ -169,7 +171,8 @@ class Appointment {
       cancelledAt: map['cancelled_at'] != null
           ? DateTime.parse(map['cancelled_at'])
           : null,
-      cancelledBy: map['cancelled_by'],
+        cancelledBy: map['cancelled_by']?.toString(),
+        cancelledRole: map['cancelled_role']?.toString(),
       cancellationReason: map['cancellation_reason'],
       paymentId: map['payment_id'],
       paymentTransId: map['payment_trans_id'],
@@ -186,6 +189,7 @@ class Appointment {
     AppointmentStatus? status,
     DateTime? cancelledAt,
     String? cancelledBy,
+    String? cancelledRole,
     String? cancellationReason,
     String? paymentId,
     String? paymentTransId,
@@ -210,6 +214,7 @@ class Appointment {
       createdAt: createdAt,
       cancelledAt: cancelledAt ?? this.cancelledAt,
       cancelledBy: cancelledBy ?? this.cancelledBy,
+      cancelledRole: cancelledRole ?? this.cancelledRole,
       cancellationReason: cancellationReason ?? this.cancellationReason,
       paymentId: paymentId ?? this.paymentId,
       paymentTransId: paymentTransId ?? this.paymentTransId,

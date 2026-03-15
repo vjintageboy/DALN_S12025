@@ -1,6 +1,34 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.ai_conversations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  title character varying DEFAULT 'New conversation'::character varying,
+  last_message_preview text,
+  is_archived boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT ai_conversations_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.ai_messages (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  conversation_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role character varying NOT NULL CHECK (role::text = ANY (ARRAY['user'::character varying, 'assistant'::character varying, 'system'::character varying]::text[])),
+  content text NOT NULL,
+  model_name character varying,
+  metadata jsonb,
+  prompt_tokens integer,
+  completion_tokens integer,
+  total_tokens integer,
+  latency_ms integer,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT ai_messages_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.ai_conversations(id),
+  CONSTRAINT ai_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.appointments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
@@ -20,6 +48,7 @@ CREATE TABLE public.appointments (
   cancellation_reason text,
   refund_status character varying DEFAULT 'none'::character varying,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  cancelled_role character varying,
   CONSTRAINT appointments_pkey PRIMARY KEY (id),
   CONSTRAINT appointments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT appointments_expert_id_fkey FOREIGN KEY (expert_id) REFERENCES public.experts(id)
@@ -113,15 +142,29 @@ CREATE TABLE public.mood_entries (
   CONSTRAINT mood_entries_pkey PRIMARY KEY (id),
   CONSTRAINT mood_entries_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  title text NOT NULL,
+  message text NOT NULL,
+  type character varying,
+  is_read boolean DEFAULT false,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.post_comments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   post_id uuid,
   user_id uuid,
   content text NOT NULL,
+  parent_comment_id uuid,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   is_anonymous boolean DEFAULT false,
   CONSTRAINT post_comments_pkey PRIMARY KEY (id),
+  CONSTRAINT post_comments_parent_comment_id_fkey FOREIGN KEY (parent_comment_id) REFERENCES public.post_comments(id) ON DELETE CASCADE,
   CONSTRAINT post_comments_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id),
   CONSTRAINT post_comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -167,32 +210,4 @@ CREATE TABLE public.users (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
-);
-CREATE TABLE public.ai_conversations (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  title character varying DEFAULT 'New conversation'::character varying,
-  last_message_preview text,
-  is_archived boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT ai_conversations_pkey PRIMARY KEY (id),
-  CONSTRAINT ai_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.ai_messages (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  conversation_id uuid NOT NULL,
-  user_id uuid NOT NULL,
-  role character varying NOT NULL,
-  content text NOT NULL,
-  model_name character varying,
-  metadata jsonb,
-  prompt_tokens integer,
-  completion_tokens integer,
-  total_tokens integer,
-  latency_ms integer,
-  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT ai_messages_pkey PRIMARY KEY (id),
-  CONSTRAINT ai_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.ai_conversations(id),
-  CONSTRAINT ai_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );

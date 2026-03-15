@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
 import '../../services/supabase_service.dart';
+import '../../core/constants/app_colors.dart';
 import 'create_post_page.dart';
 import 'post_detail_page.dart';
 
@@ -66,7 +67,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
           'Community',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF6C63FF),
+        backgroundColor: AppColors.primaryLight,
         elevation: 0,
         actions: [
           // Create post button
@@ -136,7 +137,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                             icon: const Icon(Icons.refresh),
                             label: const Text('Try Again'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6C63FF),
+                              backgroundColor: AppColors.primaryLight,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
@@ -152,7 +153,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
 
                 if (!snapshot.hasData) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
+                    child: CircularProgressIndicator(color: AppColors.primaryLight),
                   );
                 }
 
@@ -195,7 +196,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                   onRefresh: () async {
                     setState(() {});
                   },
-                  color: const Color(0xFF6C63FF),
+                  color: AppColors.primaryLight,
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: sortedPosts.length,
@@ -280,12 +281,12 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
         });
       },
       backgroundColor: Colors.grey.shade100,
-      selectedColor: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+      selectedColor: AppColors.primaryLight.withValues(alpha: 0.2),
       labelStyle: TextStyle(
-        color: isSelected ? const Color(0xFF6C63FF) : Colors.grey.shade700,
+        color: isSelected ? AppColors.primaryLight : Colors.grey.shade700,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
-      checkmarkColor: const Color(0xFF6C63FF),
+      checkmarkColor: AppColors.primaryLight,
     );
   }
 
@@ -600,7 +601,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                                     Navigator.of(context).pop();
                                   },
                                   style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFF6C63FF),
+                                    foregroundColor: AppColors.primaryLight,
                                     side: BorderSide(
                                       color: Colors.grey.shade300,
                                     ),
@@ -623,7 +624,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                                 child: ElevatedButton(
                                   onPressed: () => Navigator.of(context).pop(),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF6C63FF),
+                                    backgroundColor: AppColors.primaryLight,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 14,
@@ -719,7 +720,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                     radius: 20,
                     backgroundColor: post.authorName == 'Anonymous'
                         ? Colors.grey.shade300
-                        : const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                        : AppColors.primaryLight.withValues(alpha: 0.2),
                     backgroundImage:
                         post.authorName != 'Anonymous' &&
                             post.authorAvatarUrl != null &&
@@ -741,7 +742,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                               ? Text(
                                   post.authorName[0].toUpperCase(),
                                   style: const TextStyle(
-                                    color: Color(0xFF6C63FF),
+                                    color: AppColors.primaryLight,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 )
@@ -770,9 +771,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFF6C63FF,
-                                  ).withValues(alpha: 0.1),
+                                  color: AppColors.primaryLight.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
@@ -780,7 +779,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF6C63FF),
+                                    color: AppColors.primaryLight,
                                   ),
                                 ),
                               ),
@@ -993,12 +992,18 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                         size: 20,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        '${post.commentCount}',
-                        style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      StreamBuilder<int>(
+                        stream: _newsService.streamCommentCount(post.postId),
+                        builder: (context, snapshot) {
+                          final count = snapshot.data ?? post.commentCount;
+                          return Text(
+                            '$count',
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

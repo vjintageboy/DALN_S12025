@@ -146,36 +146,6 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                 ),
                 const SizedBox(height: 12),
 
-                // Category Filters
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip(
-                        context: context,
-                        label: context.l10n.all,
-                        isSelected: _selectedCategory == null,
-                        onTap: () {
-                          setState(() => _selectedCategory = null);
-                          _applyFilters();
-                        },
-                      ),
-                      ...MeditationCategory.values.map((category) {
-                        return _buildFilterChip(
-                          context: context,
-                          label: _getCategoryLabel(context, category),
-                          isSelected: _selectedCategory == category,
-                          onTap: () {
-                            setState(() => _selectedCategory = category);
-                            _applyFilters();
-                          },
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
                 // Sort Options
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -248,29 +218,6 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip({
-    required BuildContext context,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) => onTap(),
-        backgroundColor: Colors.grey.shade100,
-        selectedColor: const Color(0xFF4CAF50).withValues(alpha: 0.2),
-        checkmarkColor: const Color(0xFF4CAF50),
-        labelStyle: TextStyle(
-          color: isSelected ? const Color(0xFF4CAF50) : Colors.black87,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
       ),
     );
   }
@@ -497,19 +444,6 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
         ],
       ),
     );
-  }
-
-  String _getCategoryLabel(BuildContext context, MeditationCategory category) {
-    switch (category) {
-      case MeditationCategory.stress:
-        return context.l10n.stress;
-      case MeditationCategory.anxiety:
-        return context.l10n.anxiety;
-      case MeditationCategory.sleep:
-        return context.l10n.sleep;
-      case MeditationCategory.focus:
-        return context.l10n.focus;
-    }
   }
 
   String _getLevelLabel(BuildContext context, MeditationLevel level) {

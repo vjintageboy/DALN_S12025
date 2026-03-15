@@ -106,8 +106,19 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
   }
 
   Timer? _pollTimer;
+  DateTime? _pollStartedAt;
+  static const Duration _pollingInterval = Duration(seconds: 3);
+  static const Duration _maxPollingDuration = Duration(minutes: 15);
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
 
   void _showPollingDialog() {
+    _pollStartedAt = DateTime.now();
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -133,7 +144,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
     );
 
     // Bắt đầu poll mỗi 3 giây
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+    _pollTimer = Timer.periodic(_pollingInterval, (timer) async {
       if (_currentOrderId == null || !mounted) {
         timer.cancel();
         return;
@@ -186,12 +197,15 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
           Navigator.pop(context); // Đóng dialog loading
           _showSuccessDialog();
         }
-      } else if (timer.tick > 20) {
-        // Timeout sau 60s (20 * 3)
+      } else if (_pollStartedAt != null &&
+          DateTime.now().difference(_pollStartedAt!) >= _maxPollingDuration) {
+        // Timeout theo thời gian thực tế (mặc định 15 phút)
         timer.cancel();
         if (mounted) {
           Navigator.pop(context);
-          _showError("Hết thời gian chờ thanh toán.");
+          _showError(
+            "Đã quá thời gian chờ xác nhận thanh toán. Vui lòng kiểm tra lại trạng thái giao dịch.",
+          );
         }
       }
     });

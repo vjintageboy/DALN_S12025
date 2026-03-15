@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
+import '../../core/constants/app_colors.dart';
 import 'create_post_page.dart';
 import 'post_detail_page.dart';
 
@@ -21,7 +22,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
   // Build a consistent search card used by both narrow and wide layout
   Widget _buildSearchCard(bool isWide) {
     final borderRadius = BorderRadius.circular(12.0);
-    final primary = const Color(0xFF7B2BB0);
+    final primary = AppColors.primaryLight;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -75,7 +76,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
           'News Manager',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: const Color(0xFF7B2BB0),
+        backgroundColor: AppColors.primaryLight,
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
@@ -329,7 +330,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
         child: Container(
           decoration: BoxDecoration(
             border: isSelected && isWide
-                ? Border.all(color: const Color(0xFF7B2BB0), width: 1.5)
+              ? Border.all(color: AppColors.primaryLight, width: 1.5)
                 : null,
             borderRadius: BorderRadius.circular(12),
           ),
@@ -341,7 +342,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
                 radius: 26,
                 backgroundColor: post.authorName == 'Anonymous'
                     ? Colors.grey.shade300
-                    : const Color(0xFF7B2BB0).withValues(alpha: 0.12),
+                  : AppColors.primaryLight.withValues(alpha: 0.12),
                 backgroundImage:
                     post.authorName != 'Anonymous' &&
                         post.authorAvatarUrl != null &&
@@ -364,7 +365,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
                                   : '?',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF7B2BB0),
+                                color: AppColors.primaryLight,
                               ),
                             )
                           : null),
@@ -448,9 +449,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF7B2BB0,
-                                    ).withValues(alpha: 0.12),
+                                    color: AppColors.primaryLight.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: const Text(
@@ -458,7 +457,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF7B2BB0),
+                                      color: AppColors.primaryLight,
                                     ),
                                   ),
                                 ),
@@ -564,7 +563,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
                 radius: 28,
                 backgroundColor: post.authorName == 'Anonymous'
                     ? Colors.grey.shade300
-                    : const Color(0xFF7B2BB0).withValues(alpha: 0.12),
+                  : AppColors.primaryLight.withValues(alpha: 0.12),
                 backgroundImage:
                     post.authorName != 'Anonymous' &&
                         post.authorAvatarUrl != null &&
@@ -587,7 +586,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
                                   : '?',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF7B2BB0),
+                                color: AppColors.primaryLight,
                               ),
                             )
                           : null),
@@ -639,7 +638,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('Edit'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7B2BB0),
+                  backgroundColor: AppColors.primaryLight,
                 ),
               ),
               const SizedBox(width: 12),

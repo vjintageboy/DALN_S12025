@@ -5,6 +5,8 @@ class PostComment {
   final bool isAnonymous;
   final String userName;
   final String? userAvatarUrl;
+  final String? userRole;
+  final String? parentCommentId;
   final String content;
   final DateTime createdAt;
 
@@ -15,6 +17,8 @@ class PostComment {
     this.isAnonymous = false,
     required this.userName,
     this.userAvatarUrl,
+    this.userRole,
+    this.parentCommentId,
     required this.content,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -24,6 +28,7 @@ class PostComment {
       'post_id': postId,
       'user_id': userId.isEmpty ? null : userId,
       'is_anonymous': isAnonymous,
+      'parent_comment_id': parentCommentId,
       'content': content,
       'created_at': createdAt.toIso8601String(),
     };
@@ -41,6 +46,7 @@ class PostComment {
     final users = data['users'] as Map<String, dynamic>?;
     final userName = isAnonymous ? 'Anonymous' : (users?['full_name'] ?? 'Unknown');
     final userAvatarUrl = isAnonymous ? null : users?['avatar_url'];
+    final userRole = isAnonymous ? null : users?['role']?.toString();
 
     return PostComment(
       commentId: data['id'] ?? '',
@@ -49,6 +55,8 @@ class PostComment {
       isAnonymous: isAnonymous,
       userName: userName,
       userAvatarUrl: userAvatarUrl,
+      userRole: userRole,
+      parentCommentId: data['parent_comment_id']?.toString(),
       content: data['content'] ?? '',
       createdAt: data['created_at'] != null 
           ? DateTime.parse(data['created_at']).toLocal() 

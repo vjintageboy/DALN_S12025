@@ -212,6 +212,15 @@ class NewsService {
 
   // ==================== COMMENTS ====================
 
+  /// Stream live comment count for a post (source of truth from post_comments)
+  Stream<int> streamCommentCount(String postId) {
+    return _supabase
+        .from('post_comments')
+        .stream(primaryKey: ['id'])
+        .eq('post_id', postId)
+        .map((rows) => rows.length);
+  }
+
   /// Stream comments for a post
   Stream<List<PostComment>> streamComments(String postId) {
     return _supabase
@@ -232,7 +241,7 @@ class NewsService {
                 ? []
                 : await _supabase
                   .from('users')
-                  .select('id, full_name, avatar_url')
+                  .select('id, full_name, avatar_url, role')
                   .inFilter('id', userIds);
 
           final usersMap = {
@@ -254,6 +263,7 @@ class NewsService {
         'post_id': comment.postId,
         'user_id': comment.userId.isEmpty ? null : comment.userId,
         'is_anonymous': comment.isAnonymous,
+        'parent_comment_id': comment.parentCommentId,
         'content': comment.content,
       });
 
@@ -267,6 +277,7 @@ class NewsService {
         await _supabase.from('post_comments').insert({
           'post_id': comment.postId,
           'user_id': null,
+          'parent_comment_id': comment.parentCommentId,
           'content': comment.content,
         });
 

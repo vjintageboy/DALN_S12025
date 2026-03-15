@@ -305,7 +305,8 @@ class AppointmentService {
       await _supabase.from('appointments').update({
         'status': AppointmentStatus.cancelled.name,
         'cancelled_at': DateTime.now().toIso8601String(),
-        'cancelled_by': 'user',
+        'cancelled_by': appointment.userId,
+        'cancelled_role': 'user',
         'refund_status': refundStatus.name,
       }).eq('id', appointmentId);
 
@@ -342,7 +343,8 @@ class AppointmentService {
         'status': AppointmentStatus.cancelled.name,
         'cancelled_at': DateTime.now().toIso8601String(),
         'cancellation_reason': reason,
-        'cancelled_by': 'expert',
+        'cancelled_by': _supabase.auth.currentUser?.id ?? appointment.expertId,
+        'cancelled_role': 'expert',
         'refund_status': refundStatus.name,
       }).eq('id', appointmentId);
       

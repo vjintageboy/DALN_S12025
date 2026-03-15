@@ -25,8 +25,75 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage>
+  with TickerProviderStateMixin {
   int _selectedIndex = 0;
+  AnimationController? _fabAnimationController;
+  Animation<double> _fabScale = const AlwaysStoppedAnimation(1.0);
+  AnimationController? _fabGlowController;
+  bool _shouldGlowAiFab = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _fabAnimationController = controller;
+    _fabScale = Tween<double>(begin: 0.9, end: 1.0).animate(
+      CurvedAnimation(
+        parent: controller,
+        curve: Curves.easeOutBack,
+      ),
+    );
+    controller.forward();
+
+    final glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1300),
+    )..repeat(reverse: true);
+    _fabGlowController = glowController;
+
+    _loadAiFabMoodState();
+  }
+
+  @override
+  void dispose() {
+    _fabAnimationController?.dispose();
+    _fabGlowController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAiFabMoodState() async {
+    try {
+      final service = SupabaseService.instance;
+      final user = service.currentUser;
+      if (user == null) {
+        if (!mounted) return;
+        if (_shouldGlowAiFab) {
+          setState(() {
+            _shouldGlowAiFab = false;
+          });
+        }
+        return;
+      }
+
+      final moods = await service.getMoodEntries(user.id);
+      final latestMood = moods.isNotEmpty ? moods.first.moodLevel : null;
+      final shouldGlow = latestMood != null && latestMood <= 2;
+
+      if (!mounted) return;
+      if (_shouldGlowAiFab != shouldGlow) {
+        setState(() {
+          _shouldGlowAiFab = shouldGlow;
+        });
+      }
+    } catch (e) {
+      debugPrint('AI FAB mood state error: $e');
+      // Keep default visual state if mood lookup fails.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +113,6 @@ class _HomePageState extends State<HomePage> {
         currentTab = const ExpertListPage();
         break;
       case 4:
-        currentTab = const ChatbotPage();
-        break;
-      case 5:
         currentTab = const ProfilePage();
         break;
       default:
@@ -58,6 +122,47 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: currentTab,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          right: 4,
+          bottom: MediaQuery.of(context).padding.bottom + 20,
+        ),
+        child: AnimatedBuilder(
+          animation: _fabGlowController ?? const AlwaysStoppedAnimation(0.0),
+          builder: (context, child) {
+            final glowT = _fabGlowController?.value ?? 0.0;
+            final blur = _shouldGlowAiFab ? 18.0 + (10.0 * glowT) : 8.0;
+            final spread = _shouldGlowAiFab ? 1.0 + (1.5 * glowT) : 0.0;
+            final opacity = _shouldGlowAiFab ? 0.22 + (0.18 * glowT) : 0.15;
+
+            return Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryLight.withValues(alpha: opacity),
+                    blurRadius: blur,
+                    spreadRadius: spread,
+                  ),
+                ],
+              ),
+              child: child,
+            );
+          },
+          child: ScaleTransition(
+            scale: _fabScale,
+            child: FloatingActionButton(
+              heroTag: 'ai_assistant_fab',
+              onPressed: _openAiAssistant,
+              backgroundColor: AppColors.primaryLight,
+              elevation: 8,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.smart_toy_outlined, color: Colors.white),
+            ),
+          ),
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -105,14 +210,6 @@ class _HomePageState extends State<HomePage> {
                 Expanded(
                   child: _buildNavItem(
                     4,
-                    Icons.chat_bubble_outline,
-                    Icons.chat_bubble,
-                    context.l10n.chatbot,
-                  ),
-                ),
-                Expanded(
-                  child: _buildNavItem(
-                    5,
                     Icons.person_outline,
                     Icons.person,
                     context.l10n.profile,
@@ -123,6 +220,12 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+    );
+  }
+
+  void _openAiAssistant() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ChatbotPage()),
     );
   }
 
@@ -138,6 +241,7 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           _selectedIndex = index;
         });
+        _loadAiFabMoodState();
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,

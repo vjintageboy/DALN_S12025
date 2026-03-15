@@ -29,6 +29,14 @@ class _ChatbotPageState extends State<ChatbotPage> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          },
+        ),
         elevation: 0,
         backgroundColor: const Color(0xFF4CAF50),
         title: Row(
@@ -105,9 +113,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
             child: Text(context.l10n.cancel),
           ),
           TextButton(
-            onPressed: () {
-              context.read<ChatbotProvider>().clearChat();
+            onPressed: () async {
               Navigator.pop(context);
+              await this.context.read<ChatbotProvider>().clearChat();
             },
             child: Text(
               context.l10n.delete,
@@ -160,6 +168,40 @@ class _ChatbotPageState extends State<ChatbotPage> {
                       c.lastMessagePreview ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                      ),
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogContext) => AlertDialog(
+                            title: const Text('Xóa đoạn chat'),
+                            content: const Text(
+                              'Bạn có chắc muốn xóa đoạn chat này khỏi lịch sử?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(dialogContext, false),
+                                child: Text(this.context.l10n.cancel),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(dialogContext, true),
+                                child: Text(
+                                  this.context.l10n.delete,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          await chatbot.deleteConversation(c.id);
+                        }
+                      },
                     ),
                     onTap: () async {
                       await chatbot.loadConversation(c.id);

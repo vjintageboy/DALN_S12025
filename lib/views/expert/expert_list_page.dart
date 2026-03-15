@@ -13,19 +13,8 @@ class ExpertListPage extends StatefulWidget {
 }
 
 class _ExpertListPageState extends State<ExpertListPage> {
-  List<Expert> _experts = [];
   List<Expert> _filteredExperts = [];
   bool _isLoading = true;
-  String? _selectedSpecialization;
-
-  final List<String> _specializationKeys = [
-    'all',
-    'anxiety',
-    'depression',
-    'stress',
-    'sleep',
-    'relationships',
-  ];
 
   @override
   void initState() {
@@ -42,7 +31,6 @@ class _ExpertListPageState extends State<ExpertListPage> {
 
       if (!mounted) return;
       setState(() {
-        _experts = experts;
         _filteredExperts = experts;
         _isLoading = false;
       });
@@ -55,42 +43,6 @@ class _ExpertListPageState extends State<ExpertListPage> {
           backgroundColor: Colors.red,
         ),
       );
-    }
-  }
-
-  void _filterExperts(String? specializationKey) {
-    setState(() {
-      _selectedSpecialization = specializationKey;
-      if (specializationKey == null || specializationKey == 'all') {
-        _filteredExperts = _experts;
-      } else {
-        _filteredExperts = _experts
-            .where(
-              (e) =>
-                  e.specialization.toLowerCase() ==
-                  specializationKey.toLowerCase(),
-            )
-            .toList();
-      }
-    });
-  }
-
-  String _getSpecializationLabel(String key) {
-    switch (key) {
-      case 'all':
-        return context.l10n.all;
-      case 'anxiety':
-        return context.l10n.anxiety;
-      case 'depression':
-        return context.l10n.depression;
-      case 'stress':
-        return context.l10n.stress;
-      case 'sleep':
-        return context.l10n.sleep;
-      case 'relationships':
-        return context.l10n.relationships;
-      default:
-        return key;
     }
   }
 
@@ -163,54 +115,6 @@ class _ExpertListPageState extends State<ExpertListPage> {
       ),
       body: Column(
         children: [
-          // Specialization Filter
-          Container(
-            height: 60,
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _specializationKeys.length,
-              itemBuilder: (context, index) {
-                final specKey = _specializationKeys[index];
-                final isSelected =
-                    _selectedSpecialization == specKey ||
-                    (_selectedSpecialization == null && specKey == 'all');
-
-                return GestureDetector(
-                  onTap: () =>
-                      _filterExperts(specKey == 'all' ? null : specKey),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFF4CAF50)
-                          : Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Center(
-                      child: Text(
-                        _getSpecializationLabel(specKey),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.grey.shade700,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
           // Expert Count
           if (!_isLoading)
             Container(
@@ -254,7 +158,7 @@ class _ExpertListPageState extends State<ExpertListPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          context.l10n.tryAnotherFilter,
+                          'Please check back later for more experts.',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade500,

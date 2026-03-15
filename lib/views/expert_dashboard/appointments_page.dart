@@ -240,14 +240,18 @@ class _AppointmentsPageState extends State<AppointmentsPage>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            final changed = await Navigator.push<bool>(
               context,
               MaterialPageRoute(
                 builder: (context) =>
                     AppointmentDetailPage(appointment: appointment),
               ),
             );
+
+            if (changed == true && mounted) {
+              setState(() {});
+            }
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
@@ -416,7 +420,7 @@ class _AppointmentsPageState extends State<AppointmentsPage>
           backgroundImage: userAvatarUrl != null ? NetworkImage(userAvatarUrl) : null,
           child: userAvatarUrl == null
               ? Text(
-                  userName.isNotEmpty ? userName.substring(0, 1).toUpperCase() : '?',
+                            'Cancelled by ${appointment.cancelledRole ?? appointment.cancelledBy ?? 'user'}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,

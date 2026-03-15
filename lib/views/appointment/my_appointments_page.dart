@@ -558,6 +558,8 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
             duration: const Duration(seconds: 4),
           ),
         );
+
+        setState(() {});
       }
     } catch (e) {
       if (mounted) {
