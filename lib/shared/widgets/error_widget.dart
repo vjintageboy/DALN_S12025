@@ -30,17 +30,13 @@ class ErrorWidget extends StatelessWidget {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
+                color: AppColors.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 48,
-                color: AppColors.error,
-              ),
+              child: Icon(icon, size: 48, color: AppColors.error),
             ),
             const SizedBox(height: 24),
-            
+
             // Title
             Text(
               title,
@@ -53,7 +49,7 @@ class ErrorWidget extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            
+
             // Message
             Text(
               message,
@@ -64,7 +60,7 @@ class ErrorWidget extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             // Retry button
             if (actionText != null && onRetry != null) ...[
               const SizedBox(height: 32),
@@ -120,11 +116,7 @@ class NotFoundErrorWidget extends StatelessWidget {
   final String? itemName;
   final VoidCallback? onGoBack;
 
-  const NotFoundErrorWidget({
-    super.key,
-    this.itemName,
-    this.onGoBack,
-  });
+  const NotFoundErrorWidget({super.key, this.itemName, this.onGoBack});
 
   @override
   Widget build(BuildContext context) {

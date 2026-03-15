@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/supabase_service.dart';
 
 class MoodEntry {
   final String entryId;
@@ -19,35 +19,38 @@ class MoodEntry {
     this.tags = const [],
   });
 
-  // Convert to Map for Firestore
+  // Convert to Map for Supabase
   Map<String, dynamic> toMap() {
     return {
-      'entryId': entryId,
-      'userId': userId,
-      'moodLevel': moodLevel,
+      'id': entryId,
+      'user_id': userId,
+      'mood_score': moodLevel,
       'note': note,
-      'timestamp': Timestamp.fromDate(timestamp),
-      'emotionFactors': emotionFactors,
+      'emotion_factors': emotionFactors,
       'tags': tags,
+      // created_at is handled by DB
     };
   }
 
-  // Create from Firestore document
+  // Create from Supabase map
   factory MoodEntry.fromMap(Map<String, dynamic> map) {
     return MoodEntry(
-      entryId: map['entryId'] ?? '',
-      userId: map['userId'] ?? '',
-      moodLevel: map['moodLevel'] ?? 3,
-      note: map['note'],
-      timestamp: (map['timestamp'] as Timestamp).toDate(),
-      emotionFactors: List<String>.from(map['emotionFactors'] ?? []),
-      tags: List<String>.from(map['tags'] ?? []),
+      entryId: map['id']?.toString() ?? '',
+      userId: map['user_id']?.toString() ?? '',
+      moodLevel: int.tryParse(map['mood_score']?.toString() ?? '3') ?? 3,
+      note: map['note']?.toString(),
+      timestamp: map['created_at'] != null
+          ? DateTime.parse(map['created_at'])
+          : DateTime.now(),
+      emotionFactors: _parseList(map['emotion_factors']),
+      tags: _parseList(map['tags']),
     );
   }
 
-  // Create from Firestore DocumentSnapshot
-  factory MoodEntry.fromSnapshot(DocumentSnapshot doc) {
-    return MoodEntry.fromMap(doc.data() as Map<String, dynamic>);
+  static List<String> _parseList(dynamic data) {
+    if (data == null) return [];
+    if (data is List) return data.map((e) => e.toString()).toList();
+    return [];
   }
 
   // Get mood entries for a specific period
@@ -56,15 +59,11 @@ class MoodEntry {
     required DateTime start,
     required DateTime end,
   }) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('moodEntries')
-        .where('userId', isEqualTo: userId)
-        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-        .where('timestamp', isLessThanOrEqualTo: Timestamp.fromDate(end))
-        .orderBy('timestamp', descending: true)
-        .get();
-
-    return snapshot.docs.map((doc) => MoodEntry.fromSnapshot(doc)).toList();
+    return await SupabaseService.instance.getMoodEntriesForPeriod(
+      userId: userId,
+      start: start,
+      end: end,
+    );
   }
 
   // Calculate average mood for period

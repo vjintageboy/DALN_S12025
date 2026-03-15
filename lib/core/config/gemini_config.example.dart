@@ -1,23 +1,24 @@
 /// Gemini AI Configuration - EXAMPLE FILE
-/// 
+///
 /// Để sử dụng:
 /// 1. Copy file này thành 'gemini_config.dart' (xóa .example)
 /// 2. Lấy API key từ https://makersuite.google.com/app/apikey
 /// 3. Thay 'YOUR_API_KEY_HERE' bằng API key thật
 /// 4. KHÔNG commit file gemini_config.dart lên Git!
+library;
 
 class GeminiConfig {
   // TODO: Thay 'YOUR_API_KEY_HERE' bằng API key thật
   // Guide: https://makersuite.google.com/app/apikey
   static const String apiKey = 'YOUR_API_KEY_HERE';
-  
+
   // Model configuration
   static const String modelName = 'gemini-1.5-flash'; // Free tier model
-  
+
   // Safety settings
   static const double temperature = 0.7; // Creativity level (0.0 - 1.0)
   static const int maxOutputTokens = 1000; // Max response length
-  
+
   // System prompt - Personality của AI chatbot
   static const String systemPrompt = '''
 Bạn là AI Assistant của ứng dụng Moodiki - một ứng dụng về sức khỏe tinh thần và thiền định (meditation).
@@ -45,7 +46,8 @@ Lưu ý:
 - Gợi ý người dùng tìm chuyên gia nếu vấn đề nghiêm trọng
 - Luôn tích cực và khuyến khích self-care
 ''';
-  
+
   // Check if API key is configured
-  static bool get isConfigured => apiKey != 'YOUR_API_KEY_HERE' && apiKey.isNotEmpty;
+  static bool get isConfigured =>
+      apiKey != 'YOUR_API_KEY_HERE' && apiKey.isNotEmpty;
 }

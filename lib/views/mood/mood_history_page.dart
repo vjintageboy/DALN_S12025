@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../models/mood_entry.dart';
-import '../../services/firestore_service.dart';
+import '../../services/supabase_service.dart';
 import 'mood_log_page.dart';
 import 'mood_analytics_page.dart';
 import 'mood_entry_detail_page.dart';
@@ -19,8 +18,9 @@ class MoodHistoryPage extends StatefulWidget {
   State<MoodHistoryPage> createState() => _MoodHistoryPageState();
 }
 
-class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProviderStateMixin {
-  final FirestoreService _firestoreService = FirestoreService();
+class _MoodHistoryPageState extends State<MoodHistoryPage>
+    with SingleTickerProviderStateMixin {
+  final SupabaseService _supabaseService = SupabaseService.instance;
   List<MoodEntry> _moodEntries = [];
   bool _isLoading = true;
   late TabController _tabController;
@@ -42,13 +42,13 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
   }
 
   Future<void> _loadMoodEntries() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _supabaseService.currentUser;
     if (user == null) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final entries = await _firestoreService.getMoodEntries(user.uid);
+      final entries = await _supabaseService.getMoodEntries(user.id);
       if (mounted) {
         setState(() {
           _moodEntries = entries;
@@ -81,13 +81,15 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
   // Filter entries by mood level
   List<MoodEntry> get _filteredEntries {
     if (_selectedMoodFilter == 0) return _moodEntries;
-    return _moodEntries.where((e) => e.moodLevel == _selectedMoodFilter).toList();
+    return _moodEntries
+        .where((e) => e.moodLevel == _selectedMoodFilter)
+        .toList();
   }
 
   // Delete mood entry
   Future<void> _deleteMoodEntry(String entryId) async {
     try {
-      await _firestoreService.deleteMoodEntry(entryId);
+      await _supabaseService.deleteMoodEntry(entryId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -123,7 +125,9 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
             'Delete Entry',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          content: const Text('Are you sure you want to delete this mood entry?'),
+          content: const Text(
+            'Are you sure you want to delete this mood entry?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -138,7 +142,10 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+              child: const Text(
+                'Delete',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         );
@@ -168,7 +175,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withOpacity(0.1),
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -180,9 +187,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
             onPressed: () async {
               final result = await Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const MoodLogPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const MoodLogPage()),
               );
               if (result == true && mounted) {
                 setState(() {});
@@ -224,13 +229,12 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+            )
           : TabBarView(
               controller: _tabController,
-              children: [
-                _buildGroupedView(),
-                _buildCalendarView(),
-              ],
+              children: [_buildGroupedView(), _buildCalendarView()],
             ),
     );
   }
@@ -250,7 +254,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
             });
           },
         ),
-        
+
         // Content area
         Expanded(
           child: grouped.isEmpty
@@ -265,7 +269,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                       final dateKey = sortedKeys[index];
                       final entries = grouped[dateKey]!;
                       final date = DateTime.parse(dateKey);
-                      
+
                       return _buildDateGroup(date, entries);
                     },
                   ),
@@ -279,7 +283,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final entryDate = DateTime(date.year, date.month, date.day);
-    
+
     String dateLabel;
     if (entryDate == today) {
       dateLabel = context.l10n.today;
@@ -292,7 +296,8 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
     }
 
     // Calculate average mood for the day
-    final avgMood = entries.fold<int>(0, (sum, e) => sum + e.moodLevel) / entries.length;
+    final avgMood =
+        entries.fold<int>(0, (sum, e) => sum + e.moodLevel) / entries.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,12 +316,19 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
               ),
               const SizedBox(width: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: MoodHelpers.getMoodColor(avgMood.round()).withOpacity(0.2),
+                  color: MoodHelpers.getMoodColor(
+                    avgMood.round(),
+                  ).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: MoodHelpers.getMoodColor(avgMood.round()).withOpacity(0.5),
+                    color: MoodHelpers.getMoodColor(
+                      avgMood.round(),
+                    ).withValues(alpha: 0.5),
                   ),
                 ),
                 child: Row(
@@ -357,7 +369,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
 
   Widget _buildCalendarView() {
     if (_moodEntries.isEmpty) {
-      return const MoodEmptyState();
+      return const MoodEmptyState(); // Corrected to return a Widget
     }
 
     // Group entries by date
@@ -381,9 +393,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border(
-              bottom: BorderSide(color: Colors.grey.shade200),
-            ),
+            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -414,8 +424,9 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                     _selectedMonth.year,
                     _selectedMonth.month + 1,
                   );
-                  if (nextMonth.isBefore(now) || 
-                      (nextMonth.year == now.year && nextMonth.month == now.month)) {
+                  if (nextMonth.isBefore(now) ||
+                      (nextMonth.year == now.year &&
+                          nextMonth.month == now.month)) {
                     setState(() {
                       _selectedMonth = nextMonth;
                     });
@@ -434,14 +445,14 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
               child: Column(
                 children: [
                   _buildCalendarGrid(entriesByDate),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Legend
                   const CalendarLegend(),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Selected date entries
                   if (_selectedDate != null) ...[
                     _buildSelectedDateEntries(entriesByDate),
@@ -456,8 +467,16 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
   }
 
   Widget _buildCalendarGrid(Map<DateTime, List<MoodEntry>> entriesByDate) {
-    final firstDayOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-    final lastDayOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
+    final firstDayOfMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month,
+      1,
+    );
+    final lastDayOfMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + 1,
+      0,
+    );
     final firstWeekday = firstDayOfMonth.weekday % 7; // 0 = Sunday
 
     final daysInMonth = lastDayOfMonth.day;
@@ -468,18 +487,20 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
         // Weekday headers
         Row(
           children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-              .map((day) => Expanded(
-                    child: Center(
-                      child: Text(
-                        day,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.grey.shade600,
-                        ),
+              .map(
+                (day) => Expanded(
+                  child: Center(
+                    child: Text(
+                      day,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade600,
                       ),
                     ),
-                  ))
+                  ),
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 12),
@@ -497,23 +518,30 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
           itemCount: totalCells,
           itemBuilder: (context, index) {
             final dayNumber = index - firstWeekday + 1;
-            
+
             if (dayNumber < 1 || dayNumber > daysInMonth) {
               return const SizedBox.shrink();
             }
 
-            final date = DateTime(_selectedMonth.year, _selectedMonth.month, dayNumber);
+            final date = DateTime(
+              _selectedMonth.year,
+              _selectedMonth.month,
+              dayNumber,
+            );
             final entries = entriesByDate[date] ?? [];
             final avgMood = entries.isEmpty
                 ? null
-                : entries.fold<int>(0, (sum, e) => sum + e.moodLevel) / entries.length;
+                : entries.fold<int>(0, (sum, e) => sum + e.moodLevel) /
+                      entries.length;
 
-            final isSelected = _selectedDate != null &&
+            final isSelected =
+                _selectedDate != null &&
                 _selectedDate!.year == date.year &&
                 _selectedDate!.month == date.month &&
                 _selectedDate!.day == date.day;
 
-            final isToday = DateTime.now().year == date.year &&
+            final isToday =
+                DateTime.now().year == date.year &&
                 DateTime.now().month == date.month &&
                 DateTime.now().day == date.day;
 
@@ -528,15 +556,17 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
               child: Container(
                 decoration: BoxDecoration(
                   color: avgMood != null
-                      ? MoodHelpers.getMoodColor(avgMood.round()).withOpacity(0.3)
+                      ? MoodHelpers.getMoodColor(
+                          avgMood.round(),
+                        ).withValues(alpha: 0.3)
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected
                         ? const Color(0xFF4CAF50)
                         : isToday
-                            ? Colors.blue.shade400
-                            : Colors.transparent,
+                        ? Colors.blue.shade400
+                        : Colors.transparent,
                     width: isSelected || isToday ? 2 : 0,
                   ),
                 ),
@@ -547,7 +577,9 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                         '$dayNumber',
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+                          fontWeight: isToday
+                              ? FontWeight.w800
+                              : FontWeight.w600,
                           color: avgMood != null
                               ? Colors.black87
                               : Colors.grey.shade400,
@@ -584,12 +616,15 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
     );
   }
 
-  Widget _buildSelectedDateEntries(Map<DateTime, List<MoodEntry>> entriesByDate) {
+  Widget _buildSelectedDateEntries(
+    Map<DateTime, List<MoodEntry>> entriesByDate,
+  ) {
     final entries = entriesByDate[_selectedDate!] ?? [];
-    
+
     if (entries.isEmpty) return const SizedBox.shrink();
 
-    final avgMood = entries.fold<int>(0, (sum, e) => sum + e.moodLevel) / entries.length;
+    final avgMood =
+        entries.fold<int>(0, (sum, e) => sum + e.moodLevel) / entries.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -626,12 +661,19 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: MoodHelpers.getMoodColor(avgMood.round()).withOpacity(0.2),
+                  color: MoodHelpers.getMoodColor(
+                    avgMood.round(),
+                  ).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: MoodHelpers.getMoodColor(avgMood.round()).withOpacity(0.5),
+                    color: MoodHelpers.getMoodColor(
+                      avgMood.round(),
+                    ).withValues(alpha: 0.5),
                   ),
                 ),
                 child: Row(
@@ -664,7 +706,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
   Widget _buildMoodEntryCard(MoodEntry entry, {required bool showDate}) {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final timeFormat = DateFormat('h:mm a');
-    
+
     return Dismissible(
       key: Key(entry.entryId),
       direction: DismissDirection.endToStart,
@@ -703,7 +745,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -720,7 +762,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                   builder: (context) => MoodEntryDetailPage(entry: entry),
                 ),
               );
-              
+
               if (result == true) {
                 _loadMoodEntries(); // Reload if entry was edited
               }
@@ -736,7 +778,9 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: MoodHelpers.getMoodColor(entry.moodLevel).withOpacity(0.1),
+                          color: MoodHelpers.getMoodColor(
+                            entry.moodLevel,
+                          ).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -750,16 +794,21 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              MoodHelpers.getMoodLabel(context, entry.moodLevel),
+                              MoodHelpers.getMoodLabel(
+                                context,
+                                entry.moodLevel,
+                              ),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                                color: MoodHelpers.getMoodColor(entry.moodLevel),
+                                color: MoodHelpers.getMoodColor(
+                                  entry.moodLevel,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              showDate 
+                              showDate
                                   ? '${dateFormat.format(entry.timestamp)} • ${timeFormat.format(entry.timestamp)}'
                                   : timeFormat.format(entry.timestamp),
                               style: TextStyle(
@@ -770,13 +819,10 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                           ],
                         ),
                       ),
-                      Icon(
-                        Icons.chevron_right,
-                        color: Colors.grey.shade400,
-                      ),
+                      Icon(Icons.chevron_right, color: Colors.grey.shade400),
                     ],
                   ),
-                  
+
                   // Note
                   if (entry.note != null && entry.note!.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -798,60 +844,62 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
                       ),
                     ),
                   ],
-                  
+
                   // Emotion factors
                   if (entry.emotionFactors.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: entry.emotionFactors.take(4).map((factor) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF81C784).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color(0xFF4CAF50).withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            _getEmotionFactorLabel(factor),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF2E7D32),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        );
-                      }).toList()
-                        ..addAll(
-                          entry.emotionFactors.length > 4
-                              ? [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '+${entry.emotionFactors.length - 4}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade700,
-                                        fontWeight: FontWeight.w600,
+                      children:
+                          entry.emotionFactors.take(4).map((factor) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF81C784).withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFF4CAF50,
+                                  ).withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Text(
+                                _getEmotionFactorLabel(factor),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF2E7D32),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          }).toList()..addAll(
+                            entry.emotionFactors.length > 4
+                                ? [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '+${entry.emotionFactors.length - 4}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade700,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ]
-                              : [],
-                        ),
+                                  ]
+                                : [],
+                          ),
                     ),
                   ],
                 ],
@@ -866,7 +914,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage> with SingleTickerProv
   String _getEmotionFactorLabel(String factor) {
     // Normalize to lowercase for key matching (backward compatibility with old data)
     final key = factor.toLowerCase().replaceAll(' ', '');
-    
+
     switch (key) {
       case 'work':
         return context.l10n.work;

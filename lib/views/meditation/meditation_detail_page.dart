@@ -7,21 +7,19 @@ import 'dart:math' as math;
 class MeditationDetailPage extends StatefulWidget {
   final Meditation meditation;
 
-  const MeditationDetailPage({
-    super.key,
-    required this.meditation,
-  });
+  const MeditationDetailPage({super.key, required this.meditation});
 
   @override
   State<MeditationDetailPage> createState() => _MeditationDetailPageState();
 }
 
-class _MeditationDetailPageState extends State<MeditationDetailPage> with SingleTickerProviderStateMixin {
+class _MeditationDetailPageState extends State<MeditationDetailPage>
+    with SingleTickerProviderStateMixin {
   final ap.AudioPlayer _audioPlayer = ap.AudioPlayer();
   bool _isPlaying = false;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
-  
+
   // Animation controller for waveform
   late AnimationController _waveAnimationController;
   late Animation<double> _waveAnimation;
@@ -38,54 +36,59 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
     _setupAudioPlayer();
     _setupWaveAnimation();
   }
-  
+
   void _setupWaveAnimation() {
     _waveAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 80),
     );
-    
-    _waveAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _waveAnimationController,
-        curve: Curves.linear,
-      ),
-    )..addListener(() {
-        if (_isPlaying && mounted) {
-          setState(() {
-            _animationFrame++;
-            // Create smooth wave-like motion with varied patterns
-            for (int i = 0; i < _waveHeights.length; i++) {
-              // Multiple overlapping sine waves for natural effect
-              final time = _animationFrame * 0.08;
-              final position = i / _waveHeights.length;
-              
-              // Main wave
-              final wave1 = math.sin(time + position * math.pi * 2) * 0.25;
-              
-              // Secondary wave (different frequency)
-              final wave2 = math.sin(time * 1.3 + position * math.pi * 1.5) * 0.2;
-              
-              // Tertiary wave (slower, adds depth)
-              final wave3 = math.sin(time * 0.7 + position * math.pi * 2.5) * 0.15;
-              
-              // High frequency variation
-              final wave4 = math.sin(time * 2.1 + position * math.pi * 3) * 0.1;
-              
-              // Combine all waves
-              _waveHeights[i] = 0.4 + wave1 + wave2 + wave3 + wave4;
-              
-              // Smooth clamping
-              _waveHeights[i] = _waveHeights[i].clamp(0.2, 0.9);
+
+    _waveAnimation =
+        Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(
+              parent: _waveAnimationController,
+              curve: Curves.linear,
+            ),
+          )
+          ..addListener(() {
+            if (_isPlaying && mounted) {
+              setState(() {
+                _animationFrame++;
+                // Create smooth wave-like motion with varied patterns
+                for (int i = 0; i < _waveHeights.length; i++) {
+                  // Multiple overlapping sine waves for natural effect
+                  final time = _animationFrame * 0.08;
+                  final position = i / _waveHeights.length;
+
+                  // Main wave
+                  final wave1 = math.sin(time + position * math.pi * 2) * 0.25;
+
+                  // Secondary wave (different frequency)
+                  final wave2 =
+                      math.sin(time * 1.3 + position * math.pi * 1.5) * 0.2;
+
+                  // Tertiary wave (slower, adds depth)
+                  final wave3 =
+                      math.sin(time * 0.7 + position * math.pi * 2.5) * 0.15;
+
+                  // High frequency variation
+                  final wave4 =
+                      math.sin(time * 2.1 + position * math.pi * 3) * 0.1;
+
+                  // Combine all waves
+                  _waveHeights[i] = 0.4 + wave1 + wave2 + wave3 + wave4;
+
+                  // Smooth clamping
+                  _waveHeights[i] = _waveHeights[i].clamp(0.2, 0.9);
+                }
+              });
+            }
+          })
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed && _isPlaying) {
+              _waveAnimationController.forward(from: 0.0);
             }
           });
-        }
-      })
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed && _isPlaying) {
-          _waveAnimationController.forward(from: 0.0);
-        }
-      });
   }
 
   void _setupAudioPlayer() {
@@ -132,7 +135,8 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
       await _audioPlayer.pause();
       _waveAnimationController.stop();
     } else {
-      if (widget.meditation.audioUrl != null && widget.meditation.audioUrl!.isNotEmpty) {
+      if (widget.meditation.audioUrl != null &&
+          widget.meditation.audioUrl!.isNotEmpty) {
         // Play from URL
         await _audioPlayer.play(ap.UrlSource(widget.meditation.audioUrl!));
         _waveAnimationController.forward();
@@ -245,7 +249,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
             end: Alignment.bottomRight,
             colors: [
               categoryColor,
-              categoryColor.withOpacity(0.6),
+              categoryColor.withValues(alpha: 0.6),
               Colors.white,
             ],
           ),
@@ -299,7 +303,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: categoryDarkColor.withOpacity(0.2),
+                              color: categoryDarkColor.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -318,7 +322,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -422,7 +426,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: categoryDarkColor.withOpacity(0.2),
+                              color: categoryDarkColor.withValues(alpha: 0.2),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -441,60 +445,95 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.center,
-                                children: List.generate(
-                                  _waveHeights.length,
-                                  (index) {
-                                    // Static pattern for paused state
-                                    final staticPattern = [
-                                      0.3, 0.5, 0.4, 0.6, 0.7, 0.8, 0.75, 0.85,
-                                      0.9, 0.95, 0.9, 0.85, 0.8, 0.9, 0.85, 0.9,
-                                      0.95, 0.9, 0.8, 0.75, 0.7, 0.65, 0.6, 0.5,
-                                      0.45, 0.4, 0.35, 0.4, 0.3, 0.35
-                                    ];
-                                    
-                                    // Calculate progress percentage for this bar
-                                    final progress = _duration.inSeconds > 0
-                                        ? _position.inSeconds / _duration.inSeconds
-                                        : 0.0;
-                                    final barProgress = (index / _waveHeights.length);
-                                    final isPlayed = barProgress <= progress;
-                                    
-                                    return AnimatedContainer(
-                                      duration: const Duration(milliseconds: 80),
-                                      curve: Curves.easeInOutSine,
-                                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                                      width: 4,
-                                      height: _isPlaying
-                                          ? 20 + (_waveHeights[index] * 50)
-                                          : 20 + (staticPattern[index % staticPattern.length] * 50),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.bottomCenter,
-                                          end: Alignment.topCenter,
-                                          colors: isPlayed
-                                              ? [
-                                                  categoryDarkColor,
-                                                  categoryDarkColor.withOpacity(0.7),
-                                                ]
-                                              : [
-                                                  Colors.grey.shade300,
-                                                  Colors.grey.shade200,
-                                                ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                        boxShadow: isPlayed && _isPlaying
+                                children: List.generate(_waveHeights.length, (
+                                  index,
+                                ) {
+                                  // Static pattern for paused state
+                                  final staticPattern = [
+                                    0.3,
+                                    0.5,
+                                    0.4,
+                                    0.6,
+                                    0.7,
+                                    0.8,
+                                    0.75,
+                                    0.85,
+                                    0.9,
+                                    0.95,
+                                    0.9,
+                                    0.85,
+                                    0.8,
+                                    0.9,
+                                    0.85,
+                                    0.9,
+                                    0.95,
+                                    0.9,
+                                    0.8,
+                                    0.75,
+                                    0.7,
+                                    0.65,
+                                    0.6,
+                                    0.5,
+                                    0.45,
+                                    0.4,
+                                    0.35,
+                                    0.4,
+                                    0.3,
+                                    0.35,
+                                  ];
+
+                                  // Calculate progress percentage for this bar
+                                  final progress = _duration.inSeconds > 0
+                                      ? _position.inSeconds /
+                                            _duration.inSeconds
+                                      : 0.0;
+                                  final barProgress =
+                                      (index / _waveHeights.length);
+                                  final isPlayed = barProgress <= progress;
+
+                                  return AnimatedContainer(
+                                    duration: const Duration(milliseconds: 80),
+                                    curve: Curves.easeInOutSine,
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
+                                    width: 4,
+                                    height: _isPlaying
+                                        ? 20 + (_waveHeights[index] * 50)
+                                        : 20 +
+                                              (staticPattern[index %
+                                                      staticPattern.length] *
+                                                  50),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.bottomCenter,
+                                        end: Alignment.topCenter,
+                                        colors: isPlayed
                                             ? [
-                                                BoxShadow(
-                                                  color: categoryDarkColor.withOpacity(0.3),
-                                                  blurRadius: 4,
-                                                  offset: const Offset(0, 2),
+                                                categoryDarkColor,
+                                                categoryDarkColor.withValues(alpha: 
+                                                  0.7,
                                                 ),
                                               ]
-                                            : [],
+                                            : [
+                                                Colors.grey.shade300,
+                                                Colors.grey.shade200,
+                                              ],
                                       ),
-                                    );
-                                  },
-                                ),
+                                      borderRadius: BorderRadius.circular(4),
+                                      boxShadow: isPlayed && _isPlaying
+                                          ? [
+                                              BoxShadow(
+                                                color: categoryDarkColor
+                                                    .withValues(alpha: 0.3),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : [],
+                                    ),
+                                  );
+                                }),
                               ),
                             ),
 
@@ -515,23 +554,29 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
                                     activeTrackColor: categoryDarkColor,
                                     inactiveTrackColor: categoryColor,
                                     thumbColor: categoryDarkColor,
-                                    overlayColor: categoryDarkColor.withOpacity(0.2),
+                                    overlayColor: categoryDarkColor.withValues(alpha: 
+                                      0.2,
+                                    ),
                                   ),
                                   child: Slider(
                                     min: 0,
                                     max: _duration.inSeconds.toDouble(),
-                                    value: _position.inSeconds
-                                        .toDouble()
-                                        .clamp(0, _duration.inSeconds.toDouble()),
+                                    value: _position.inSeconds.toDouble().clamp(
+                                      0,
+                                      _duration.inSeconds.toDouble(),
+                                    ),
                                     onChanged: (value) {
                                       _seek(Duration(seconds: value.toInt()));
                                     },
                                   ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         _formatDuration(_position),
@@ -562,14 +607,19 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
                                 // Rewind 15s
                                 IconButton(
                                   onPressed: () {
-                                    final newPosition = _position - const Duration(seconds: 15);
-                                    _seek(newPosition < Duration.zero ? Duration.zero : newPosition);
+                                    final newPosition =
+                                        _position - const Duration(seconds: 15);
+                                    _seek(
+                                      newPosition < Duration.zero
+                                          ? Duration.zero
+                                          : newPosition,
+                                    );
                                   },
                                   icon: const Icon(Icons.replay_10),
                                   iconSize: 32,
                                   color: categoryDarkColor,
                                 ),
-                                
+
                                 const SizedBox(width: 20),
 
                                 // Play/Pause button
@@ -581,12 +631,14 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
                                       end: Alignment.bottomRight,
                                       colors: [
                                         categoryDarkColor,
-                                        categoryDarkColor.withOpacity(0.7),
+                                        categoryDarkColor.withValues(alpha: 0.7),
                                       ],
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: categoryDarkColor.withOpacity(0.4),
+                                        color: categoryDarkColor.withValues(alpha: 
+                                          0.4,
+                                        ),
                                         blurRadius: 12,
                                         offset: const Offset(0, 6),
                                       ),
@@ -595,7 +647,9 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
                                   child: IconButton(
                                     onPressed: _playPause,
                                     icon: Icon(
-                                      _isPlaying ? Icons.pause : Icons.play_arrow,
+                                      _isPlaying
+                                          ? Icons.pause
+                                          : Icons.play_arrow,
                                       size: 40,
                                     ),
                                     iconSize: 40,
@@ -609,8 +663,13 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> with Single
                                 // Forward 15s
                                 IconButton(
                                   onPressed: () {
-                                    final newPosition = _position + const Duration(seconds: 15);
-                                    _seek(newPosition > _duration ? _duration : newPosition);
+                                    final newPosition =
+                                        _position + const Duration(seconds: 15);
+                                    _seek(
+                                      newPosition > _duration
+                                          ? _duration
+                                          : newPosition,
+                                    );
                                   },
                                   icon: const Icon(Icons.forward_10),
                                   iconSize: 32,

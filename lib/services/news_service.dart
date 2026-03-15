@@ -1,33 +1,59 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/news_post.dart';
 import '../models/post_comment.dart';
 
 class NewsService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   // ==================== POSTS ====================
 
   /// Stream all posts, ordered by createdAt descending
   Stream<List<NewsPost>> streamPosts({PostCategory? category}) {
     try {
-      Query query;
-      
-      if (category != null) {
-        // Server-side filtering with composite index (now enabled!)
-        query = _db.collection('newsPosts')
-            .where('category', isEqualTo: category.name)
-            .orderBy('createdAt', descending: true);
-      } else {
-        // No filter, just orderBy
-        query = _db.collection('newsPosts')
-            .orderBy('createdAt', descending: true);
-      }
+      final query = category != null
+          ? _supabase
+              .from('posts')
+              .stream(primaryKey: ['id'])
+              .eq('category', category.name)
+              .order('created_at', ascending: false)
+          : _supabase
+              .from('posts')
+              .stream(primaryKey: ['id'])
+              .order('created_at', ascending: false);
 
-      return query.snapshots().handleError((error) {
-        debugPrint('❌ Error streaming posts: $error');
-        throw Exception('Failed to load posts: $error');
-      }).map((snapshot) {
-        return snapshot.docs.map((doc) => NewsPost.fromSnapshot(doc)).toList();
+      return query.asyncMap((postList) async {
+        // Fetch users and likes for these posts
+        final userIds = postList.map((p) => p['author_id'] as String).toSet().toList();
+        final postIds = postList.map((p) => p['id'] as String).toList();
+
+        final usersData = userIds.isEmpty ? [] : await _supabase
+            .from('users')
+            .select('id, full_name, avatar_url, role')
+            .inFilter('id', userIds);
+
+        final likesData = postIds.isEmpty ? [] : await _supabase
+            .from('post_likes')
+            .select('post_id, user_id')
+            .inFilter('post_id', postIds);
+
+        final usersMap = {
+          for (var u in usersData) u['id']: u
+        };
+
+        final likesMap = <String, List<Map<String, dynamic>>>{};
+        for (var like in likesData) {
+          final pid = like['post_id'] as String;
+          likesMap[pid] ??= [];
+          likesMap[pid]!.add(like);
+        }
+
+        return postList.map((post) {
+          final enrichedPost = Map<String, dynamic>.from(post);
+          enrichedPost['users'] = usersMap[post['author_id']];
+          enrichedPost['post_likes'] = likesMap[post['id']] ?? [];
+          return NewsPost.fromMap(enrichedPost);
+        }).toList();
       });
     } catch (e) {
       debugPrint('❌ Error creating query: $e');
@@ -38,9 +64,14 @@ class NewsService {
   /// Get single post by ID
   Future<NewsPost?> getPost(String postId) async {
     try {
-      final doc = await _db.collection('newsPosts').doc(postId).get();
-      if (doc.exists) {
-        return NewsPost.fromSnapshot(doc);
+      final data = await _supabase
+          .from('posts')
+          .select('*, users(full_name, avatar_url, role), post_likes(user_id)')
+          .eq('id', postId)
+          .maybeSingle();
+
+      if (data != null) {
+        return NewsPost.fromMap(data);
       }
       return null;
     } catch (e) {
@@ -52,14 +83,8 @@ class NewsService {
   /// Create new post
   Future<String?> createPost(NewsPost post) async {
     try {
-      final docRef = _db.collection('newsPosts').doc();
-      final newPost = post.copyWith(
-        postId: docRef.id,
-        createdAt: DateTime.now(),
-      );
-      
-      await docRef.set(newPost.toMap());
-      return docRef.id;
+      final response = await _supabase.from('posts').insert(post.toMap()).select().single();
+      return response['id'] as String;
     } catch (e) {
       debugPrint('Error creating post: $e');
       rethrow;
@@ -69,9 +94,16 @@ class NewsService {
   /// Update post
   Future<void> updatePost(NewsPost post) async {
     try {
-      await _db.collection('newsPosts').doc(post.postId).update(
-        post.copyWith(updatedAt: DateTime.now()).toMap(),
-      );
+      await _supabase
+          .from('posts')
+          .update({
+            'title': post.title,
+            'content': post.content,
+            'image_url': post.imageUrl,
+            'category': post.category.name,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', post.postId);
     } catch (e) {
       debugPrint('Error updating post: $e');
       rethrow;
@@ -81,21 +113,12 @@ class NewsService {
   /// Delete post (and its comments)
   Future<void> deletePost(String postId) async {
     try {
-      // Delete all comments first
-      final commentsSnapshot = await _db
-          .collection('postComments')
-          .where('postId', isEqualTo: postId)
-          .get();
-
-      final batch = _db.batch();
-      for (final doc in commentsSnapshot.docs) {
-        batch.delete(doc.reference);
-      }
-
-      // Delete the post
-      batch.delete(_db.collection('newsPosts').doc(postId));
-      
-      await batch.commit();
+      // Supabase handles cascade deletes if configured, but to be safe we would do it here if not, 
+      // however our constraints don't explicitly say ON DELETE CASCADE.
+      // So we delete comments, likes, then post.
+      await _supabase.from('post_comments').delete().eq('post_id', postId);
+      await _supabase.from('post_likes').delete().eq('post_id', postId);
+      await _supabase.from('posts').delete().eq('id', postId);
     } catch (e) {
       debugPrint('Error deleting post: $e');
       rethrow;
@@ -107,25 +130,39 @@ class NewsService {
   /// Toggle like on a post
   Future<void> toggleLike(String postId, String userId) async {
     try {
-      final postRef = _db.collection('newsPosts').doc(postId);
-      final postDoc = await postRef.get();
-      
-      if (!postDoc.exists) {
-        throw Exception('Post not found');
-      }
+      final existingLike = await _supabase
+          .from('post_likes')
+          .select()
+          .eq('post_id', postId)
+          .eq('user_id', userId)
+          .maybeSingle();
 
-      final post = NewsPost.fromSnapshot(postDoc);
-      final likedBy = List<String>.from(post.likedBy);
-
-      if (likedBy.contains(userId)) {
+      if (existingLike != null) {
         // Unlike
-        likedBy.remove(userId);
+        await _supabase
+            .from('post_likes')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', userId);
+            
+        // Decrement likes_count
+        /* Using rpc if available, otherwise just update post but since we don't have RPC definition, 
+           we can select and update. BUT our query gets it. Wait, the count is maintained via 
+           likes table so we just leave likes_count alone or manually update it if required by your DB. */
+        final post = await _supabase.from('posts').select('likes_count').eq('id', postId).single();
+        final currentCount = post['likes_count'] as int? ?? 0;
+        await _supabase.from('posts').update({'likes_count': currentCount > 0 ? currentCount - 1 : 0}).eq('id', postId);
       } else {
         // Like
-        likedBy.add(userId);
+        await _supabase.from('post_likes').insert({
+          'post_id': postId,
+          'user_id': userId,
+        });
+        
+        final post = await _supabase.from('posts').select('likes_count').eq('id', postId).single();
+        final currentCount = post['likes_count'] as int? ?? 0;
+        await _supabase.from('posts').update({'likes_count': currentCount + 1}).eq('id', postId);
       }
-
-      await postRef.update({'likedBy': likedBy});
     } catch (e) {
       debugPrint('Error toggling like: $e');
       rethrow;
@@ -136,41 +173,45 @@ class NewsService {
 
   /// Stream comments for a post
   Stream<List<PostComment>> streamComments(String postId) {
-    return _db
-        .collection('postComments')
-        .where('postId', isEqualTo: postId)
-        .orderBy('createdAt', descending: false)
-        .snapshots()
-        .handleError((error) {
-          debugPrint('Error streaming comments: $error');
-          return <PostComment>[];
-        })
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => PostComment.fromSnapshot(doc)).toList();
-    });
+    return _supabase
+        .from('post_comments')
+        .stream(primaryKey: ['id'])
+        .eq('post_id', postId)
+        .order('created_at', ascending: true)
+        .asyncMap((commentList) async {
+          if (commentList.isEmpty) return [];
+
+          final userIds = commentList.map((c) => c['user_id'] as String).toSet().toList();
+          final usersData = await _supabase
+              .from('users')
+              .select('id, full_name, avatar_url')
+              .inFilter('id', userIds);
+
+          final usersMap = {
+            for (var u in usersData) u['id']: u
+          };
+
+          return commentList.map((comment) {
+            final enrichedComment = Map<String, dynamic>.from(comment);
+            enrichedComment['users'] = usersMap[comment['user_id']];
+            return PostComment.fromMap(enrichedComment);
+          }).toList();
+        });
   }
 
   /// Add comment to post
   Future<void> addComment(PostComment comment) async {
     try {
-      final docRef = _db.collection('postComments').doc();
-      final newComment = PostComment(
-        commentId: docRef.id,
-        postId: comment.postId,
-        userId: comment.userId,
-        userName: comment.userName,
-        userAvatarUrl: comment.userAvatarUrl,
-        content: comment.content,
-        createdAt: DateTime.now(),
-      );
-
-      // Add comment
-      await docRef.set(newComment.toMap());
+      await _supabase.from('post_comments').insert({
+        'post_id': comment.postId,
+        'user_id': comment.userId,
+        'content': comment.content,
+      });
 
       // Increment comment count
-      await _db.collection('newsPosts').doc(comment.postId).update({
-        'commentCount': FieldValue.increment(1),
-      });
+      final post = await _supabase.from('posts').select('comment_count').eq('id', comment.postId).single();
+      final currentCount = post['comment_count'] as int? ?? 0;
+      await _supabase.from('posts').update({'comment_count': currentCount + 1}).eq('id', comment.postId);
     } catch (e) {
       debugPrint('Error adding comment: $e');
       rethrow;
@@ -180,12 +221,14 @@ class NewsService {
   /// Delete comment
   Future<void> deleteComment(String commentId, String postId) async {
     try {
-      await _db.collection('postComments').doc(commentId).delete();
+      await _supabase.from('post_comments').delete().eq('id', commentId);
 
       // Decrement comment count
-      await _db.collection('newsPosts').doc(postId).update({
-        'commentCount': FieldValue.increment(-1),
-      });
+      final post = await _supabase.from('posts').select('comment_count').eq('id', postId).single();
+      final currentCount = post['comment_count'] as int? ?? 0;
+      if (currentCount > 0) {
+        await _supabase.from('posts').update({'comment_count': currentCount - 1}).eq('id', postId);
+      }
     } catch (e) {
       debugPrint('Error deleting comment: $e');
       rethrow;
@@ -197,13 +240,13 @@ class NewsService {
   /// Get user's posts
   Future<List<NewsPost>> getUserPosts(String userId) async {
     try {
-      final snapshot = await _db
-          .collection('newsPosts')
-          .where('authorId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
-          .get();
+      final data = await _supabase
+          .from('posts')
+          .select('*, users(full_name, avatar_url, role), post_likes(user_id)')
+          .eq('author_id', userId)
+          .order('created_at', ascending: false);
 
-      return snapshot.docs.map((doc) => NewsPost.fromSnapshot(doc)).toList();
+      return data.map((doc) => NewsPost.fromMap(doc)).toList();
     } catch (e) {
       debugPrint('Error getting user posts: $e');
       return [];
@@ -211,6 +254,3 @@ class NewsService {
   }
 }
 
-void debugPrint(String message) {
-  print(message);
-}

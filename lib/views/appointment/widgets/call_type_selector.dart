@@ -26,7 +26,7 @@ class CallTypeSelector extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        
+
         // Voice Call Option
         _buildCallTypeOption(
           context: context,
@@ -37,7 +37,7 @@ class CallTypeSelector extends StatelessWidget {
           onTap: () => onChanged(CallType.voice),
         ),
         const SizedBox(height: 12),
-        
+
         // Video Call Option (Recommended)
         _buildCallTypeOption(
           context: context,
@@ -70,15 +70,13 @@ class CallTypeSelector extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF4CAF50)
-                : Colors.grey.shade300,
+            color: isSelected ? const Color(0xFF4CAF50) : Colors.grey.shade300,
             width: isSelected ? 2 : 1.5,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF4CAF50).withOpacity(0.2),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -114,14 +112,11 @@ class CallTypeSelector extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 12),
-            
+
             // Icon
-            Text(
-              icon,
-              style: const TextStyle(fontSize: 24),
-            ),
+            Text(icon, style: const TextStyle(fontSize: 24)),
             const SizedBox(width: 12),
-            
+
             // Title & Description
             Expanded(
               child: Column(
@@ -148,7 +143,7 @@ class CallTypeSelector extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50).withOpacity(0.1),
+                            color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -165,10 +160,7 @@ class CallTypeSelector extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                 ],
               ),

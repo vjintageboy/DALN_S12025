@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/localization_service.dart';
+import '../../models/availability.dart';
 import '../../models/expert.dart';
 import '../../models/appointment.dart';
+import '../../services/availability_service.dart';
 import '../appointment/booking_page.dart';
 
 class ExpertDetailPage extends StatelessWidget {
   final Expert expert;
 
-  const ExpertDetailPage({
-    super.key,
-    required this.expert,
-  });
+  const ExpertDetailPage({super.key, required this.expert});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +35,7 @@ class ExpertDetailPage extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       const Color(0xFF4CAF50),
-                      const Color(0xFF4CAF50).withOpacity(0.8),
+                      const Color(0xFF4CAF50).withValues(alpha: 0.8),
                     ],
                   ),
                 ),
@@ -53,7 +52,7 @@ class ExpertDetailPage extends StatelessWidget {
                         color: Colors.white,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -96,7 +95,7 @@ class ExpertDetailPage extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -136,7 +135,8 @@ class ExpertDetailPage extends StatelessWidget {
                         context: context,
                         icon: Icons.work_outline,
                         label: context.l10n.experience,
-                        value: '${expert.yearsOfExperience} ${context.l10n.yrs}',
+                        value:
+                            '${expert.yearsOfExperience} ${context.l10n.yrs}',
                         color: const Color(0xFF4CAF50),
                       ),
                       const SizedBox(width: 12),
@@ -162,7 +162,7 @@ class ExpertDetailPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -179,78 +179,85 @@ class ExpertDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // Availability Section
+                  // Availability Section (from expert_availability table)
                   _buildSectionTitle(context.l10n.availableDays),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: expert.availability.map((day) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFF4CAF50).withOpacity(0.3),
+                  FutureBuilder<List<ExpertAvailability>>(
+                    future: AvailabilityService()
+                        .getAvailability(expert.expertId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                            child: CircularProgressIndicator());
+                      }
+                      final slots = snapshot.data ?? [];
+                      if (slots.isEmpty) {
+                        return Text(
+                          'No availability set',
+                          style: TextStyle(
+                              fontSize: 14, color: Colors.grey.shade600),
+                        );
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Available days chips
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: slots.map((slot) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF4CAF50)
+                                      .withValues(alpha: 0.1),
+                                  borderRadius:
+                                      BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFF4CAF50)
+                                        .withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      slot.dayName,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF2E7D32),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.access_time,
+                                            size: 12,
+                                            color:
+                                                Colors.grey.shade600),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${slot.startTime} – ${slot.endTime}',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color:
+                                                  Colors.grey.shade700),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
                           ),
-                        ),
-                        child: Text(
-                          day,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF2E7D32),
-                          ),
-                        ),
+                        ],
                       );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Time Slots Section
-                  _buildSectionTitle(context.l10n.availableTimeSlots),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: expert.timeSlots.map((slot) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              slot,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                    },
                   ),
                   const SizedBox(height: 100),
                 ],
@@ -267,7 +274,7 @@ class ExpertDetailPage extends StatelessWidget {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -347,10 +354,7 @@ class ExpertDetailPage extends StatelessWidget {
   }
 
   String _formatPrice(double price) {
-    return '₫${price.toInt().toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        )}';
+    return '₫${price.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
   }
 
   Widget _buildSectionTitle(String title) {
@@ -379,7 +383,7 @@ class ExpertDetailPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -400,10 +404,7 @@ class ExpertDetailPage extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
           ],
         ),

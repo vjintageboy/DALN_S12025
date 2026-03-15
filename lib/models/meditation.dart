@@ -1,19 +1,21 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 enum MeditationCategory { stress, anxiety, sleep, focus }
+
+// MeditationLevel không có trong DB nhưng giữ lại cho UI
 enum MeditationLevel { beginner, intermediate, advanced }
 
 class Meditation {
   final String meditationId;
   final String title;
   final String description;
-  final int duration; // in minutes
+  final int duration; // DB: duration_minutes
   final MeditationCategory category;
-  final MeditationLevel level;
-  final String? audioUrl;
-  final String? thumbnailUrl;
-  final double rating;
-  final int totalReviews;
+  final MeditationLevel level; // Không có trong DB, dùng mặc định
+  final String? audioUrl;     // DB: audio_url
+  final String? thumbnailUrl; // DB: thumbnail_url
+  final double rating;        // Không có trong DB, mặc định 0
+  final int totalReviews;     // Không có trong DB, mặc định 0
 
   Meditation({
     required this.meditationId,
@@ -21,82 +23,59 @@ class Meditation {
     required this.description,
     required this.duration,
     required this.category,
-    required this.level,
+    this.level = MeditationLevel.beginner,
     this.audioUrl,
     this.thumbnailUrl,
     this.rating = 0.0,
     this.totalReviews = 0,
   });
 
-  // Convert to Map for Firestore
+  /// Convert sang Map để INSERT vào Supabase
   Map<String, dynamic> toMap() {
     return {
-      'meditationId': meditationId,
       'title': title,
       'description': description,
-      'duration': duration,
+      'duration_minutes': duration,
       'category': category.toString().split('.').last,
-      'level': level.toString().split('.').last,
-      'audioUrl': audioUrl,
-      'thumbnailUrl': thumbnailUrl,
-      'rating': rating,
-      'totalReviews': totalReviews,
+      'audio_url': audioUrl,
+      'thumbnail_url': thumbnailUrl,
     };
   }
 
-  // Create from Firestore document
+  /// Parse từ row Supabase (hỗ trợ cả camelCase cũ)
   factory Meditation.fromMap(Map<String, dynamic> map) {
     return Meditation(
-      meditationId: map['meditationId'] ?? '',
+      meditationId: map['id'] ?? map['meditationId'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
-      duration: map['duration'] ?? 0,
+      duration: map['duration_minutes'] ?? map['duration'] ?? 0,
       category: MeditationCategory.values.firstWhere(
         (e) => e.toString().split('.').last == map['category'],
         orElse: () => MeditationCategory.stress,
       ),
       level: MeditationLevel.values.firstWhere(
-        (e) => e.toString().split('.').last == map['level'],
+        (e) => e.toString().split('.').last == (map['level'] ?? ''),
         orElse: () => MeditationLevel.beginner,
       ),
-      audioUrl: map['audioUrl'],
-      thumbnailUrl: map['thumbnailUrl'],
+      audioUrl: map['audio_url'] ?? map['audioUrl'],
+      thumbnailUrl: map['thumbnail_url'] ?? map['thumbnailUrl'],
       rating: (map['rating'] ?? 0.0).toDouble(),
-      totalReviews: map['totalReviews'] ?? 0,
+      totalReviews: map['total_reviews'] ?? map['totalReviews'] ?? 0,
     );
   }
 
-  // Create from Firestore DocumentSnapshot
-  factory Meditation.fromSnapshot(DocumentSnapshot doc) {
-    return Meditation.fromMap(doc.data() as Map<String, dynamic>);
-  }
 
-  // Get meditations by category
-  static Future<List<Meditation>> getMeditationsByCategory(
-    MeditationCategory category,
-  ) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('meditations')
-        .where('category', isEqualTo: category.toString().split('.').last)
-        .orderBy('rating', descending: true)
-        .get();
 
-    return snapshot.docs.map((doc) => Meditation.fromSnapshot(doc)).toList();
-  }
-
-  // Update rating
+  /// Update rating (dùng trong UI)
   Meditation updateRating(double newRating) {
     final totalRating = rating * totalReviews + newRating;
     final newTotalReviews = totalReviews + 1;
-    final newAverageRating = totalRating / newTotalReviews;
-
     return copyWith(
-      rating: newAverageRating,
+      rating: totalRating / newTotalReviews,
       totalReviews: newTotalReviews,
     );
   }
 
-  // Copy with method
   Meditation copyWith({
     String? meditationId,
     String? title,

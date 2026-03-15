@@ -20,8 +20,8 @@ class LocaleProvider extends ChangeNotifier {
   }
 
   void toggleLocale() {
-    _locale = _locale.languageCode == 'en' 
-        ? const Locale('vi') 
+    _locale = _locale.languageCode == 'en'
+        ? const Locale('vi')
         : const Locale('en');
     notifyListeners();
   }

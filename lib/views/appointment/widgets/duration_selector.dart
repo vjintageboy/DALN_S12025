@@ -79,7 +79,7 @@ class DurationSelector extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF4CAF50).withOpacity(0.1)
+              ? const Color(0xFF4CAF50).withValues(alpha: 0.1)
               : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
@@ -103,7 +103,9 @@ class DurationSelector extends StatelessWidget {
                           : Colors.grey.shade400,
                       width: 2,
                     ),
-                    color: isSelected ? const Color(0xFF4CAF50) : Colors.transparent,
+                    color: isSelected
+                        ? const Color(0xFF4CAF50)
+                        : Colors.transparent,
                   ),
                   child: isSelected
                       ? const Center(
@@ -134,7 +136,9 @@ class DurationSelector extends StatelessWidget {
               style: GoogleFonts.roboto(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? const Color(0xFF4CAF50) : Colors.grey.shade600,
+                color: isSelected
+                    ? const Color(0xFF4CAF50)
+                    : Colors.grey.shade600,
               ),
             ),
           ],
@@ -144,9 +148,6 @@ class DurationSelector extends StatelessWidget {
   }
 
   String _formatPrice(double price) {
-    return '₫${price.toInt().toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        )}';
+    return '₫${price.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
   }
 }

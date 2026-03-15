@@ -1,6 +1,6 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
 import '../../models/meditation.dart';
-import '../../services/firestore_service.dart';
 
 /// Add Meditation Page - Trang thêm meditation mới (Admin only)
 class AddMeditationPage extends StatefulWidget {
@@ -17,7 +17,7 @@ class _AddMeditationPageState extends State<AddMeditationPage> {
   final _durationController = TextEditingController();
   final _audioUrlController = TextEditingController();
   final _thumbnailUrlController = TextEditingController();
-  
+
   MeditationCategory _selectedCategory = MeditationCategory.stress;
   MeditationLevel _selectedLevel = MeditationLevel.beginner;
   bool _isSaving = false;
@@ -39,7 +39,7 @@ class _AddMeditationPageState extends State<AddMeditationPage> {
 
     try {
       final meditationId = 'med_${DateTime.now().millisecondsSinceEpoch}';
-      
+
       final meditation = Meditation(
         meditationId: meditationId,
         title: _titleController.text.trim(),
@@ -47,11 +47,11 @@ class _AddMeditationPageState extends State<AddMeditationPage> {
         duration: int.parse(_durationController.text),
         category: _selectedCategory,
         level: _selectedLevel,
-        audioUrl: _audioUrlController.text.trim().isEmpty 
-            ? null 
+        audioUrl: _audioUrlController.text.trim().isEmpty
+            ? null
             : _audioUrlController.text.trim(),
-        thumbnailUrl: _thumbnailUrlController.text.trim().isEmpty 
-            ? null 
+        thumbnailUrl: _thumbnailUrlController.text.trim().isEmpty
+            ? null
             : _thumbnailUrlController.text.trim(),
         rating: 0.0,
         totalReviews: 0,
@@ -71,10 +71,7 @@ class _AddMeditationPageState extends State<AddMeditationPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -169,7 +166,7 @@ class _AddMeditationPageState extends State<AddMeditationPage> {
 
             // Category
             DropdownButtonFormField<MeditationCategory>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: InputDecoration(
                 labelText: 'Category *',
                 border: OutlineInputBorder(
@@ -193,7 +190,7 @@ class _AddMeditationPageState extends State<AddMeditationPage> {
 
             // Level
             DropdownButtonFormField<MeditationLevel>(
-              value: _selectedLevel,
+              initialValue: _selectedLevel,
               decoration: InputDecoration(
                 labelText: 'Level *',
                 border: OutlineInputBorder(

@@ -5,6 +5,12 @@ class AppColors {
   static const Color primary = Color(0xFF1A1A1A);
   static const Color primaryLight = Color(0xFF4CAF50);
   static const Color accent = Color(0xFF8BC34A);
+  static const Color primaryPurple = Color(0xFF7B2BB0);
+  static const Color splashBackground = Color(0xFFFFF5F6);
+  static const Color quoteBackground1 = Color(0xFFF2C6D8);
+  static const Color quoteBackground2 = Color(0xFFBFD9FF);
+  static const Color white = Colors.white;
+  static const Color white70 = Colors.white70;
 
   // Text colors
   static const Color textPrimary = Color(0xFF1A1A1A);

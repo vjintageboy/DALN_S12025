@@ -1,306 +1,196 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/availability.dart';
+import 'supabase_service.dart';
 
+/// Service for reading and writing expert availability from/to the
+/// `expert_availability` table.
+///
+/// Schema reminder:
+///   id          uuid PK
+///   expert_id   uuid FK → experts.id
+///   day_of_week int  0=Sunday … 6=Saturday
+///   start_time  time
+///   end_time    time
+///   created_at  timestamptz
 class AvailabilityService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _supabase = SupabaseService.instance.client;
 
-  /// Get expert's availability schedule
-  Future<Availability?> getAvailability(String expertId) async {
+  static const _table = 'expert_availability';
+
+  // ── READ ──────────────────────────────────────────────────────────────────
+
+  /// Returns all availability slots for [expertId], ordered by day_of_week.
+  Future<List<ExpertAvailability>> getAvailability(String expertId) async {
     try {
-      final querySnapshot = await _firestore
-          .collection('availability')
-          .where('expertId', isEqualTo: expertId)
-          .limit(1)
-          .get();
+      final response = await _supabase
+          .from(_table)
+          .select()
+          .eq('expert_id', expertId)
+          .order('day_of_week');
 
-      if (querySnapshot.docs.isEmpty) {
-        return null;
-      }
-
-      return Availability.fromSnapshot(querySnapshot.docs.first);
+      return (response as List)
+          .map((row) => ExpertAvailability.fromMap(row as Map<String, dynamic>))
+          .toList();
     } catch (e) {
-      print('Error getting availability: $e');
+      debugPrint('AvailabilityService.getAvailability error: $e');
       rethrow;
     }
   }
 
-  /// Stream expert's availability (for real-time updates)
-  Stream<Availability?> streamAvailability(String expertId) {
-    return _firestore
-        .collection('availability')
-        .where('expertId', isEqualTo: expertId)
-        .limit(1)
-        .snapshots()
-        .map((snapshot) {
-      if (snapshot.docs.isEmpty) {
-        return null;
-      }
-      return Availability.fromSnapshot(snapshot.docs.first);
-    });
+  /// Real-time stream of all slots for [expertId].
+  Stream<List<ExpertAvailability>> streamAvailability(String expertId) {
+    return _supabase
+        .from(_table)
+        .stream(primaryKey: ['id'])
+        .eq('expert_id', expertId)
+        .order('day_of_week')
+        .map((rows) => rows
+            .map((row) => ExpertAvailability.fromMap(row))
+            .toList());
   }
 
-  /// Create or update expert's availability
-  Future<void> setAvailability(Availability availability) async {
-    try {
-      // Check if availability already exists
-      final existing = await getAvailability(availability.expertId);
+  // ── WRITE ─────────────────────────────────────────────────────────────────
 
-      if (existing != null) {
-        // Update existing
-        await _firestore
-            .collection('availability')
-            .doc(existing.availabilityId)
-            .update(availability.toMap());
-      } else {
-        // Create new
-        final docRef = _firestore.collection('availability').doc();
-        final newAvailability = availability.copyWith(
-          availabilityId: docRef.id,
-          updatedAt: DateTime.now(),
-        );
-        await docRef.set(newAvailability.toMap());
+  /// Replaces ALL availability slots for [expertId] with [slots].
+  ///
+  /// Uses a delete-then-insert strategy so the caller doesn't have to diff
+  /// existing rows.
+  Future<void> setAvailability(
+    String expertId,
+    List<ExpertAvailability> slots,
+  ) async {
+    try {
+      // 1. Delete all existing rows for this expert
+      await _supabase.from(_table).delete().eq('expert_id', expertId);
+
+      // 2. Insert the new rows (skip empty list – expert has no availability)
+      if (slots.isNotEmpty) {
+        final rows = slots.map((s) => s.toInsertMap()).toList();
+        await _supabase.from(_table).insert(rows);
       }
 
-      // ✅ Sync summary to experts collection (for easy filtering)
-      await _syncToExpertsCollection(availability);
+      // 3. Sync is_available flag on the experts row
+      await _syncExpertFlag(expertId, isAvailable: slots.isNotEmpty);
+
+      debugPrint(
+        '✅ AvailabilityService: saved ${slots.length} slots for $expertId',
+      );
     } catch (e) {
-      print('Error setting availability: $e');
+      debugPrint('AvailabilityService.setAvailability error: $e');
       rethrow;
     }
   }
 
-  /// Sync availability summary to experts collection
-  /// This allows filtering experts by available days without querying availability collection
-  Future<void> _syncToExpertsCollection(Availability availability) async {
-    try {
-      // Get expertId (profile ID) from expertUsers collection
-      final expertUserDoc = await _firestore
-          .collection('expertUsers')
-          .doc(availability.expertId) // expertId is actually uid
-          .get();
-
-      if (!expertUserDoc.exists) {
-        print('ExpertUser not found, skipping sync to experts collection');
-        return;
-      }
-
-      final expertProfileId = expertUserDoc.data()?['expertId'] as String?;
-      if (expertProfileId == null) {
-        print('Expert profile ID not found, skipping sync');
-        return;
-      }
-
-      // Build availability array (days enabled)
-      final availableDays = <String>[];
-      if (availability.monday) availableDays.add('Monday');
-      if (availability.tuesday) availableDays.add('Tuesday');
-      if (availability.wednesday) availableDays.add('Wednesday');
-      if (availability.thursday) availableDays.add('Thursday');
-      if (availability.friday) availableDays.add('Friday');
-      if (availability.saturday) availableDays.add('Saturday');
-      if (availability.sunday) availableDays.add('Sunday');
-
-      // Update experts collection
-      await _firestore
-          .collection('experts')
-          .doc(expertProfileId)
-          .update({
-        'availability': availableDays,
-        'isAvailable': availableDays.isNotEmpty,
-      });
-
-      print('✅ Synced availability to experts collection');
-    } catch (e) {
-      print('⚠️ Error syncing to experts collection: $e');
-      // Don't rethrow - this is optional sync, shouldn't fail main operation
-    }
-  }
-
-  /// Update specific day availability
-  Future<void> updateDayAvailability({
+  /// Upsert (add or replace) the slot for a specific [dayOfWeek] (0=Sun…6=Sat).
+  Future<void> upsertDaySlot({
     required String expertId,
-    required int weekday,
-    required bool isAvailable,
-    TimeSlot? timeSlot,
+    required int dayOfWeek,
+    required String startTime,
+    required String endTime,
   }) async {
     try {
-      final availability = await getAvailability(expertId);
-      if (availability == null) {
-        throw Exception('Availability not found for expert');
-      }
+      // Delete the existing slot for this day (if any)
+      await _supabase
+          .from(_table)
+          .delete()
+          .eq('expert_id', expertId)
+          .eq('day_of_week', dayOfWeek);
 
-      Map<String, dynamic> updates = {
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
-      };
+      // Insert the new slot
+      await _supabase.from(_table).insert({
+        'expert_id': expertId,
+        'day_of_week': dayOfWeek,
+        'start_time': startTime,
+        'end_time': endTime,
+      });
 
-      // Update day availability and time slot
-      switch (weekday) {
-        case DateTime.monday:
-          updates['monday'] = isAvailable;
-          updates['mondayHours'] = timeSlot?.toMap();
-          break;
-        case DateTime.tuesday:
-          updates['tuesday'] = isAvailable;
-          updates['tuesdayHours'] = timeSlot?.toMap();
-          break;
-        case DateTime.wednesday:
-          updates['wednesday'] = isAvailable;
-          updates['wednesdayHours'] = timeSlot?.toMap();
-          break;
-        case DateTime.thursday:
-          updates['thursday'] = isAvailable;
-          updates['thursdayHours'] = timeSlot?.toMap();
-          break;
-        case DateTime.friday:
-          updates['friday'] = isAvailable;
-          updates['fridayHours'] = timeSlot?.toMap();
-          break;
-        case DateTime.saturday:
-          updates['saturday'] = isAvailable;
-          updates['saturdayHours'] = timeSlot?.toMap();
-          break;
-        case DateTime.sunday:
-          updates['sunday'] = isAvailable;
-          updates['sundayHours'] = timeSlot?.toMap();
-          break;
-      }
-
-      await _firestore
-          .collection('availability')
-          .doc(availability.availabilityId)
-          .update(updates);
+      await _syncExpertFlag(expertId, isAvailable: true);
     } catch (e) {
-      print('Error updating day availability: $e');
+      debugPrint('AvailabilityService.upsertDaySlot error: $e');
       rethrow;
     }
   }
 
-  /// Update break time
-  Future<void> updateBreakTime({
+  /// Remove the slot for [dayOfWeek] for [expertId].
+  Future<void> removeDaySlot({
     required String expertId,
-    TimeSlot? breakTime,
+    required int dayOfWeek,
   }) async {
     try {
-      final availability = await getAvailability(expertId);
-      if (availability == null) {
-        throw Exception('Availability not found for expert');
-      }
+      await _supabase
+          .from(_table)
+          .delete()
+          .eq('expert_id', expertId)
+          .eq('day_of_week', dayOfWeek);
 
-      await _firestore
-          .collection('availability')
-          .doc(availability.availabilityId)
-          .update({
-        'breakTime': breakTime?.toMap(),
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
-      });
+      // Recalculate is_available
+      final remaining = await getAvailability(expertId);
+      await _syncExpertFlag(expertId, isAvailable: remaining.isNotEmpty);
     } catch (e) {
-      print('Error updating break time: $e');
+      debugPrint('AvailabilityService.removeDaySlot error: $e');
       rethrow;
     }
   }
 
-  /// Check if expert is available at specific date/time
+  // ── QUERY HELPERS ─────────────────────────────────────────────────────────
+
+  /// Returns true if [expertId] has any slot on [dartWeekday] (1=Mon…7=Sun)
+  /// that covers [dateTime].
   Future<bool> isAvailableAt({
     required String expertId,
     required DateTime dateTime,
   }) async {
     try {
-      final availability = await getAvailability(expertId);
-      if (availability == null) {
-        return false;
-      }
+      final slots = await getAvailability(expertId);
+      final slot = slots.slotForWeekday(dateTime.weekday);
+      if (slot == null) return false;
 
-      // Check if available on this day of week
-      if (!availability.isAvailableOnDay(dateTime.weekday)) {
-        return false;
-      }
+      final start = _toDateTime(dateTime, slot.startTime);
+      final end = _toDateTime(dateTime, slot.endTime);
 
-      // Get working hours for this day
-      final timeSlot = availability.getTimeSlotForDay(dateTime.weekday);
-      if (timeSlot == null) {
-        return false;
-      }
-
-      // Parse time slot
-      final startParts = timeSlot.startTime.split(':');
-      final endParts = timeSlot.endTime.split(':');
-      
-      final startTime = DateTime(
-        dateTime.year,
-        dateTime.month,
-        dateTime.day,
-        int.parse(startParts[0]),
-        int.parse(startParts[1]),
-      );
-      
-      final endTime = DateTime(
-        dateTime.year,
-        dateTime.month,
-        dateTime.day,
-        int.parse(endParts[0]),
-        int.parse(endParts[1]),
-      );
-
-      // Check if requested time is within working hours
-      if (dateTime.isBefore(startTime) || dateTime.isAfter(endTime)) {
-        return false;
-      }
-
-      // Check if it's during break time
-      if (availability.breakTime != null) {
-        final breakStartParts = availability.breakTime!.startTime.split(':');
-        final breakEndParts = availability.breakTime!.endTime.split(':');
-        
-        final breakStart = DateTime(
-          dateTime.year,
-          dateTime.month,
-          dateTime.day,
-          int.parse(breakStartParts[0]),
-          int.parse(breakStartParts[1]),
-        );
-        
-        final breakEnd = DateTime(
-          dateTime.year,
-          dateTime.month,
-          dateTime.day,
-          int.parse(breakEndParts[0]),
-          int.parse(breakEndParts[1]),
-        );
-
-        // If appointment time overlaps with break time, not available
-        if (dateTime.isAfter(breakStart) && dateTime.isBefore(breakEnd)) {
-          return false;
-        }
-      }
-
-      return true;
+      return !dateTime.isBefore(start) && !dateTime.isAfter(end);
     } catch (e) {
-      print('Error checking availability: $e');
+      debugPrint('AvailabilityService.isAvailableAt error: $e');
       return false;
     }
   }
 
-  /// Get available days of week for expert
-  Future<List<int>> getAvailableDays(String expertId) async {
+  /// Returns the list of Dart weekdays (1-7) on which [expertId] is available.
+  Future<List<int>> getAvailableDartWeekdays(String expertId) async {
     try {
-      final availability = await getAvailability(expertId);
-      if (availability == null) {
-        return [];
-      }
-
-      final availableDays = <int>[];
-      if (availability.monday) availableDays.add(DateTime.monday);
-      if (availability.tuesday) availableDays.add(DateTime.tuesday);
-      if (availability.wednesday) availableDays.add(DateTime.wednesday);
-      if (availability.thursday) availableDays.add(DateTime.thursday);
-      if (availability.friday) availableDays.add(DateTime.friday);
-      if (availability.saturday) availableDays.add(DateTime.saturday);
-      if (availability.sunday) availableDays.add(DateTime.sunday);
-
-      return availableDays;
+      final slots = await getAvailability(expertId);
+      return slots.enabledDartWeekdays;
     } catch (e) {
-      print('Error getting available days: $e');
+      debugPrint('AvailabilityService.getAvailableDartWeekdays error: $e');
       return [];
     }
+  }
+
+  // ── PRIVATE ───────────────────────────────────────────────────────────────
+
+  /// Keep the `is_available` flag on the `experts` row in sync.
+  Future<void> _syncExpertFlag(
+    String expertId, {
+    required bool isAvailable,
+  }) async {
+    try {
+      await SupabaseService.instance.client
+          .from('experts')
+          .update({'is_available': isAvailable}).eq('id', expertId);
+    } catch (e) {
+      // Non-fatal – log and continue
+      debugPrint('AvailabilityService._syncExpertFlag warning: $e');
+    }
+  }
+
+  static DateTime _toDateTime(DateTime base, String hhmm) {
+    final parts = hhmm.split(':');
+    return DateTime(
+      base.year,
+      base.month,
+      base.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
   }
 }

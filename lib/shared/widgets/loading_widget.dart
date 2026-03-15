@@ -6,12 +6,7 @@ class LoadingWidget extends StatelessWidget {
   final Color? color;
   final double size;
 
-  const LoadingWidget({
-    super.key,
-    this.message,
-    this.color,
-    this.size = 40.0,
-  });
+  const LoadingWidget({super.key, this.message, this.color, this.size = 40.0});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +59,7 @@ class LoadingOverlay extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             child: LoadingWidget(message: message),
           ),
       ],
@@ -100,10 +95,11 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat();
-    
-    _animation = Tween<double>(begin: -2, end: 2).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+
+    _animation = Tween<double>(
+      begin: -2,
+      end: 2,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override

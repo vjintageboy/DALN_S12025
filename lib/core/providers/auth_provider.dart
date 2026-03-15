@@ -1,40 +1,48 @@
 import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/firestore_service.dart';
-import '../../models/user_profile.dart';
-import '../../models/app_user.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/app_constants.dart';
+import '../../services/supabase_service.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
 class AuthProvider extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseClient _supabase = Supabase.instance.client;
+  final SupabaseService _supabaseService = SupabaseService();
 
   AuthStatus _status = AuthStatus.initial;
   String? _errorMessage;
-  User? _currentUser;
 
   AuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
-  User? get currentUser => _currentUser;
+  User? get currentUser => _supabase.auth.currentUser;
   bool get isLoading => _status == AuthStatus.loading;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
 
   AuthProvider() {
-    _auth.authStateChanges().listen(_onAuthStateChanged);
+    _initAuth();
   }
 
-  void _onAuthStateChanged(User? user) {
-    _currentUser = user;
-    if (user != null) {
+  void _initAuth() {
+    // Check initial session
+    final session = _supabase.auth.currentSession;
+    if (session != null) {
       _status = AuthStatus.authenticated;
     } else {
       _status = AuthStatus.unauthenticated;
     }
     notifyListeners();
-  }
 
+    // Listen to auth changes
+    _supabase.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+      if (event == AuthChangeEvent.signedIn) {
+        _status = AuthStatus.authenticated;
+      } else if (event == AuthChangeEvent.signedOut) {
+        _status = AuthStatus.unauthenticated;
+      }
+      notifyListeners();
+    });
+  }
   Future<bool> signUp({
     required String email,
     required String password,
@@ -46,40 +54,41 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Create Firebase Auth user
-      final userCredential = await _auth.createUserWithEmailAndPassword(
+      // Sign up with Supabase
+      final AuthResponse res = await _supabase.auth.signUp(
         email: email.trim(),
         password: password,
+        data: {
+          'full_name': fullName.trim(),
+          'goals': goals ?? AppConstants.defaultUserGoals,
+        }, // User metadata
       );
 
-      // Update display name
-      await userCredential.user?.updateDisplayName(fullName.trim());
+      if (res.user != null) {
+        // Tạo row trong bảng `users`
+        try {
+          await _supabaseService.createUserProfile(
+            id: res.user!.id,
+            email: email.trim(),
+            fullName: fullName.trim(),
+            role: 'user',
+          );
+        } catch (e) {
+          debugPrint('Optional profile creation failed: $e');
+        }
 
-      // Create Firestore profile
-      final profile = UserProfile(
-        profileId: userCredential.user!.uid,
-        userId: userCredential.user!.uid,
-        fullName: fullName.trim(),
-        goals: goals ?? AppConstants.defaultUserGoals,
-      );
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+        return true;
+      }
 
-      await _firestoreService.createUserProfile(profile);
-
-      // Create Firestore user document (for role system)
-      await _firestoreService.createOrUpdateUser(
-        uid: userCredential.user!.uid,
-        email: email.trim(),
-        displayName: fullName.trim(),
-        role: UserRole.user, // Default role is 'user'
-      );
-
-      _status = AuthStatus.authenticated;
-      _currentUser = userCredential.user;
-      notifyListeners();
-      return true;
-    } on FirebaseAuthException catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = _handleAuthException(e);
+      _errorMessage = "Failed to create user";
+      notifyListeners();
+      return false;
+    } on AuthException catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.message;
       notifyListeners();
       return false;
     } catch (e) {
@@ -90,50 +99,22 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> signIn({required String email, required String password}) async {
     try {
       _status = AuthStatus.loading;
       _errorMessage = null;
       notifyListeners();
 
-      final userCredential = await _auth.signInWithEmailAndPassword(
+      await _supabase.auth.signInWithPassword(
         email: email.trim(),
         password: password,
       );
 
-      // 🔑 ENSURE USER DOCUMENT EXISTS
-      await _firestoreService.ensureUserDocument(userCredential.user);
-
-      // ⭐ CHECK IF USER IS BANNED
-      final isBanned = await _firestoreService.isUserBanned(userCredential.user!.uid);
-      
-      if (isBanned) {
-        // Get ban info for detailed message
-        final banInfo = await _firestoreService.getUserBanInfo(userCredential.user!.uid);
-        
-        // Sign out immediately
-        await _auth.signOut();
-        
-        _status = AuthStatus.error;
-        _errorMessage = banInfo?['banReason'] != null 
-            ? 'Your account has been banned.\nReason: ${banInfo!['banReason']}'
-            : 'Your account has been banned. Please contact support.';
-        notifyListeners();
-        return false;
-      }
-
-      // Update last login
-      await _firestoreService.updateLastLogin(userCredential.user!.uid);
-
-      _status = AuthStatus.authenticated;
-      notifyListeners();
+      // Status will be updated by onAuthStateChange listener
       return true;
-    } on FirebaseAuthException catch (e) {
+    } on AuthException catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = _handleAuthException(e);
+      _errorMessage = e.message;
       notifyListeners();
       return false;
     } catch (e) {
@@ -146,10 +127,8 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> signOut() async {
     try {
-      await _auth.signOut();
-      _status = AuthStatus.unauthenticated;
-      _currentUser = null;
-      notifyListeners();
+      await _supabase.auth.signOut();
+      // Status will be updated by onAuthStateChange listener
     } catch (e) {
       _errorMessage = 'Failed to sign out: ${e.toString()}';
       notifyListeners();
@@ -162,14 +141,14 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      await _supabase.auth.resetPasswordForEmail(email.trim());
 
       _status = AuthStatus.unauthenticated;
       notifyListeners();
       return true;
-    } on FirebaseAuthException catch (e) {
+    } on AuthException catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = _handleAuthException(e);
+      _errorMessage = e.message;
       notifyListeners();
       return false;
     } catch (e) {
@@ -180,36 +159,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  String _handleAuthException(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'weak-password':
-        return 'Password is too weak';
-      case 'email-already-in-use':
-        return 'This email is already registered';
-      case 'invalid-email':
-        return 'Invalid email address';
-      case 'user-not-found':
-        return 'No user found with this email';
-      case 'wrong-password':
-        return 'Wrong password';
-      case 'user-disabled':
-        return 'This account has been disabled';
-      case 'too-many-requests':
-        return 'Too many attempts. Please try again later';
-      case 'operation-not-allowed':
-        return 'Operation not allowed. Please contact support';
-      case 'invalid-credential':
-        return 'Invalid credentials. Please check your email and password';
-      default:
-        return 'Authentication error: ${e.message ?? 'Unknown error'}';
-    }
-  }
-
   void clearError() {
     _errorMessage = null;
     if (_status == AuthStatus.error) {
-      _status = _currentUser != null 
-          ? AuthStatus.authenticated 
+      _status = currentUser != null
+          ? AuthStatus.authenticated
           : AuthStatus.unauthenticated;
     }
     notifyListeners();

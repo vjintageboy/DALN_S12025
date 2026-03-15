@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/expert_user.dart';
 import '../../services/expert_user_service.dart';
-import '../../services/firestore_service.dart';
+import '../../services/supabase_service.dart';
 
 class AdminExpertManagementPage extends StatefulWidget {
   const AdminExpertManagementPage({super.key});
 
   @override
-  State<AdminExpertManagementPage> createState() => _AdminExpertManagementPageState();
+  State<AdminExpertManagementPage> createState() =>
+      _AdminExpertManagementPageState();
 }
 
 class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
-  final _expertUserService = ExpertUserService();
-  final _firestoreService = FirestoreService();
-  
+  final _expertUserService = ExpertUserService.instance;
+  final _supabaseService = SupabaseService.instance;
+
   String? _selectedStatus;
 
   @override
@@ -48,31 +48,33 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
                   _buildFilterChip(
                     label: 'Pending',
                     isSelected: _selectedStatus == ExpertStatus.pending.name,
-                    onTap: () => setState(() => _selectedStatus = ExpertStatus.pending.name),
+                    onTap: () => setState(
+                      () => _selectedStatus = ExpertStatus.pending.name,
+                    ),
                     color: Colors.orange,
                   ),
                   _buildFilterChip(
-                    label: 'Approved',
-                    isSelected: _selectedStatus == ExpertStatus.approved.name,
-                    onTap: () => setState(() => _selectedStatus = ExpertStatus.approved.name),
+                    label: 'Active/Approved',
+                    isSelected: _selectedStatus == 'approved',
+                    onTap: () => setState(
+                      () => _selectedStatus = 'approved',
+                    ),
                     color: Colors.green,
-                  ),
-                  _buildFilterChip(
-                    label: 'Active',
-                    isSelected: _selectedStatus == ExpertStatus.active.name,
-                    onTap: () => setState(() => _selectedStatus = ExpertStatus.active.name),
-                    color: Colors.blue,
                   ),
                   _buildFilterChip(
                     label: 'Rejected',
                     isSelected: _selectedStatus == ExpertStatus.rejected.name,
-                    onTap: () => setState(() => _selectedStatus = ExpertStatus.rejected.name),
+                    onTap: () => setState(
+                      () => _selectedStatus = ExpertStatus.rejected.name,
+                    ),
                     color: Colors.red,
                   ),
                   _buildFilterChip(
                     label: 'Suspended',
                     isSelected: _selectedStatus == ExpertStatus.suspended.name,
-                    onTap: () => setState(() => _selectedStatus = ExpertStatus.suspended.name),
+                    onTap: () => setState(
+                      () => _selectedStatus = ExpertStatus.suspended.name,
+                    ),
                     color: Colors.grey,
                   ),
                 ],
@@ -82,28 +84,30 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
 
           // Expert List
           Expanded(
-            child: StreamBuilder<List<ExpertUser>>(
-              stream: _expertUserService.streamAllExpertUsers(),
+            child: FutureBuilder<List<ExpertUser>>(
+              future: _expertUserService.getAllExperts(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF4CAF50),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
                   );
                 }
 
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
 
                 var experts = snapshot.data ?? [];
-                
+
                 // Filter by status
                 if (_selectedStatus != null) {
-                  experts = experts.where((e) => e.status.name == _selectedStatus).toList();
+                  if (_selectedStatus == 'approved') {
+                    experts = experts.where((e) => e.isApproved).toList();
+                  } else {
+                    experts = experts
+                        .where((e) => e.status.name == _selectedStatus)
+                        .toList();
+                  }
                 }
 
                 if (experts.isEmpty) {
@@ -161,7 +165,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
         selected: isSelected,
         onSelected: (_) => onTap(),
         backgroundColor: Colors.grey.shade100,
-        selectedColor: baseColor.withOpacity(0.1),
+        selectedColor: baseColor.withValues(alpha: 0.1),
         checkmarkColor: baseColor,
         labelStyle: TextStyle(
           color: isSelected ? baseColor : Colors.black87,
@@ -176,7 +180,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
     Color statusBgColor;
     Color statusTextColor;
     IconData statusIcon;
-    
+
     switch (expert.status) {
       case ExpertStatus.pending:
         statusColor = Colors.orange;
@@ -185,16 +189,11 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
         statusIcon = Icons.access_time;
         break;
       case ExpertStatus.approved:
+      case ExpertStatus.active:
         statusColor = Colors.green;
         statusBgColor = Colors.green.shade100;
         statusTextColor = Colors.green.shade900;
         statusIcon = Icons.check_circle;
-        break;
-      case ExpertStatus.active:
-        statusColor = Colors.blue;
-        statusBgColor = Colors.blue.shade100;
-        statusTextColor = Colors.blue.shade900;
-        statusIcon = Icons.verified;
         break;
       case ExpertStatus.rejected:
         statusColor = Colors.red;
@@ -219,9 +218,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -240,7 +237,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // Info
                 Expanded(
                   child: Column(
@@ -264,7 +261,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
                     ],
                   ),
                 ),
-                
+
                 // Status Badge
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -272,20 +269,14 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: statusBgColor.withOpacity(0.5),
+                    color: statusBgColor.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: statusColor.withOpacity(0.3),
-                    ),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        statusIcon,
-                        size: 14,
-                        color: statusTextColor,
-                      ),
+                      Icon(statusIcon, size: 14, color: statusTextColor),
                       const SizedBox(width: 4),
                       Text(
                         expert.statusLabel,
@@ -300,11 +291,11 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 12),
             const Divider(height: 1),
             const SizedBox(height: 12),
-            
+
             // Credentials
             _buildInfoRow(
               Icons.school,
@@ -323,7 +314,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
               'Specialization',
               expert.credentials.specialization ?? 'Not provided',
             ),
-            
+
             // Action Buttons
             if (expert.isPending) ...[
               const SizedBox(height: 16),
@@ -361,7 +352,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
                 ],
               ),
             ],
-            
+
             if (expert.isApproved || expert.isActive) ...[
               const SizedBox(height: 16),
               SizedBox(
@@ -380,7 +371,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
                 ),
               ),
             ],
-            
+
             if (expert.isSuspended) ...[
               const SizedBox(height: 16),
               SizedBox(
@@ -412,18 +403,12 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: const TextStyle(
-            fontSize: 13,
-            color: Colors.grey,
-          ),
+          style: const TextStyle(fontSize: 13, color: Colors.grey),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -433,15 +418,6 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
   }
 
   Future<void> _approveExpert(ExpertUser expert) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-    
-    final isAdmin = await _firestoreService.isAdmin(currentUser.uid);
-    if (!isAdmin) {
-      _showMessage('Only admins can approve experts', Colors.red);
-      return;
-    }
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -454,9 +430,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Approve'),
           ),
         ],
@@ -468,27 +442,18 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
     try {
       await _expertUserService.approveExpert(
         expertUid: expert.uid,
-        adminUid: currentUser.uid,
       );
-      
+
       _showMessage('Expert approved successfully', Colors.green);
+      setState(() {}); // Refresh list
     } catch (e) {
       _showMessage('Error: $e', Colors.red);
     }
   }
 
   Future<void> _rejectExpert(ExpertUser expert) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-    
-    final isAdmin = await _firestoreService.isAdmin(currentUser.uid);
-    if (!isAdmin) {
-      _showMessage('Only admins can reject experts', Colors.red);
-      return;
-    }
-
     final reasonController = TextEditingController();
-    
+
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -514,10 +479,9 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, reasonController.text.trim()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            onPressed: () =>
+                Navigator.pop(context, reasonController.text.trim()),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Reject'),
           ),
         ],
@@ -529,28 +493,19 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
     try {
       await _expertUserService.rejectExpert(
         expertUid: expert.uid,
-        adminUid: currentUser.uid,
         reason: result.isEmpty ? null : result,
       );
-      
+
       _showMessage('Expert rejected', Colors.orange);
+      setState(() {}); // Refresh list
     } catch (e) {
       _showMessage('Error: $e', Colors.red);
     }
   }
 
   Future<void> _suspendExpert(ExpertUser expert) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-    
-    final isAdmin = await _firestoreService.isAdmin(currentUser.uid);
-    if (!isAdmin) {
-      _showMessage('Only admins can suspend experts', Colors.red);
-      return;
-    }
-
     final reasonController = TextEditingController();
-    
+
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -576,10 +531,9 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, reasonController.text.trim()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
+            onPressed: () =>
+                Navigator.pop(context, reasonController.text.trim()),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('Suspend'),
           ),
         ],
@@ -591,26 +545,17 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
     try {
       await _expertUserService.suspendExpert(
         expertUid: expert.uid,
-        adminUid: currentUser.uid,
         reason: result.isEmpty ? null : result,
       );
-      
+
       _showMessage('Expert suspended', Colors.orange);
+      setState(() {}); // Refresh list
     } catch (e) {
       _showMessage('Error: $e', Colors.red);
     }
   }
 
   Future<void> _unsuspendExpert(ExpertUser expert) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-    
-    final isAdmin = await _firestoreService.isAdmin(currentUser.uid);
-    if (!isAdmin) {
-      _showMessage('Only admins can unsuspend experts', Colors.red);
-      return;
-    }
-
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -623,9 +568,7 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Unsuspend'),
           ),
         ],
@@ -637,21 +580,18 @@ class _AdminExpertManagementPageState extends State<AdminExpertManagementPage> {
     try {
       await _expertUserService.unsuspendExpert(
         expertUid: expert.uid,
-        adminUid: currentUser.uid,
       );
-      
+
       _showMessage('Expert unsuspended', Colors.green);
+      setState(() {}); // Refresh list
     } catch (e) {
       _showMessage('Error: $e', Colors.red);
     }
   }
 
   void _showMessage(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 }

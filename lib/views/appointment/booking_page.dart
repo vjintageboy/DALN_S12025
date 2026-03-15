@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/localization_service.dart';
+import '../../models/availability.dart';
 import '../../models/expert.dart';
 import '../../models/appointment.dart';
-import '../../models/availability.dart';
 import '../../services/appointment_service.dart';
 import '../../services/availability_service.dart';
+import '../../services/supabase_service.dart';
 import 'widgets/call_type_selector.dart';
 import 'widgets/duration_selector.dart';
 import 'mock_payment_page.dart';
@@ -19,12 +18,11 @@ class BookingPage extends StatefulWidget {
   final String? expertId;
   final String? chatRoomId;
 
-  const BookingPage({
-    super.key,
-    this.expert,
-    this.expertId,
-    this.chatRoomId,
-  }) : assert(expert != null || expertId != null, 'Either expert or expertId must be provided');
+  const BookingPage({super.key, this.expert, this.expertId, this.chatRoomId})
+    : assert(
+        expert != null || expertId != null,
+        'Either expert or expertId must be provided',
+      );
 
   @override
   State<BookingPage> createState() => _BookingPageState();
@@ -46,9 +44,14 @@ class _BookingPageState extends State<BookingPage> {
   String? _selectedTimeSlot;
 
   // Data
+  /// Slots stored as "HH:mm-HH:mm" range strings
   List<String> _availableTimeSlots = [];
-  List<String> _bookedTimeSlots = [];
   bool _isLoadingSlots = false;
+
+  /// Cached expert_availability rows – loaded once when expert is resolved.
+  /// Used by the calendar enabledDayPredicate (synchronous).
+  List<ExpertAvailability> _cachedAvailability = [];
+  bool _availabilityLoaded = false;
 
   @override
   void initState() {
@@ -64,52 +67,28 @@ class _BookingPageState extends State<BookingPage> {
           _expert = widget.expert;
           _isLoadingExpert = false;
         });
+        // Pre-load availability for calendar
+        await _preloadAvailability(widget.expert!.expertId);
       }
     } else if (widget.expertId != null) {
-        await _loadExpertById(widget.expertId!);
+      await _loadExpertById(widget.expertId!);
     }
   }
 
   Future<void> _loadExpertById(String id) async {
     try {
-      Expert? loadedExpert;
-      
-      // 1. Try treating ID as Expert Profile ID first (most common)
-      // Actually, from Chat, we receive Auth ID.
-      // Let's check expertUsers to map Auth ID -> Profile ID
-      String profileId = id;
-      
-      // Check if this ID exists in expertUsers as 'uid'
-      final expertUserByUid = await FirebaseFirestore.instance
-          .collection('expertUsers')
-          .where('uid', isEqualTo: id)
-          .limit(1)
-          .get();
-
-      if (expertUserByUid.docs.isNotEmpty) {
-         profileId = expertUserByUid.docs.first.data()['expertId'];
-      }
-      
-      // Now fetch from experts collection
-      final doc = await FirebaseFirestore.instance.collection('experts').doc(profileId).get();
-      if (doc.exists) {
-        loadedExpert = Expert.fromSnapshot(doc);
-      } else {
-        // Fallback: maybe ID was Profile ID directly?
-         final docDirect = await FirebaseFirestore.instance.collection('experts').doc(id).get();
-           if (docDirect.exists) {
-            loadedExpert = Expert.fromSnapshot(docDirect);
-          }
-      }
+      final loadedExpert = await Expert.getExpertById(id);
 
       if (mounted) {
         setState(() {
           _expert = loadedExpert;
           _isLoadingExpert = false;
         });
+        // Pre-load availability for calendar
+        if (loadedExpert != null) await _preloadAvailability(loadedExpert.expertId);
       }
     } catch (e) {
-      print('Error loading expert: $e');
+      debugPrint('Error loading expert: $e');
       if (mounted) {
         setState(() => _isLoadingExpert = false);
         Navigator.pop(context);
@@ -117,6 +96,32 @@ class _BookingPageState extends State<BookingPage> {
           SnackBar(content: Text('Could not load expert info: $e')),
         );
       }
+    }
+  }
+
+  /// Pre-fetches expert_availability rows so the calendar can mark days
+  /// enabled/disabled synchronously (enabledDayPredicate must be sync).
+  Future<void> _preloadAvailability(String expertId) async {
+    try {
+      final rows = await _availabilityService.getAvailability(expertId);
+      debugPrint(
+        '📅 [BookingPage] Pre-loaded ${rows.length} availability row(s) for $expertId',
+      );
+      for (final r in rows) {
+        // Log both DB day_of_week (0=Sun) and Dart weekday (7=Sun)
+        debugPrint(
+          '   └─ db day_of_week=${r.dayOfWeek} (${r.dayName}) '
+          'dart_weekday=${r.dartWeekday}  ${r.startTime}–${r.endTime}',
+        );
+      }
+      if (mounted) {
+        setState(() {
+          _cachedAvailability = rows;
+          _availabilityLoaded = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ [BookingPage] Could not pre-load availability: $e');
     }
   }
 
@@ -128,117 +133,128 @@ class _BookingPageState extends State<BookingPage> {
 
   Future<void> _loadAvailableSlots(DateTime date) async {
     if (_expert == null) return;
-    
-    setState(() => _isLoadingSlots = true);
+
+    // ── Debug log Step 1: selected date ─────────────────────────────────────
+    final dbDayOfWeek = date.weekday == DateTime.sunday ? 0 : date.weekday;
+    debugPrint(
+      '🗓️  [Booking] Selected date: ${DateFormat('yyyy-MM-dd').format(date)}, '
+      'dart weekday=${date.weekday}, db day_of_week=$dbDayOfWeek',
+    );
+
+    setState(() {
+      _isLoadingSlots = true;
+      _availableTimeSlots = [];
+      _selectedTimeSlot = null;
+    });
 
     try {
-      // Check if expert is available on this day
-      final weekday = DateFormat('EEEE').format(date);
-      if (!_expert!.availability.contains(weekday)) {
-        // Expert not available on this day - show no slots
+      // ── Step 2: Query expert_availability table ──────────────────────────
+      final availabilityRows = _availabilityLoaded
+          ? _cachedAvailability
+          : await _availabilityService.getAvailability(_expert!.expertId);
+
+      // Keep cache up-to-date
+      if (!_availabilityLoaded && mounted) {
         setState(() {
-          _availableTimeSlots = [];
-          _isLoadingSlots = false;
+          _cachedAvailability = availabilityRows;
+          _availabilityLoaded = true;
         });
+      }
+
+      debugPrint(
+        '📦 [Booking] DB availability rows (${availabilityRows.length}): '
+        '${availabilityRows.map((r) => "day=${r.dayOfWeek}(${r.dayName}) "
+            "${r.startTime}-${r.endTime}").join("; ")}',
+      );
+
+      // ── Step 3: Find ALL rows for this weekday (supports split shifts) ────
+      // day_of_week mapping:
+      //   DB convention:   0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
+      //   Dart convention: 7=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
+      final dayRows = availabilityRows.slotsForWeekday(date.weekday);
+      if (dayRows.isEmpty) {
+        debugPrint(
+          '⛔ [Booking] No availability rows for weekday=${date.weekday} '
+          '(db day_of_week=$dbDayOfWeek) – no slots',
+        );
+        if (mounted) setState(() => _isLoadingSlots = false);
         return;
       }
 
-      // ✅ Load expert's detailed availability schedule
-      // Get expert's uid from expertUsers collection
-      Availability? expertSchedule;
-      try {
-        // Query expertUsers to find which user owns this expert profile
-        final expertUsersQuery = await FirebaseFirestore.instance
-            .collection('expertUsers')
-            .where('expertId', isEqualTo: _expert!.expertId)
-            .limit(1)
-            .get();
-        
-        if (expertUsersQuery.docs.isNotEmpty) {
-          final expertUid = expertUsersQuery.docs.first.data()['uid'] as String?;
-          
-          if (expertUid != null) {
-            expertSchedule = await _availabilityService.getAvailability(expertUid);
-          }
-        }
-      } catch (e) {
-        print('⚠️ Could not load expert schedule: $e');
-      }
-
-      // Get working hours for this day
-      String startTime = '09:00';
-      String endTime = '17:00';
-      TimeSlot? breakTime;
-
-      if (expertSchedule != null) {
-        final timeSlot = expertSchedule.getTimeSlotForDay(date.weekday);
-        if (timeSlot != null) {
-          startTime = timeSlot.startTime;
-          endTime = timeSlot.endTime;
-          breakTime = expertSchedule.breakTime;
-        }
-      }
-
-      // Get booked slots from Firestore
-      _bookedTimeSlots = await _appointmentService.getBookedTimeSlots(
-        _expert!.expertId,
-        date,
+      debugPrint(
+        '📋 [Booking] Matched ${dayRows.length} row(s) for weekday=${date.weekday}: '
+        '${dayRows.map((r) => "${r.startTime}-${r.endTime}").join(", ")}',
       );
 
-      // Generate all possible slots based on expert's working hours
-      final allSlots = _appointmentService.generateTimeSlots(
-        startTime: startTime,
-        endTime: endTime,
-        intervalMinutes: _selectedDuration,
+      // ── Step 4: Generate slots for EACH row and merge ────────────────────
+      // Each row may be a separate shift (e.g. morning + afternoon).
+      final allSlots = <_Slot>[];
+      for (final row in dayRows) {
+        final rowSlots = _generateRangeSlots(
+          startTime: row.startTime,
+          endTime: row.endTime,
+          intervalMinutes: _selectedDuration,
+          date: date,
+        );
+        debugPrint(
+          '🕐 [Booking] Row ${row.startTime}-${row.endTime} → '
+          '${rowSlots.length} slot(s): ${rowSlots.map((s) => s.label).join(", ")}',
+        );
+        allSlots.addAll(rowSlots);
+      }
+
+      // Sort all merged slots chronologically
+      allSlots.sort((a, b) => a.startDt.compareTo(b.startDt));
+
+      debugPrint(
+        '🕐 [Booking] Total generated: ${allSlots.length} slot(s) across '
+        '${dayRows.length} row(s)',
       );
 
-      // Filter out booked slots, past times, and break times
-      _availableTimeSlots = allSlots.where((slot) {
-        if (_bookedTimeSlots.contains(slot)) return false;
+      // ── Step 5: Fetch booked slots from appointments table ───────────────
+      final bookedRanges = await _getBookedRanges(
+        expertId: _expert!.expertId,
+        date: date,
+      );
+      debugPrint(
+        '🔴 [Booking] Booked ranges (${bookedRanges.length}): '
+        '${bookedRanges.join(", ")}',
+      );
 
-        // Parse slot time
-        final slotTime = _parseSlotTime(date, slot);
+      // ── Step 6: Filter out booked + past slots ───────────────────────────
+      final now = DateTime.now();
+      final minAdvanceTime = now.add(const Duration(hours: 3));
 
-        // If selected day is today, filter out past times
-        if (_isSameDay(date, DateTime.now())) {
-          final minAdvanceTime = DateTime.now().add(const Duration(hours: 3));
-          if (!slotTime.isAfter(minAdvanceTime)) return false;
+      final finalSlots = <String>[];
+      for (final slot in allSlots) {
+        // Remove slots overlapping any booked range
+        final isBooked = bookedRanges.any(
+          (booked) => _rangesOverlap(slot, booked),
+        );
+        if (isBooked) continue;
+
+        // Remove past slots when today is selected
+        if (_isSameDay(date, now) && !slot.startDt.isAfter(minAdvanceTime)) {
+          continue;
         }
 
-        // ✅ Filter out break time slots
-        if (breakTime != null) {
-          final breakStartParts = breakTime.startTime.split(':');
-          final breakEndParts = breakTime.endTime.split(':');
-          
-          final breakStart = DateTime(
-            date.year,
-            date.month,
-            date.day,
-            int.parse(breakStartParts[0]),
-            int.parse(breakStartParts[1]),
-          );
-          
-          final breakEnd = DateTime(
-            date.year,
-            date.month,
-            date.day,
-            int.parse(breakEndParts[0]),
-            int.parse(breakEndParts[1]),
-          );
+        finalSlots.add(slot.label);
+      }
 
-          // Check if slot overlaps with break time
-          final slotEnd = slotTime.add(Duration(minutes: _selectedDuration));
-          if (slotTime.isBefore(breakEnd) && slotEnd.isAfter(breakStart)) {
-            return false; // Slot overlaps with break
-          }
-        }
+      debugPrint(
+        '✅ [Booking] Final available slots (${finalSlots.length}): '
+        '${finalSlots.join(", ")}',
+      );
 
-        return true;
-      }).toList();
-
-      setState(() => _isLoadingSlots = false);
+      if (mounted) {
+        setState(() {
+          _availableTimeSlots = finalSlots;
+          _isLoadingSlots = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoadingSlots = false);
+      debugPrint('❌ [Booking] Error loading slots: $e');
+      if (mounted) setState(() => _isLoadingSlots = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading slots: $e')),
@@ -247,15 +263,84 @@ class _BookingPageState extends State<BookingPage> {
     }
   }
 
-  DateTime _parseSlotTime(DateTime date, String slot) {
-    final parts = slot.split(':');
+  // ─────────────── Slot helpers ────────────────────────────────────────────
+
+  /// Generates slots as start-end range strings ("HH:mm-HH:mm") and keeps
+  /// the parsed start DateTime for past-time filtering.
+  List<_Slot> _generateRangeSlots({
+    required String startTime,
+    required String endTime,
+    required int intervalMinutes,
+    required DateTime date,
+  }) {
+    final slots = <_Slot>[];
+    DateTime current = _parseHhmm(date, startTime);
+    final end = _parseHhmm(date, endTime);
+
+    while (current.isBefore(end)) {
+      final slotEnd = current.add(Duration(minutes: intervalMinutes));
+      // Don't emit a slot that extends past the end of working hours
+      if (slotEnd.isAfter(end)) break;
+      slots.add(_Slot(
+        label:
+            '${_fmt(current.hour, current.minute)}-'
+            '${_fmt(slotEnd.hour, slotEnd.minute)}',
+        startDt: current,
+        endDt: slotEnd,
+      ));
+      current = slotEnd;
+    }
+    return slots;
+  }
+
+  /// Fetches booked appointment start-end ranges for [expertId] on [date].
+  /// Includes all non-cancelled statuses (pending + confirmed).
+  Future<List<String>> _getBookedRanges({
+    required String expertId,
+    required DateTime date,
+  }) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+    final response = await SupabaseService.instance.client
+        .from('appointments')
+        .select('appointment_date, duration_minutes, status')
+        .eq('expert_id', expertId)
+        .neq('status', 'cancelled')
+        .gte('appointment_date', startOfDay.toIso8601String())
+        .lte('appointment_date', endOfDay.toIso8601String());
+
+    return (response as List).map((row) {
+      final startDt = DateTime.parse(row['appointment_date'] as String);
+      final duration = (row['duration_minutes'] as num?)?.toInt() ?? 60;
+      final endDt = startDt.add(Duration(minutes: duration));
+      return '${_fmt(startDt.hour, startDt.minute)}-'
+          '${_fmt(endDt.hour, endDt.minute)}';
+    }).toList();
+  }
+
+  /// Returns true if [slot] and [bookedRange] (both "HH:mm-HH:mm") overlap.
+  bool _rangesOverlap(_Slot slot, String bookedRange) {
+    final parts = bookedRange.split('-');
+    if (parts.length < 2) return false;
+    final bStart = _parseHhmm(slot.startDt, parts[0]);
+    final bEnd = _parseHhmm(slot.startDt, parts[1]);
+    return slot.startDt.isBefore(bEnd) && slot.endDt.isAfter(bStart);
+  }
+
+  static String _fmt(int h, int m) =>
+      '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+
+  static DateTime _parseHhmm(DateTime date, String hhmm) {
+    final p = hhmm.split(':');
     return DateTime(
-      date.year,
-      date.month,
-      date.day,
-      int.parse(parts[0]),
-      int.parse(parts[1]),
-    );
+        date.year, date.month, date.day, int.parse(p[0]), int.parse(p[1]));
+  }
+
+  DateTime _parseSlotTime(DateTime date, String slot) {
+    // slot can be "HH:mm" or "HH:mm-HH:mm" – always use the start portion
+    final start = slot.split('-').first;
+    return _parseHhmm(date, start);
   }
 
   bool _isSameDay(DateTime a, DateTime b) {
@@ -264,9 +349,12 @@ class _BookingPageState extends State<BookingPage> {
 
   bool _isDayAvailable(DateTime day) {
     if (_expert == null) return false;
-    // Check if day is in expert's availability
-    final weekday = DateFormat('EEEE').format(day);
-    return _expert!.availability.contains(weekday);
+    if (!_availabilityLoaded) {
+      // Optimistic: allow all days while cache is loading
+      return _expert!.isAvailable;
+    }
+    // Use cached rows for a precise per-day check
+    return _cachedAvailability.isAvailableOnWeekday(day.weekday);
   }
 
   double get _currentPrice {
@@ -332,23 +420,27 @@ class _BookingPageState extends State<BookingPage> {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
+    // Use Supabase auth (not Firebase)
+    final user = SupabaseService.instance.client.auth.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login first')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please login first')));
       return;
     }
 
     if (_expert == null) return;
 
     // Parse selected date and time
-    final appointmentDateTime = _parseSlotTime(_selectedDay!, _selectedTimeSlot!);
+    final appointmentDateTime = _parseSlotTime(
+      _selectedDay!,
+      _selectedTimeSlot!,
+    );
 
     // Create appointment
     final appointment = Appointment(
       appointmentId: '', // Will be set by service
-      userId: user.uid,
+      userId: user.id,
       expertId: _expert!.expertId,
       expertName: _expert!.displayName,
       expertAvatarUrl: _expert!.avatarUrl,
@@ -372,7 +464,9 @@ class _BookingPageState extends State<BookingPage> {
 
     try {
       // Create appointment (will throw if conflict exists)
-      final newAppointmentId = await _appointmentService.createAppointment(appointment);
+      final newAppointmentId = await _appointmentService.createAppointment(
+        appointment,
+      );
 
       if (mounted && newAppointmentId != null) {
         Navigator.pop(context); // Close loading
@@ -386,9 +480,8 @@ class _BookingPageState extends State<BookingPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => MockPaymentPage(
-              appointment: appointmentWithId,
-            ),
+            builder: (context) =>
+                MockPaymentPage(appointment: appointmentWithId),
           ),
         );
       }
@@ -399,9 +492,11 @@ class _BookingPageState extends State<BookingPage> {
         // Show error message
         String errorMessage;
         if (e.toString().contains('already have an appointment')) {
-          errorMessage = 'You already have an appointment at this time. Please choose another time slot.';
+          errorMessage =
+              'You already have an appointment at this time. Please choose another time slot.';
         } else if (e.toString().contains('not available')) {
-          errorMessage = 'This expert is not available at the selected time. Please choose another time slot.';
+          errorMessage =
+              'This expert is not available at the selected time. Please choose another time slot.';
         } else {
           errorMessage = 'Failed to book appointment. Please try again.';
         }
@@ -430,7 +525,7 @@ class _BookingPageState extends State<BookingPage> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    
+
     if (_expert == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Error')),
@@ -532,7 +627,8 @@ class _BookingPageState extends State<BookingPage> {
               child: DurationSelector(
                 selectedDuration: _selectedDuration,
                 callType: _selectedCallType,
-                expertBasePrice: _expert!.pricePerSession, // ✅ Pass expert base price
+                expertBasePrice:
+                    _expert!.pricePerSession, // ✅ Pass expert base price
                 onChanged: _onDurationChanged,
               ),
             ),
@@ -559,18 +655,21 @@ class _BookingPageState extends State<BookingPage> {
                     firstDay: DateTime.now(),
                     lastDay: DateTime.now().add(const Duration(days: 14)),
                     focusedDay: _focusedDay,
-                    selectedDayPredicate: (day) => _selectedDay != null && _isSameDay(day, _selectedDay!),
+                    selectedDayPredicate: (day) =>
+                        _selectedDay != null && _isSameDay(day, _selectedDay!),
                     onDaySelected: _onDaySelected,
                     calendarFormat: CalendarFormat.month,
                     enabledDayPredicate: (day) {
                       final now = DateTime.now();
                       final minDate = now.add(const Duration(hours: 3));
-                      return day.isAfter(minDate.subtract(const Duration(days: 1))) &&
+                      return day.isAfter(
+                            minDate.subtract(const Duration(days: 1)),
+                          ) &&
                           _isDayAvailable(day);
                     },
                     calendarStyle: CalendarStyle(
                       todayDecoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50).withOpacity(0.3),
+                        color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                       ),
                       selectedDecoration: const BoxDecoration(
@@ -815,7 +914,7 @@ class _BookingPageState extends State<BookingPage> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -830,10 +929,7 @@ class _BookingPageState extends State<BookingPage> {
                 children: [
                   Text(
                     'Total',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -865,10 +961,7 @@ class _BookingPageState extends State<BookingPage> {
                   ),
                   child: const Text(
                     'Continue to Payment',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -878,4 +971,24 @@ class _BookingPageState extends State<BookingPage> {
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper value-object representing one generated time slot.
+// ─────────────────────────────────────────────────────────────────────────────
+class _Slot {
+  /// Display label, e.g. "09:00-10:00"
+  final String label;
+
+  /// Parsed start DateTime (date portion taken from the selected calendar day)
+  final DateTime startDt;
+
+  /// Parsed end DateTime
+  final DateTime endDt;
+
+  const _Slot({
+    required this.label,
+    required this.startDt,
+    required this.endDt,
+  });
 }

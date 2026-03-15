@@ -42,14 +42,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: leading,
       actions: actions,
       bottom: bottom,
-      shadowColor: Colors.black.withOpacity(0.05),
+      shadowColor: Colors.black.withValues(alpha: 0.05),
     );
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(
-        kToolbarHeight + (bottom?.preferredSize.height ?? 0.0),
-      );
+  Size get preferredSize =>
+      Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0.0));
 }
 
 class CustomSliverAppBar extends StatelessWidget {
@@ -87,7 +86,8 @@ class CustomSliverAppBar extends StatelessWidget {
       elevation: 0,
       leading: leading,
       actions: actions,
-      flexibleSpace: flexibleSpace ??
+      flexibleSpace:
+          flexibleSpace ??
           FlexibleSpaceBar(
             title: Text(
               title,

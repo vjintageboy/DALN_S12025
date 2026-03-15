@@ -28,7 +28,7 @@ class _AdminMainPageState extends State<AdminMainPage> {
   @override
   Widget build(BuildContext context) {
     Widget currentTab;
-    
+
     switch (_selectedIndex) {
       case 0:
         currentTab = AdminDashboardPage(onNavigate: _switchTab);
@@ -51,7 +51,7 @@ class _AdminMainPageState extends State<AdminMainPage> {
       default:
         currentTab = const AdminDashboardPage();
     }
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: currentTab,
@@ -59,10 +59,7 @@ class _AdminMainPageState extends State<AdminMainPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-            ),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
           ],
         ),
         child: SafeArea(

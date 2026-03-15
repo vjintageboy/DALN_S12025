@@ -1,6 +1,6 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
 import '../../models/meditation.dart';
-import '../../services/firestore_service.dart';
 import 'edit_meditation_page.dart';
 import 'add_meditation_page.dart';
 
@@ -9,7 +9,8 @@ class MeditationManagementPage extends StatefulWidget {
   const MeditationManagementPage({super.key});
 
   @override
-  State<MeditationManagementPage> createState() => _MeditationManagementPageState();
+  State<MeditationManagementPage> createState() =>
+      _MeditationManagementPageState();
 }
 
 class _MeditationManagementPageState extends State<MeditationManagementPage> {
@@ -29,7 +30,7 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
 
   Future<void> _loadMeditations() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final meditations = await _firestoreService.getAllMeditations();
       setState(() {
@@ -51,17 +52,23 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
     setState(() {
       _filteredMeditations = _meditations.where((meditation) {
         // Search filter
-        final matchesSearch = _searchQuery.isEmpty ||
-            meditation.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            meditation.description.toLowerCase().contains(_searchQuery.toLowerCase());
+        final matchesSearch =
+            _searchQuery.isEmpty ||
+            meditation.title.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            meditation.description.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            );
 
         // Category filter
-        final matchesCategory = _selectedCategory == null ||
+        final matchesCategory =
+            _selectedCategory == null ||
             meditation.category == _selectedCategory;
 
         // Level filter
-        final matchesLevel = _selectedLevel == null ||
-            meditation.level == _selectedLevel;
+        final matchesLevel =
+            _selectedLevel == null || meditation.level == _selectedLevel;
 
         return matchesSearch && matchesCategory && matchesLevel;
       }).toList();
@@ -169,7 +176,7 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
                   },
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Filter Chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -195,7 +202,7 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
                         );
                       }),
                       const SizedBox(width: 12),
-                      
+
                       // Level Filter
                       _buildFilterChip(
                         label: 'All Levels',
@@ -227,17 +234,19 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredMeditations.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: _loadMeditations,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredMeditations.length,
-                          itemBuilder: (context, index) {
-                            return _buildMeditationCard(_filteredMeditations[index]);
-                          },
-                        ),
-                      ),
+                ? _buildEmptyState()
+                : RefreshIndicator(
+                    onRefresh: _loadMeditations,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredMeditations.length,
+                      itemBuilder: (context, index) {
+                        return _buildMeditationCard(
+                          _filteredMeditations[index],
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -256,7 +265,7 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
         selected: isSelected,
         onSelected: (_) => onTap(),
         backgroundColor: Colors.grey.shade100,
-        selectedColor: const Color(0xFF4CAF50).withOpacity(0.2),
+        selectedColor: const Color(0xFF4CAF50).withValues(alpha: 0.2),
         checkmarkColor: const Color(0xFF4CAF50),
         labelStyle: TextStyle(
           color: isSelected ? const Color(0xFF4CAF50) : Colors.black87,
@@ -315,7 +324,7 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
                       ),
               ),
               const SizedBox(width: 16),
-              
+
               // Content
               Expanded(
                 child: Column(
@@ -366,7 +375,7 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
                   ],
                 ),
               ),
-              
+
               // Action Buttons
               Column(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -379,7 +388,8 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
                       final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => EditMeditationPage(meditation: meditation),
+                          builder: (context) =>
+                              EditMeditationPage(meditation: meditation),
                         ),
                       );
                       if (result == true) {
@@ -405,7 +415,7 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
     // Định nghĩa màu cho icon và text (không có background)
     Color iconColor;
     Color textColor;
-    
+
     if (icon == Icons.schedule) {
       // Duration - Blue
       iconColor = const Color(0xFF1976D2);
@@ -427,7 +437,7 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
       iconColor = Colors.grey.shade700;
       textColor = Colors.grey.shade700;
     }
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -450,14 +460,12 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.spa_outlined,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.spa_outlined, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
-            _searchQuery.isEmpty && _selectedCategory == null && _selectedLevel == null
+            _searchQuery.isEmpty &&
+                    _selectedCategory == null &&
+                    _selectedLevel == null
                 ? 'No meditations yet'
                 : 'No meditations found',
             style: TextStyle(
@@ -468,13 +476,12 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            _searchQuery.isEmpty && _selectedCategory == null && _selectedLevel == null
+            _searchQuery.isEmpty &&
+                    _selectedCategory == null &&
+                    _selectedLevel == null
                 ? 'Tap the + button to add your first meditation'
                 : 'Try adjusting your filters',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),

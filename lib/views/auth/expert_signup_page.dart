@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../../models/expert_user.dart';
 import '../../services/expert_user_service.dart';
 import '../../shared/widgets/modern_text_field.dart';
-import '../../shared/widgets/primary_button.dart';
 import 'expert_pending_approval_page.dart';
 
 class ExpertSignupPage extends StatefulWidget {
@@ -15,8 +15,8 @@ class ExpertSignupPage extends StatefulWidget {
 
 class _ExpertSignupPageState extends State<ExpertSignupPage> {
   final _formKey = GlobalKey<FormState>();
-  final _expertUserService = ExpertUserService();
-  
+  final _expertUserService = ExpertUserService.instance;
+
   // Controllers
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -27,7 +27,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
   final _universityController = TextEditingController();
   final _specializationController = TextEditingController();
   final _bioController = TextEditingController();
-  
+
   int? _graduationYear;
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -54,6 +54,25 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
     setState(() => _isLoading = true);
 
     try {
+      // 1. Sign up with Supabase
+      final response = await SupabaseService.instance.client.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        data: {'full_name': _nameController.text.trim()},
+      );
+
+      final user = response.user;
+      if (user == null) throw Exception('Signup failed: No user returned');
+
+      // 2. Create profile in users table
+      await SupabaseService.instance.createUserProfile(
+        id: user.id,
+        email: _emailController.text.trim(),
+        fullName: _nameController.text.trim(),
+        role: 'user', // Initial role is user until approved
+      );
+
+      // 3. Create expert application
       final credentials = ExpertCredentials(
         licenseNumber: _licenseNumberController.text.trim(),
         education: _educationController.text.trim(),
@@ -63,46 +82,28 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
         bio: _bioController.text.trim(),
       );
 
-      final uid = await _expertUserService.createExpertUser(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        displayName: _nameController.text.trim(),
+      await _expertUserService.applyForExpert(
+        uid: user.id,
         credentials: credentials,
       );
 
-      if (uid != null && mounted) {
-        // Navigate to pending approval page
+      if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => const ExpertPendingApprovalPage(),
           ),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      String message = 'An error occurred';
-      if (e.code == 'weak-password') {
-        message = 'Password is too weak';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'Email is already registered';
-      } else if (e.code == 'invalid-email') {
-        message = 'Invalid email address';
-      }
-      
+    } on sb.AuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -125,10 +126,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
         ),
         title: const Text(
           'Expert Registration',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -208,19 +206,25 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
               Step(
                 title: const Text('Account Info'),
                 isActive: _currentStep >= 0,
-                state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+                state: _currentStep > 0
+                    ? StepState.complete
+                    : StepState.indexed,
                 content: _buildAccountInfoStep(),
               ),
               Step(
                 title: const Text('Credentials'),
                 isActive: _currentStep >= 1,
-                state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+                state: _currentStep > 1
+                    ? StepState.complete
+                    : StepState.indexed,
                 content: _buildCredentialsStep(),
               ),
               Step(
                 title: const Text('Specialization'),
                 isActive: _currentStep >= 2,
-                state: _currentStep > 2 ? StepState.complete : StepState.indexed,
+                state: _currentStep > 2
+                    ? StepState.complete
+                    : StepState.indexed,
                 content: _buildSpecializationStep(),
               ),
             ],
@@ -256,7 +260,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           ),
         ),
         const SizedBox(height: 24),
-        
+
         ModernTextField(
           controller: _nameController,
           label: 'Full Name',
@@ -270,7 +274,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           },
         ),
         const SizedBox(height: 16),
-        
+
         ModernTextField(
           controller: _emailController,
           label: 'Email',
@@ -288,7 +292,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           },
         ),
         const SizedBox(height: 16),
-        
+
         ModernTextField(
           controller: _passwordController,
           label: 'Password',
@@ -315,7 +319,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           },
         ),
         const SizedBox(height: 16),
-        
+
         ModernTextField(
           controller: _confirmPasswordController,
           label: 'Confirm Password',
@@ -328,7 +332,9 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
               color: Colors.grey,
             ),
             onPressed: () {
-              setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+              setState(
+                () => _obscureConfirmPassword = !_obscureConfirmPassword,
+              );
             },
           ),
           validator: (value) {
@@ -355,7 +361,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           ),
         ),
         const SizedBox(height: 24),
-        
+
         ModernTextField(
           controller: _licenseNumberController,
           label: 'License Number',
@@ -369,7 +375,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           },
         ),
         const SizedBox(height: 16),
-        
+
         ModernTextField(
           controller: _educationController,
           label: 'Education',
@@ -383,7 +389,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           },
         ),
         const SizedBox(height: 16),
-        
+
         ModernTextField(
           controller: _universityController,
           label: 'University',
@@ -391,15 +397,13 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           icon: Icons.account_balance_outlined,
         ),
         const SizedBox(height: 16),
-        
+
         DropdownButtonFormField<int>(
-          value: _graduationYear,
+          initialValue: _graduationYear,
           decoration: InputDecoration(
             labelText: 'Graduation Year',
             prefixIcon: const Icon(Icons.calendar_today_outlined),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             filled: true,
             fillColor: Colors.grey.shade50,
           ),
@@ -431,17 +435,15 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           ),
         ),
         const SizedBox(height: 24),
-        
+
         DropdownButtonFormField<String>(
-          value: _specializationController.text.isEmpty 
-              ? null 
+          initialValue: _specializationController.text.isEmpty
+              ? null
               : _specializationController.text,
           decoration: InputDecoration(
             labelText: 'Specialization',
             prefixIcon: const Icon(Icons.psychology_outlined),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             filled: true,
             fillColor: Colors.grey.shade50,
           ),
@@ -450,8 +452,14 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
             DropdownMenuItem(value: 'Depression', child: Text('Depression')),
             DropdownMenuItem(value: 'Stress', child: Text('Stress')),
             DropdownMenuItem(value: 'Sleep', child: Text('Sleep Disorders')),
-            DropdownMenuItem(value: 'Relationships', child: Text('Relationships')),
-            DropdownMenuItem(value: 'General', child: Text('General Mental Health')),
+            DropdownMenuItem(
+              value: 'Relationships',
+              child: Text('Relationships'),
+            ),
+            DropdownMenuItem(
+              value: 'General',
+              child: Text('General Mental Health'),
+            ),
           ],
           onChanged: (value) {
             setState(() {
@@ -460,7 +468,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           },
         ),
         const SizedBox(height: 16),
-        
+
         TextFormField(
           controller: _bioController,
           maxLines: 5,
@@ -468,9 +476,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
             labelText: 'Professional Bio',
             hintText: 'Tell us about your experience and approach...',
             alignLabelWithHint: true,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             filled: true,
             fillColor: Colors.grey.shade50,
           ),
@@ -485,7 +491,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
           },
         ),
         const SizedBox(height: 24),
-        
+
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -500,10 +506,7 @@ class _ExpertSignupPageState extends State<ExpertSignupPage> {
               Expanded(
                 child: Text(
                   'Your application will be reviewed by our team. You will be notified via email once approved.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.blue.shade900,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.blue.shade900),
                 ),
               ),
             ],

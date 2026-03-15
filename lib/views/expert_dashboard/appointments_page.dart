@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../../models/appointment.dart';
+import '../../services/supabase_service.dart';
 import 'appointment_detail_page.dart';
 
 class AppointmentsPage extends StatefulWidget {
@@ -13,11 +12,12 @@ class AppointmentsPage extends StatefulWidget {
   State<AppointmentsPage> createState() => _AppointmentsPageState();
 }
 
-class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerProviderStateMixin {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+class _AppointmentsPageState extends State<AppointmentsPage>
+    with SingleTickerProviderStateMixin {
+  final _supabase = SupabaseService.instance.client;
   late TabController _tabController;
   String? _expertId;
-  
+
   // Calendar view state
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -31,14 +31,15 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
   }
 
   Future<void> _loadExpertId() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) return;
 
     try {
-      final expertDoc = await _db.collection('expertUsers').doc(user.uid).get();
-      if (expertDoc.exists) {
+      // In Supabase, the expert ID is the same as the user ID in the experts table
+      final response = await _supabase.from('experts').select('id').eq('id', user.id).maybeSingle();
+      if (response != null) {
         setState(() {
-          _expertId = expertDoc.data()?['expertId'] as String?;
+          _expertId = response['id'] as String?;
         });
       }
     } catch (e) {
@@ -94,7 +95,9 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
         ),
       ),
       body: _expertId == null
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+            )
           : TabBarView(
               controller: _tabController,
               children: [
@@ -109,8 +112,8 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
   }
 
   Widget _buildAppointmentsList(String? statusFilter) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _getAppointmentsStream(statusFilter),
+    return FutureBuilder<List<Appointment>>(
+      future: _getAppointments(statusFilter),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
@@ -134,20 +137,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
           );
         }
 
-        final appointments = snapshot.data!.docs
-            .map((doc) {
-              try {
-                return Appointment.fromSnapshot(doc);
-              } catch (e) {
-                debugPrint('Error parsing appointment: $e');
-                return null;
-              }
-            })
-            .whereType<Appointment>()
-            .toList();
-
-        // Sort by date (newest first)
-        appointments.sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
+        final appointments = snapshot.data!;
 
         if (appointments.isEmpty) {
           return _buildEmptyState(statusFilter);
@@ -155,7 +145,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
 
         return RefreshIndicator(
           onRefresh: () async {
-            setState(() {}); // Trigger rebuild to refresh stream
+            setState(() {}); // Trigger rebuild to refresh future
           },
           color: const Color(0xFF4CAF50),
           child: ListView.builder(
@@ -170,16 +160,21 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
     );
   }
 
-  Stream<QuerySnapshot> _getAppointmentsStream(String? statusFilter) {
-    Query query = _db
-        .collection('appointments')
-        .where('expertId', isEqualTo: _expertId);
+  Future<List<Appointment>> _getAppointments(String? statusFilter) async {
+    if (_expertId == null) return [];
+
+    var query = _supabase
+        .from('appointments')
+        .select('*, users:user_id(*)')
+        .eq('expert_id', _expertId!);
 
     if (statusFilter != null) {
-      query = query.where('status', isEqualTo: statusFilter);
+      query = query.eq('status', statusFilter);
     }
 
-    return query.snapshots();
+    final response = await query.order('appointment_date', ascending: false);
+    
+    return (response as List).map((m) => Appointment.fromMap(m)).toList();
   }
 
   Widget _buildEmptyState(String? statusFilter) {
@@ -221,10 +216,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
           const SizedBox(height: 8),
           Text(
             'Your appointments will appear here',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),
@@ -239,7 +231,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -252,9 +244,8 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => AppointmentDetailPage(
-                  appointment: appointment,
-                ),
+                builder: (context) =>
+                    AppointmentDetailPage(appointment: appointment),
               ),
             );
           },
@@ -314,10 +305,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
                 // Call Type
                 Text(
                   appointment.callTypeLabel,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                 ),
                 const SizedBox(height: 12),
 
@@ -325,73 +313,11 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
                 const SizedBox(height: 12),
 
                 // User info
-                FutureBuilder<DocumentSnapshot>(
-                  future: _db.collection('users').doc(appointment.userId).get(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return Text(
-                        'Loading user...',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                      );
-                    }
-
-                    final userData = snapshot.data?.data() as Map<String, dynamic>?;
-                    final userName = userData?['displayName'] ?? 'Unknown User';
-                    final userEmail = userData?['email'] ?? '';
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: const Color(0xFF4CAF50).withOpacity(0.1),
-                              child: Text(
-                                userName.substring(0, 1).toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4CAF50),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    userName,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    userEmail,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                _buildUserInfo(appointment),
 
                 // User Notes (if any)
-                if (appointment.userNotes != null && appointment.userNotes!.isNotEmpty) ...[
+                if (appointment.userNotes != null &&
+                    appointment.userNotes!.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -432,9 +358,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
                     decoration: BoxDecoration(
                       color: Colors.orange.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.orange.shade200,
-                      ),
+                      border: Border.all(color: Colors.orange.shade200),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,6 +401,55 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildUserInfo(Appointment appointment) {
+    final userName = appointment.userName ?? 'Unknown User';
+    final userAvatarUrl = appointment.userAvatarUrl;
+
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+          backgroundImage: userAvatarUrl != null ? NetworkImage(userAvatarUrl) : null,
+          child: userAvatarUrl == null
+              ? Text(
+                  userName.isNotEmpty ? userName.substring(0, 1).toUpperCase() : '?',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF4CAF50),
+                  ),
+                )
+              : null,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                userName,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Patient ID: ${appointment.userId.substring(0, 8)}...',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -554,11 +527,8 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
   // ============= CALENDAR VIEW METHODS =============
 
   Widget _buildCalendarView() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _db
-          .collection('appointments')
-          .where('expertId', isEqualTo: _expertId)
-          .snapshots(),
+    return FutureBuilder<List<Appointment>>(
+      future: _getAppointments(null),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
@@ -582,18 +552,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
           );
         }
 
-        // Parse appointments
-        final appointments = snapshot.data!.docs
-            .map((doc) {
-              try {
-                return Appointment.fromSnapshot(doc);
-              } catch (e) {
-                debugPrint('Error parsing appointment: $e');
-                return null;
-              }
-            })
-            .whereType<Appointment>()
-            .toList();
+        final appointments = snapshot.data!;
 
         // Group appointments by date
         _appointmentsByDate = {};
@@ -623,11 +582,14 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
                 child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: TableCalendar(
-                    firstDay: DateTime.now().subtract(const Duration(days: 365)),
+                    firstDay: DateTime.now().subtract(
+                      const Duration(days: 365),
+                    ),
                     lastDay: DateTime.now().add(const Duration(days: 365)),
                     focusedDay: _focusedDay,
                     selectedDayPredicate: (day) {
-                      return _selectedDay != null && _isSameDay(day, _selectedDay!);
+                      return _selectedDay != null &&
+                          isSameDay(day, _selectedDay!);
                     },
                     onDaySelected: (selectedDay, focusedDay) {
                       setState(() {
@@ -642,7 +604,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
                     },
                     calendarStyle: CalendarStyle(
                       todayDecoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50).withOpacity(0.3),
+                        color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                       ),
                       selectedDecoration: const BoxDecoration(
@@ -666,7 +628,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
                     calendarBuilders: CalendarBuilders(
                       markerBuilder: (context, date, events) {
                         if (events.isEmpty) return null;
-                        
+
                         return Positioned(
                           bottom: 1,
                           child: Container(
@@ -697,12 +659,15 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
             // Legend
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _buildLegendItem(
-                      color: const Color(0xFF4CAF50).withOpacity(0.3),
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
                       label: 'Today',
                     ),
                     const SizedBox(width: 16),
@@ -740,11 +705,7 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.event,
-                        color: Colors.grey.shade700,
-                        size: 20,
-                      ),
+                      Icon(Icons.event, color: Colors.grey.shade700, size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -793,6 +754,32 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
     );
   }
 
+  Widget _buildSelectedDayAppointmentsSlivers() {
+    final date = DateTime(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
+    final dayAppointments = _appointmentsByDate[date] ?? [];
+
+    if (dayAppointments.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Text(
+            'No appointments on this day',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => _buildAppointmentCard(dayAppointments[index]),
+          childCount: dayAppointments.length,
+        ),
+      ),
+    );
+  }
+
   Widget _buildLegendItem({
     required Color color,
     required String label,
@@ -807,72 +794,15 @@ class _AppointmentsPageState extends State<AppointmentsPage> with SingleTickerPr
           decoration: BoxDecoration(
             color: color,
             shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-            borderRadius: isCircle ? null : BorderRadius.circular(2),
+            borderRadius: isCircle ? null : BorderRadius.circular(4),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade700,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
         ),
       ],
     );
-  }
-
-  Widget _buildSelectedDayAppointmentsSlivers() {
-    final date = DateTime(
-      _selectedDay!.year,
-      _selectedDay!.month,
-      _selectedDay!.day,
-    );
-    final dayAppointments = _appointmentsByDate[date] ?? [];
-
-    // Sort by time
-    dayAppointments.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
-
-    if (dayAppointments.isEmpty) {
-      return SliverFillRemaining(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.event_available,
-                size: 64,
-                color: Colors.grey.shade300,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No appointments on this day',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            return _buildAppointmentCard(dayAppointments[index]);
-          },
-          childCount: dayAppointments.length,
-        ),
-      ),
-    );
-  }
-
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }

@@ -1,24 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
+import '../../services/supabase_service.dart';
 import 'create_post_page.dart';
 import 'post_detail_page.dart';
 
 enum SortBy {
-  latest,    // Mới nhất
-  hot,       // Hot nhất (likes + comments)
+  latest, // Mới nhất
+  hot, // Hot nhất (likes + comments)
   mostLiked, // Nhiều likes nhất
   mostDiscussed, // Nhiều comments nhất
 }
 
-enum AuthorFilter {
-  all,
-  myPosts,
-  expertPosts,
-  anonymous,
-}
+enum AuthorFilter { all, myPosts, expertPosts, anonymous }
 
 class NewsFeedPage extends StatefulWidget {
   const NewsFeedPage({super.key});
@@ -29,11 +25,17 @@ class NewsFeedPage extends StatefulWidget {
 
 class _NewsFeedPageState extends State<NewsFeedPage> {
   final NewsService _newsService = NewsService();
-  final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
-  
+  late final String currentUserId;
+
   PostCategory? _selectedCategory;
   SortBy _sortBy = SortBy.latest;
   AuthorFilter _authorFilter = AuthorFilter.all;
+
+  @override
+  void initState() {
+    super.initState();
+    currentUserId = SupabaseService.instance.currentUser!.id;
+  }
 
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
@@ -59,10 +61,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
       appBar: AppBar(
         title: const Text(
           'Community',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF6C63FF),
         elevation: 0,
@@ -73,9 +72,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const CreatePostPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const CreatePostPage()),
               );
             },
           ),
@@ -92,15 +89,19 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   // Log the actual error for debugging
-                  print('❌ Error loading posts: ${snapshot.error}');
-                  
+                  debugPrint('❌ Error loading posts: ${snapshot.error}');
+
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red.shade300,
+                          ),
                           const SizedBox(height: 16),
                           const Text(
                             'Error loading posts',
@@ -144,9 +145,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
 
                 if (!snapshot.hasData) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF6C63FF),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
                   );
                 }
 
@@ -178,9 +177,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                         const SizedBox(height: 8),
                         Text(
                           'Be the first to share!',
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                          ),
+                          style: TextStyle(color: Colors.grey.shade500),
                         ),
                       ],
                     ),
@@ -211,12 +208,12 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   /// Sort posts based on selected option
   List<NewsPost> _sortPosts(List<NewsPost> posts) {
     final sorted = List<NewsPost>.from(posts);
-    
+
     switch (_sortBy) {
       case SortBy.latest:
         // Already sorted by createdAt descending from Firestore
         break;
-        
+
       case SortBy.hot:
         // Hot = combination of likes and comments (weighted)
         sorted.sort((a, b) {
@@ -225,16 +222,16 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
           return scoreB.compareTo(scoreA);
         });
         break;
-        
+
       case SortBy.mostLiked:
         sorted.sort((a, b) => b.likeCount.compareTo(a.likeCount));
         break;
-        
+
       case SortBy.mostDiscussed:
         sorted.sort((a, b) => b.commentCount.compareTo(a.commentCount));
         break;
     }
-    
+
     return sorted;
   }
 
@@ -266,7 +263,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
 
   Widget _buildCategoryChip(String label, PostCategory? category) {
     final isSelected = _selectedCategory == category;
-    
+
     return FilterChip(
       label: Text(label),
       selected: isSelected,
@@ -314,11 +311,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                 child: DropdownButton<SortBy>(
                   value: _sortBy,
                   isExpanded: true,
-                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade800,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey.shade600,
                   ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
                   onChanged: (SortBy? newValue) {
                     if (newValue != null) {
                       setState(() {
@@ -331,7 +328,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       value: SortBy.latest,
                       child: Row(
                         children: [
-                          Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
+                          Icon(
+                            Icons.access_time,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 8),
                           const Text('Latest'),
                         ],
@@ -341,7 +342,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       value: SortBy.hot,
                       child: Row(
                         children: [
-                          Icon(Icons.local_fire_department, size: 16, color: Colors.orange.shade600),
+                          Icon(
+                            Icons.local_fire_department,
+                            size: 16,
+                            color: Colors.orange.shade600,
+                          ),
                           const SizedBox(width: 8),
                           const Text('Hot'),
                         ],
@@ -351,7 +356,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       value: SortBy.mostLiked,
                       child: Row(
                         children: [
-                          Icon(Icons.favorite, size: 16, color: Colors.red.shade400),
+                          Icon(
+                            Icons.favorite,
+                            size: 16,
+                            color: Colors.red.shade400,
+                          ),
                           const SizedBox(width: 8),
                           const Text('Most Liked'),
                         ],
@@ -361,7 +370,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       value: SortBy.mostDiscussed,
                       child: Row(
                         children: [
-                          Icon(Icons.chat_bubble, size: 16, color: Colors.blue.shade600),
+                          Icon(
+                            Icons.chat_bubble,
+                            size: 16,
+                            color: Colors.blue.shade600,
+                          ),
                           const SizedBox(width: 8),
                           const Text('Most Discussed'),
                         ],
@@ -406,11 +419,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                 child: DropdownButton<AuthorFilter>(
                   value: _authorFilter,
                   isExpanded: true,
-                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade800,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey.shade600,
                   ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
                   onChanged: (AuthorFilter? newValue) {
                     if (newValue != null) {
                       setState(() {
@@ -423,7 +436,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       value: AuthorFilter.all,
                       child: Row(
                         children: [
-                          Icon(Icons.people, size: 16, color: Colors.grey.shade600),
+                          Icon(
+                            Icons.people,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 8),
                           const Text('All'),
                         ],
@@ -433,7 +450,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       value: AuthorFilter.myPosts,
                       child: Row(
                         children: [
-                          Icon(Icons.account_circle, size: 16, color: Colors.blue.shade600),
+                          Icon(
+                            Icons.account_circle,
+                            size: 16,
+                            color: Colors.blue.shade600,
+                          ),
                           const SizedBox(width: 8),
                           const Text('My Posts'),
                         ],
@@ -443,7 +464,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       value: AuthorFilter.expertPosts,
                       child: Row(
                         children: [
-                          Icon(Icons.verified, size: 16, color: Colors.green.shade600),
+                          Icon(
+                            Icons.verified,
+                            size: 16,
+                            color: Colors.green.shade600,
+                          ),
                           const SizedBox(width: 8),
                           const Text('Expert Posts'),
                         ],
@@ -453,7 +478,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       value: AuthorFilter.anonymous,
                       child: Row(
                         children: [
-                          Icon(Icons.visibility_off, size: 16, color: Colors.grey.shade600),
+                          Icon(
+                            Icons.visibility_off,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 8),
                           const Text('Anonymous'),
                         ],
@@ -565,8 +594,12 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                                   },
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: const Color(0xFF6C63FF),
-                                    side: BorderSide(color: Colors.grey.shade300),
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    side: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(28),
                                     ),
@@ -585,7 +618,9 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF6C63FF),
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(28),
                                     ),
@@ -619,9 +654,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => PostDetailPage(post: post),
-          ),
+          MaterialPageRoute(builder: (context) => PostDetailPage(post: post)),
         );
       },
       child: Container(
@@ -651,10 +684,16 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                     backgroundColor: post.authorName == 'Anonymous'
                         ? Colors.grey.shade300
                         : const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                    backgroundImage: post.authorName != 'Anonymous' && post.authorAvatarUrl != null
+                    backgroundImage:
+                        post.authorName != 'Anonymous' &&
+                            post.authorAvatarUrl != null &&
+                            post.authorAvatarUrl!.isNotEmpty
                         ? (_isBase64(post.authorAvatarUrl!)
-                            ? MemoryImage(base64Decode(post.authorAvatarUrl!))
-                            : NetworkImage(post.authorAvatarUrl!)) as ImageProvider
+                                  ? MemoryImage(
+                                      base64Decode(post.authorAvatarUrl!),
+                                    )
+                                  : NetworkImage(post.authorAvatarUrl!))
+                              as ImageProvider
                         : null,
                     child: post.authorName == 'Anonymous'
                         ? Icon(
@@ -662,15 +701,15 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                             size: 20,
                             color: Colors.grey.shade700,
                           )
-                        : (post.authorAvatarUrl == null
-                            ? Text(
-                                post.authorName[0].toUpperCase(),
-                                style: const TextStyle(
-                                  color: Color(0xFF6C63FF),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : null),
+                        : (post.authorAvatarUrl == null || post.authorAvatarUrl!.isEmpty
+                              ? Text(
+                                  post.authorName[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF6C63FF),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null),
                   ),
                   const SizedBox(width: 12),
                   // Author info
@@ -695,7 +734,9 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+                                  color: const Color(
+                                    0xFF6C63FF,
+                                  ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
@@ -728,7 +769,9 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getCategoryColor(post.category).withValues(alpha: 0.1),
+                      color: _getCategoryColor(
+                        post.category,
+                      ).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -743,7 +786,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                   // Menu button (3 dots) - Only show for own posts or admin
                   if (post.authorId == currentUserId)
                     PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: Colors.grey.shade600, size: 20),
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: Colors.grey.shade600,
+                        size: 20,
+                      ),
                       onSelected: (value) => _handlePostAction(value, post),
                       itemBuilder: (context) => [
                         const PopupMenuItem(
@@ -760,9 +807,16 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                           value: 'delete',
                           child: Row(
                             children: [
-                              Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                              Icon(
+                                Icons.delete_outline,
+                                size: 18,
+                                color: Colors.red,
+                              ),
                               SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ],
                           ),
                         ),
@@ -801,7 +855,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
             ),
 
             // Image
-            if (post.imageUrl != null) ...[
+            if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
               const SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -860,10 +914,10 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                   StreamBuilder<List<dynamic>>(
                     stream: _newsService.streamComments(post.postId),
                     builder: (context, commentSnapshot) {
-                      final commentCount = commentSnapshot.hasData 
-                          ? commentSnapshot.data!.length 
+                      final commentCount = commentSnapshot.hasData
+                          ? commentSnapshot.data!.length
                           : post.commentCount;
-                      
+
                       return Row(
                         children: [
                           Icon(
@@ -918,6 +972,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
 
   /// Check if string is Base64 encoded
   bool _isBase64(String str) {
+    if (str.isEmpty) return false;
     // Base64 strings don't start with http/https
     if (str.startsWith('http://') || str.startsWith('https://')) {
       return false;
@@ -948,9 +1003,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
     // Navigate to edit page (we'll create this)
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => CreatePostPage(postToEdit: post),
-      ),
+      MaterialPageRoute(builder: (context) => CreatePostPage(postToEdit: post)),
     );
   }
 
@@ -960,7 +1013,9 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Post'),
-        content: const Text('Are you sure you want to delete this post? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to delete this post? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -978,7 +1033,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
     if (confirmed == true) {
       try {
         await _newsService.deletePost(post.postId);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

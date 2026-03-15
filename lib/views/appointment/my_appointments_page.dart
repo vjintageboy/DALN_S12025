@@ -1,5 +1,5 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../core/services/localization_service.dart';
 import '../../models/appointment.dart';
@@ -68,10 +68,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildUpcomingTab(),
-          _buildHistoryTab(),
-        ],
+        children: [_buildUpcomingTab(), _buildHistoryTab()],
       ),
     );
   }
@@ -85,16 +82,16 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
 
         final allAppointments = snapshot.data ?? [];
         final upcomingAppointments = allAppointments
-            .where((apt) =>
-                apt.status == AppointmentStatus.confirmed &&
-                apt.appointmentDate.isAfter(DateTime.now()))
+            .where(
+              (apt) =>
+                  apt.status == AppointmentStatus.confirmed &&
+                  apt.appointmentDate.isAfter(DateTime.now()),
+            )
             .toList();
 
         if (upcomingAppointments.isEmpty) {
@@ -126,18 +123,18 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
 
         final allAppointments = snapshot.data ?? [];
         final historyAppointments = allAppointments
-            .where((apt) =>
-                apt.status == AppointmentStatus.completed ||
-                apt.status == AppointmentStatus.cancelled ||
-                (apt.status == AppointmentStatus.confirmed &&
-                    apt.appointmentDate.isBefore(DateTime.now())))
+            .where(
+              (apt) =>
+                  apt.status == AppointmentStatus.completed ||
+                  apt.status == AppointmentStatus.cancelled ||
+                  (apt.status == AppointmentStatus.confirmed &&
+                      apt.appointmentDate.isBefore(DateTime.now())),
+            )
             .toList();
 
         if (historyAppointments.isEmpty) {
@@ -160,8 +157,10 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
     );
   }
 
-  Widget _buildAppointmentCard(Appointment appointment,
-      {required bool showCancelButton}) {
+  Widget _buildAppointmentCard(
+    Appointment appointment, {
+    required bool showCancelButton,
+  }) {
     final dateFormat = DateFormat('EEE, MMM d, yyyy');
     final timeFormat = DateFormat('h:mm a');
 
@@ -172,7 +171,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -184,7 +183,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50).withOpacity(0.05),
+              color: const Color(0xFF4CAF50).withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
@@ -197,10 +196,11 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
                   backgroundImage: appointment.expertAvatarUrl != null
                       ? NetworkImage(appointment.expertAvatarUrl!)
                       : null,
+                  backgroundColor: const Color(0xFF4CAF50),
                   child: appointment.expertAvatarUrl == null
                       ? Text(
-                          appointment.expertName.isNotEmpty 
-                              ? appointment.expertName[0].toUpperCase() 
+                          appointment.expertName.isNotEmpty
+                              ? appointment.expertName[0].toUpperCase()
                               : '?',
                           style: const TextStyle(
                             fontSize: 24,
@@ -209,7 +209,6 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
                           ),
                         )
                       : null,
-                  backgroundColor: const Color(0xFF4CAF50),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -225,7 +224,10 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
                         ),
                       ),
                       const SizedBox(height: 4),
-                      _buildStatusBadge(appointment.status, refundStatus: appointment.refundStatus),
+                      _buildStatusBadge(
+                        appointment.status,
+                        refundStatus: appointment.refundStatus,
+                      ),
                     ],
                   ),
                 ),
@@ -318,44 +320,47 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
     );
   }
 
-  Widget _buildStatusBadge(AppointmentStatus status, {RefundStatus? refundStatus}) {
+  Widget _buildStatusBadge(
+    AppointmentStatus status, {
+    RefundStatus? refundStatus,
+  }) {
     Color bgColor;
     Color textColor;
     String text;
 
     switch (status) {
       case AppointmentStatus.confirmed:
-        bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
+        bgColor = const Color(0xFF4CAF50).withValues(alpha: 0.1);
         textColor = const Color(0xFF4CAF50);
         text = context.l10n.confirmed;
         break;
       case AppointmentStatus.completed:
-        bgColor = Colors.blue.withOpacity(0.1);
+        bgColor = Colors.blue.withValues(alpha: 0.1);
         textColor = Colors.blue;
         text = context.l10n.completed;
         break;
       case AppointmentStatus.cancelled:
         // Check refund status
         if (refundStatus == RefundStatus.success) {
-           bgColor = Colors.orange.withOpacity(0.1);
-           textColor = Colors.orange;
-           text = 'Refunded';
+          bgColor = Colors.orange.withValues(alpha: 0.1);
+          textColor = Colors.orange;
+          text = 'Refunded';
         } else if (refundStatus == RefundStatus.failed) {
-           bgColor = Colors.red.withOpacity(0.1);
-           textColor = Colors.red;
-           text = 'Refund Failed';
+          bgColor = Colors.red.withValues(alpha: 0.1);
+          textColor = Colors.red;
+          text = 'Refund Failed';
         } else if (refundStatus == RefundStatus.pending) {
-           bgColor = Colors.yellow.withOpacity(0.1);
-           textColor = Colors.orange;
-           text = 'Refund Pending';
+          bgColor = Colors.yellow.withValues(alpha: 0.1);
+          textColor = Colors.orange;
+          text = 'Refund Pending';
         } else {
-           bgColor = Colors.grey.withOpacity(0.1);
-           textColor = Colors.grey;
-           text = context.l10n.cancelled;
+          bgColor = Colors.grey.withValues(alpha: 0.1);
+          textColor = Colors.grey;
+          text = context.l10n.cancelled;
         }
         break;
       case AppointmentStatus.pending:
-        bgColor = Colors.orange.withOpacity(0.1);
+        bgColor = Colors.orange.withValues(alpha: 0.1);
         textColor = Colors.orange;
         text = 'Pending';
         break;
@@ -395,10 +400,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 2),
               Text(
@@ -427,10 +429,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              icon,
-              style: const TextStyle(fontSize: 80),
-            ),
+            Text(icon, style: const TextStyle(fontSize: 80)),
             const SizedBox(height: 24),
             Text(
               title,
@@ -444,10 +443,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
           ],
@@ -457,25 +453,17 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
   }
 
   String _formatPrice(double price) {
-    return '₫${price.toInt().toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        )}';
+    return '₫${price.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
   }
 
   void _showCancelDialog(Appointment appointment) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           context.l10n.cancelAppointmentQuestion,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -489,7 +477,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
@@ -537,10 +525,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
             ),
             child: Text(
               context.l10n.cancelAppointment,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -550,8 +535,10 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
 
   Future<void> _cancelAppointment(Appointment appointment) async {
     try {
-      final refundStatus = await _appointmentService.cancelAppointment(appointment.appointmentId);
-      
+      final refundStatus = await _appointmentService.cancelAppointment(
+        appointment.appointmentId,
+      );
+
       if (mounted) {
         String message = '✅ Appointment cancelled successfully';
         Color color = const Color(0xFF4CAF50);
@@ -559,7 +546,8 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
         if (refundStatus == RefundStatus.success) {
           message = '✅ Appointment cancelled & Refunded successfully';
         } else if (refundStatus == RefundStatus.failed) {
-          message = '⚠️ Appointment cancelled but Refund failed. Please contact support.';
+          message =
+              '⚠️ Appointment cancelled but Refund failed. Please contact support.';
           color = Colors.orange;
         }
 
@@ -574,10 +562,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('❌ Error: $e'), backgroundColor: Colors.red),
         );
       }
     }

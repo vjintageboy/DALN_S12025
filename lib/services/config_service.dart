@@ -1,4 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:n04_app/dummy_firebase.dart';
 import '../core/constants/app_constants.dart';
 
 class ConfigService {
@@ -11,13 +12,13 @@ class ConfigService {
   Future<List<String>> getDefaultUserGoals() async {
     try {
       final doc = await _db.collection('config').doc('defaults').get();
-      if (doc.exists && doc.data()?['userGoals'] != null) {
-        return List<String>.from(doc.data()!['userGoals']);
+      if (doc.exists && doc.data()['userGoals'] != null) {
+        return List<String>.from(doc.data()['userGoals']);
       }
     } catch (e) {
-      print('Error fetching default goals: $e');
+      debugPrint('Error fetching default goals: $e');
     }
-    
+
     // Fallback to local defaults
     return AppConstants.defaultUserGoals;
   }
@@ -26,13 +27,13 @@ class ConfigService {
   Future<List<String>> getEmotionFactors() async {
     try {
       final doc = await _db.collection('config').doc('mood').get();
-      if (doc.exists && doc.data()?['emotionFactors'] != null) {
-        return List<String>.from(doc.data()!['emotionFactors']);
+      if (doc.exists && doc.data()['emotionFactors'] != null) {
+        return List<String>.from(doc.data()['emotionFactors']);
       }
     } catch (e) {
-      print('Error fetching emotion factors: $e');
+      debugPrint('Error fetching emotion factors: $e');
     }
-    
+
     // Fallback to local defaults
     return AppConstants.emotionFactors;
   }
@@ -41,13 +42,13 @@ class ConfigService {
   Future<List<Map<String, dynamic>>> getMoodLevels() async {
     try {
       final doc = await _db.collection('config').doc('mood').get();
-      if (doc.exists && doc.data()?['moodLevels'] != null) {
-        return List<Map<String, dynamic>>.from(doc.data()!['moodLevels']);
+      if (doc.exists && doc.data()['moodLevels'] != null) {
+        return List<Map<String, dynamic>>.from(doc.data()['moodLevels']);
       }
     } catch (e) {
-      print('Error fetching mood levels: $e');
+      debugPrint('Error fetching mood levels: $e');
     }
-    
+
     // Fallback to local defaults
     return [
       {'level': 1, 'emoji': '😞', 'label': 'Very Poor'},
@@ -66,9 +67,9 @@ class ConfigService {
         return doc.data() ?? _getDefaultSettings();
       }
     } catch (e) {
-      print('Error fetching app settings: $e');
+      debugPrint('Error fetching app settings: $e');
     }
-    
+
     return _getDefaultSettings();
   }
 
@@ -83,10 +84,7 @@ class ConfigService {
   }
 
   /// Get cached config or fetch from Firestore
-  Future<T> getCachedConfig<T>(
-    String key,
-    Future<T> Function() fetcher,
-  ) async {
+  Future<T> getCachedConfig<T>(String key, Future<T> Function() fetcher) async {
     if (_cache.containsKey(key)) {
       return _cache[key] as T;
     }
@@ -109,7 +107,7 @@ class ConfigService {
       if (!defaultsDoc.exists) {
         await _db.collection('config').doc('defaults').set({
           'userGoals': AppConstants.defaultUserGoals,
-          'createdAt': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverDateTime(),
         });
       }
 
@@ -124,7 +122,7 @@ class ConfigService {
             {'level': 4, 'emoji': '🙂', 'label': 'Good'},
             {'level': 5, 'emoji': '😄', 'label': 'Excellent'},
           ],
-          'createdAt': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverDateTime(),
         });
       }
 
@@ -132,13 +130,13 @@ class ConfigService {
       if (!settingsDoc.exists) {
         await _db.collection('config').doc('settings').set({
           ..._getDefaultSettings(),
-          'createdAt': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverDateTime(),
         });
       }
 
-      print('Default config initialized successfully');
+      debugPrint('Default config initialized successfully');
     } catch (e) {
-      print('Error initializing default config: $e');
+      debugPrint('Error initializing default config: $e');
     }
   }
 }

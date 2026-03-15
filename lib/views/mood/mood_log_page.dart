@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/mood_entry.dart';
-import '../../services/firestore_service.dart';
 import '../../core/services/localization_service.dart';
+import '../../services/supabase_service.dart';
 
 class MoodLogPage extends StatefulWidget {
   const MoodLogPage({super.key});
@@ -12,9 +11,9 @@ class MoodLogPage extends StatefulWidget {
 }
 
 class _MoodLogPageState extends State<MoodLogPage> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService.instance;
   final TextEditingController _noteController = TextEditingController();
-  
+
   int _selectedMoodLevel = 3; // Default: Okay
   final Set<String> _selectedFactors = {};
   bool _isSaving = false;
@@ -49,23 +48,23 @@ class _MoodLogPageState extends State<MoodLogPage> {
   }
 
   Future<void> _saveMoodEntry() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _supabaseService.currentUser;
     if (user == null) return;
 
     setState(() => _isSaving = true);
 
     try {
       final moodEntry = MoodEntry(
-        entryId: '', // Firestore will generate
-        userId: user.uid,
+        entryId: '',
+        userId: user.id,
         moodLevel: _selectedMoodLevel,
         note: _noteController.text.trim(),
         emotionFactors: _selectedFactors.toList(),
-        tags: [], // Can add tags later
+        tags: [],
         timestamp: DateTime.now(),
       );
 
-      await _firestoreService.createMoodEntry(moodEntry);
+      await _supabaseService.createMoodEntry(moodEntry);
 
       if (mounted) {
         // Show success message
@@ -79,7 +78,9 @@ class _MoodLogPageState extends State<MoodLogPage> {
 
         // Navigate back after short delay
         await Future.delayed(const Duration(milliseconds: 500));
-        if (mounted) Navigator.pop(context, true); // Return true to indicate success
+        if (mounted) {
+          Navigator.pop(context, true); // Return true to indicate success
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -155,10 +156,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF43A047),
-                  Color(0xFF81C784),
-                ],
+                colors: [Color(0xFF43A047), Color(0xFF81C784)],
               ),
             ),
           ),
@@ -186,16 +184,12 @@ class _MoodLogPageState extends State<MoodLogPage> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF43A047),
-            Color(0xFF4CAF50),
-            Color(0xFF66BB6A),
-          ],
+          colors: [Color(0xFF43A047), Color(0xFF4CAF50), Color(0xFF66BB6A)],
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -216,10 +210,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
           const SizedBox(height: 10),
           Text(
             context.l10n.trackMoodDescription,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 28),
           Row(
@@ -228,7 +219,8 @@ class _MoodLogPageState extends State<MoodLogPage> {
               final isSelected = _selectedMoodLevel == mood['level'];
               return Expanded(
                 child: GestureDetector(
-                  onTap: () => setState(() => _selectedMoodLevel = mood['level']),
+                  onTap: () =>
+                      setState(() => _selectedMoodLevel = mood['level']),
                   child: Column(
                     children: [
                       AnimatedScale(
@@ -239,14 +231,16 @@ class _MoodLogPageState extends State<MoodLogPage> {
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(isSelected ? 0.3 : 0.15),
+                            color: Colors.white.withValues(alpha: 
+                              isSelected ? 0.3 : 0.15,
+                            ),
                             border: isSelected
                                 ? Border.all(color: Colors.white, width: 2)
                                 : null,
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
+                                      color: Colors.black.withValues(alpha: 0.2),
                                       blurRadius: 12,
                                       offset: const Offset(0, 6),
                                     ),
@@ -268,8 +262,10 @@ class _MoodLogPageState extends State<MoodLogPage> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: Colors.white.withOpacity(isSelected ? 1 : 0.9),
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: Colors.white.withValues(alpha: isSelected ? 1 : 0.9),
                         ),
                       ),
                     ],
@@ -295,18 +291,18 @@ class _MoodLogPageState extends State<MoodLogPage> {
             decoration: InputDecoration(
               hintText: context.l10n.moodNotePlaceholder,
               hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 14,
               ),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.12),
+              fillColor: Colors.white.withValues(alpha: 0.12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
@@ -314,10 +310,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
-            style: const TextStyle(
-              fontSize: 15,
-              color: Colors.white,
-            ),
+            style: const TextStyle(fontSize: 15, color: Colors.white),
           ),
         ],
       ),
@@ -332,7 +325,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -349,10 +342,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
                   color: const Color(0xFFFFF3E0),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  color: Color(0xFFF57C00),
-                ),
+                child: const Icon(Icons.auto_awesome, color: Color(0xFFF57C00)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -398,18 +388,25 @@ class _MoodLogPageState extends State<MoodLogPage> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF43A047).withOpacity(0.12) : const Color(0xFFF5F7FB),
+                    color: isSelected
+                        ? const Color(0xFF43A047).withValues(alpha: 0.12)
+                        : const Color(0xFFF5F7FB),
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+                      color: isSelected
+                          ? const Color(0xFF2E7D32)
+                          : Colors.grey.shade300,
                       width: 1.4,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: const Color(0xFF2E7D32).withOpacity(0.15),
+                              color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -420,8 +417,12 @@ class _MoodLogPageState extends State<MoodLogPage> {
                     factor,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? const Color(0xFF1B5E20) : Colors.grey.shade700,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? const Color(0xFF1B5E20)
+                          : Colors.grey.shade700,
                     ),
                   ),
                 ),
@@ -432,6 +433,7 @@ class _MoodLogPageState extends State<MoodLogPage> {
       ),
     );
   }
+
   String _getMoodLabel(BuildContext context, String labelKey) {
     switch (labelKey) {
       case 'veryPoor':

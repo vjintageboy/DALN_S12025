@@ -1,11 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-enum MessageType {
-  text,
-  image,
-  file,
-  system,
-}
+import 'package:n04_app/dummy_firebase.dart';
+enum MessageType { text, image, file, system }
 
 class ChatMessage {
   final String id;
@@ -30,13 +24,13 @@ class ChatMessage {
       'senderId': senderId,
       'content': content,
       'type': type.name,
-      'timestamp': Timestamp.fromDate(timestamp),
+      'timestamp': (timestamp),
       'isPinned': isPinned,
     };
   }
 
   factory ChatMessage.fromSnapshot(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data();
     return ChatMessage(
       id: doc.id,
       senderId: data['senderId'] ?? '',
@@ -45,7 +39,7 @@ class ChatMessage {
         (e) => e.name == data['type'],
         orElse: () => MessageType.text,
       ),
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
+      timestamp: (data['timestamp'] as DateTime).toDate(),
       isPinned: data['isPinned'] ?? false,
     );
   }

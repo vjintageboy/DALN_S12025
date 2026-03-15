@@ -1,13 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class AppUser {
   final String id;
   final String email;
   final String displayName;
   final String? photoUrl;
   final UserRole role;
-  final DateTime createdAt;
-  final DateTime? lastLoginAt;
+  final int streakCount;
+  final DateTime? createdAt;
 
   AppUser({
     required this.id,
@@ -15,34 +13,32 @@ class AppUser {
     required this.displayName,
     this.photoUrl,
     required this.role,
-    required this.createdAt,
-    this.lastLoginAt,
+    this.streakCount = 0,
+    this.createdAt,
   });
 
-  factory AppUser.fromFirestore(Map<String, dynamic> data, String id) {
+  factory AppUser.fromMap(Map<String, dynamic> data) {
     return AppUser(
-      id: id,
+      id: data['id'] ?? '',
       email: data['email'] ?? '',
-      displayName: data['displayName'] ?? '',
-      photoUrl: data['photoUrl'],
+      displayName: data['full_name'] ?? '',
+      photoUrl: data['avatar_url'],
       role: UserRole.fromString(data['role'] ?? 'user'),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      lastLoginAt: data['lastLoginAt'] != null 
-          ? (data['lastLoginAt'] as Timestamp).toDate() 
+      streakCount: data['streak_count'] ?? 0,
+      createdAt: data['created_at'] != null
+          ? DateTime.tryParse(data['created_at'].toString())
           : null,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'email': email,
-      'displayName': displayName,
-      'photoUrl': photoUrl,
+      'full_name': displayName,
+      'avatar_url': photoUrl,
       'role': role.value,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'lastLoginAt': lastLoginAt != null 
-          ? Timestamp.fromDate(lastLoginAt!) 
-          : null,
+      'streak_count': streakCount,
     };
   }
 
@@ -54,8 +50,8 @@ class AppUser {
     String? displayName,
     String? photoUrl,
     UserRole? role,
+    int? streakCount,
     DateTime? createdAt,
-    DateTime? lastLoginAt,
   }) {
     return AppUser(
       id: id ?? this.id,
@@ -63,15 +59,15 @@ class AppUser {
       displayName: displayName ?? this.displayName,
       photoUrl: photoUrl ?? this.photoUrl,
       role: role ?? this.role,
+      streakCount: streakCount ?? this.streakCount,
       createdAt: createdAt ?? this.createdAt,
-      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
     );
   }
 }
 
 enum UserRole {
   admin('admin'),
-  expert('expert'), // ⭐ NEW - Expert role for mental health professionals
+  expert('expert'),
   user('user');
 
   final String value;
@@ -86,7 +82,7 @@ enum UserRole {
 
   @override
   String toString() => value;
-  
+
   // Helper getters
   bool get isAdmin => this == UserRole.admin;
   bool get isExpert => this == UserRole.expert;

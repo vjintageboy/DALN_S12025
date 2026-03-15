@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class PostComment {
   final String commentId;
   final String postId;
@@ -20,28 +18,37 @@ class PostComment {
   }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
-    return {
-      'commentId': commentId,
-      'postId': postId,
-      'userId': userId,
-      'userName': userName,
-      'userAvatarUrl': userAvatarUrl,
+    final map = <String, dynamic>{
+      'post_id': postId,
+      'user_id': userId,
       'content': content,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'created_at': createdAt.toIso8601String(),
     };
+    
+    if (commentId.isNotEmpty) {
+      map['id'] = commentId;
+    }
+    
+    return map;
   }
 
-  factory PostComment.fromSnapshot(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    
+  factory PostComment.fromMap(Map<String, dynamic> data) {
+    // Check if author data is joined
+    final users = data['users'] as Map<String, dynamic>?;
+    final userName = users?['full_name'] ?? 'Unknown';
+    final userAvatarUrl = users?['avatar_url'];
+
     return PostComment(
-      commentId: doc.id,
-      postId: data['postId'] ?? '',
-      userId: data['userId'] ?? '',
-      userName: data['userName'] ?? 'Unknown',
-      userAvatarUrl: data['userAvatarUrl'],
+      commentId: data['id'] ?? '',
+      postId: data['post_id'] ?? '',
+      userId: data['user_id'] ?? '',
+      userName: userName,
+      userAvatarUrl: userAvatarUrl,
       content: data['content'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: data['created_at'] != null 
+          ? DateTime.parse(data['created_at']).toLocal() 
+          : DateTime.now(),
     );
   }
 }
+

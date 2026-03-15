@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/services/localization_service.dart';
 import '../../models/meditation.dart';
-import '../../services/firestore_service.dart';
+import '../../services/supabase_service.dart';
 import 'meditation_detail_page.dart';
 
 /// Meditation Library Page - Browse all meditations with search & filter
@@ -13,7 +13,7 @@ class MeditationLibraryPage extends StatefulWidget {
 }
 
 class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final _supabaseService = SupabaseService.instance;
   List<Meditation> _allMeditations = [];
   List<Meditation> _filteredMeditations = [];
   bool _isLoading = true;
@@ -42,19 +42,27 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
   }
 
   Future<void> _loadMeditations() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
-      final meditations = await _firestoreService.getAllMeditations();
-      setState(() {
-        _allMeditations = meditations;
-        _filteredMeditations = meditations;
-        _isLoading = false;
-      });
-      _applyFilters();
-    } catch (e) {
-      setState(() => _isLoading = false);
+      final data = await _supabaseService.getMeditations();
+      final meditations = data.map((m) => Meditation.fromMap(m)).toList();
+      
       if (mounted) {
+        setState(() {
+          _allMeditations = meditations;
+          _filteredMeditations = meditations;
+          _isLoading = false;
+        });
+        _applyFilters();
+      }
+    } catch (e) {
+      debugPrint('Error loading meditations: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading meditations: $e')),
         );
@@ -66,12 +74,18 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
     setState(() {
       _filteredMeditations = _allMeditations.where((meditation) {
         // Search filter
-        final matchesSearch = _searchQuery.isEmpty ||
-            meditation.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            meditation.description.toLowerCase().contains(_searchQuery.toLowerCase());
+        final matchesSearch =
+            _searchQuery.isEmpty ||
+            meditation.title.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            meditation.description.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            );
 
         // Category filter
-        final matchesCategory = _selectedCategory == null ||
+        final matchesCategory =
+            _selectedCategory == null ||
             meditation.category == _selectedCategory;
 
         return matchesSearch && matchesCategory;
@@ -208,31 +222,30 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF4CAF50),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
                   )
                 : _filteredMeditations.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: _loadMeditations,
-                        child: GridView.builder(
-                          padding: const EdgeInsets.all(20),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                ? _buildEmptyState()
+                : RefreshIndicator(
+                    onRefresh: _loadMeditations,
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(20),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             childAspectRatio: 0.75,
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                           ),
-                          itemCount: _filteredMeditations.length,
-                          itemBuilder: (context, index) {
-                            return _buildMeditationCard(
-                              _filteredMeditations[index],
-                              _getMeditationColor(index),
-                            );
-                          },
-                        ),
-                      ),
+                      itemCount: _filteredMeditations.length,
+                      itemBuilder: (context, index) {
+                        return _buildMeditationCard(
+                          _filteredMeditations[index],
+                          _getMeditationColor(index),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -252,7 +265,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
         selected: isSelected,
         onSelected: (_) => onTap(),
         backgroundColor: Colors.grey.shade100,
-        selectedColor: const Color(0xFF4CAF50).withOpacity(0.2),
+        selectedColor: const Color(0xFF4CAF50).withValues(alpha: 0.2),
         checkmarkColor: const Color(0xFF4CAF50),
         labelStyle: TextStyle(
           color: isSelected ? const Color(0xFF4CAF50) : Colors.black87,
@@ -302,7 +315,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
+              color: color.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -314,7 +327,9 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
             children: [
               // Background: Thumbnail or Gradient
               Positioned.fill(
-                child: meditation.thumbnailUrl != null && meditation.thumbnailUrl!.isNotEmpty
+                child:
+                    meditation.thumbnailUrl != null &&
+                        meditation.thumbnailUrl!.isNotEmpty
                     ? Image.network(
                         meditation.thumbnailUrl!,
                         fit: BoxFit.cover,
@@ -325,10 +340,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                  color,
-                                  color.withOpacity(0.7),
-                                ],
+                                colors: [color, color.withValues(alpha: 0.7)],
                               ),
                             ),
                           );
@@ -341,10 +353,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                  color,
-                                  color.withOpacity(0.7),
-                                ],
+                                colors: [color, color.withValues(alpha: 0.7)],
                               ),
                             ),
                           );
@@ -355,15 +364,12 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              color,
-                              color.withOpacity(0.7),
-                            ],
+                            colors: [color, color.withValues(alpha: 0.7)],
                           ),
                         ),
                       ),
               ),
-              
+
               // Overlay gradient for text readability
               Positioned.fill(
                 child: Container(
@@ -373,13 +379,13 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.6),
+                        Colors.black.withValues(alpha: 0.6),
                       ],
                     ),
                   ),
                 ),
               ),
-              
+
               // Subtle pattern overlay
               Positioned.fill(
                 child: Container(
@@ -388,37 +394,36 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
                       colors: [
-                        Colors.white.withOpacity(0.1),
+                        Colors.white.withValues(alpha: 0.1),
                         Colors.transparent,
                       ],
                     ),
                   ),
                 ),
               ),
-              
+
               // Rating badge
               if (meditation.rating > 0)
                 Positioned(
                   top: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
+                      color: Colors.white.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.white,
-                          size: 14,
-                        ),
+                        const Icon(Icons.star, color: Colors.white, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           meditation.rating.toStringAsFixed(1),
@@ -432,7 +437,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                     ),
                   ),
                 ),
-              
+
               // Content
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -456,7 +461,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -474,11 +479,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.spa_outlined,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.spa_outlined, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             context.l10n.noMeditationsFound,
@@ -491,10 +492,7 @@ class _MeditationLibraryPageState extends State<MeditationLibraryPage> {
           const SizedBox(height: 8),
           Text(
             context.l10n.tryDifferentSearch,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),

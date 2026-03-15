@@ -6,10 +6,7 @@ import 'ai_chatbot_widget.dart';
 class ChatbotWrapper extends StatelessWidget {
   final Widget child;
 
-  const ChatbotWrapper({
-    super.key,
-    required this.child,
-  });
+  const ChatbotWrapper({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {

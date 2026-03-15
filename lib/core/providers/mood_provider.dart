@@ -1,6 +1,6 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/foundation.dart';
 import '../../models/mood_entry.dart';
-import '../../services/firestore_service.dart';
 import '../../services/config_service.dart';
 
 enum MoodFilterLevel { all, veryPoor, poor, okay, good, excellent }
@@ -29,7 +29,7 @@ class MoodProvider extends ChangeNotifier {
     if (_filterLevel == MoodFilterLevel.all) {
       return _moodEntries;
     }
-    
+
     final level = _filterLevelToInt(_filterLevel);
     return _moodEntries.where((entry) => entry.moodLevel == level).toList();
   }
@@ -37,7 +37,10 @@ class MoodProvider extends ChangeNotifier {
   // Statistics
   double get averageMood {
     if (_moodEntries.isEmpty) return 0.0;
-    final sum = _moodEntries.fold<int>(0, (sum, entry) => sum + entry.moodLevel);
+    final sum = _moodEntries.fold<int>(
+      0,
+      (sum, entry) => sum + entry.moodLevel,
+    );
     return sum / _moodEntries.length;
   }
 
@@ -56,10 +59,10 @@ class MoodProvider extends ChangeNotifier {
         frequency[factor] = (frequency[factor] ?? 0) + 1;
       }
     }
-    
+
     final sortedEntries = frequency.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    
+
     return Map.fromEntries(sortedEntries.take(5));
   }
 
@@ -105,7 +108,11 @@ class MoodProvider extends ChangeNotifier {
   }
 
   // Load mood entries for a specific user
-  Future<void> loadMoodEntries(String userId, {DateTime? startDate, DateTime? endDate}) async {
+  Future<void> loadMoodEntries(
+    String userId, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     try {
       _isLoading = true;
       _errorMessage = null;
@@ -113,8 +120,10 @@ class MoodProvider extends ChangeNotifier {
 
       _moodEntries = await _firestoreService.getMoodEntriesForPeriod(
         userId: userId,
-        start: startDate ?? DateTime(selectedMonth.year, selectedMonth.month, 1),
-        end: endDate ?? DateTime(selectedMonth.year, selectedMonth.month + 1, 0),
+        start:
+            startDate ?? DateTime(selectedMonth.year, selectedMonth.month, 1),
+        end:
+            endDate ?? DateTime(selectedMonth.year, selectedMonth.month + 1, 0),
       );
 
       _isLoading = false;
@@ -271,7 +280,7 @@ class MoodProvider extends ChangeNotifier {
   double getAverageMoodForDate(DateTime date) {
     final entries = getMoodEntriesForDate(date);
     if (entries.isEmpty) return 0.0;
-    
+
     final sum = entries.fold<int>(0, (sum, entry) => sum + entry.moodLevel);
     return sum / entries.length;
   }

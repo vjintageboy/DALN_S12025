@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../models/mood_entry.dart';
-import '../../services/firestore_service.dart';
 import '../../core/services/localization_service.dart';
+import '../../services/supabase_service.dart';
 
 class MoodAnalyticsPage extends StatefulWidget {
   const MoodAnalyticsPage({super.key});
@@ -13,7 +12,7 @@ class MoodAnalyticsPage extends StatefulWidget {
 }
 
 class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService.instance;
   List<MoodEntry> _moodEntries = [];
   bool _isLoading = true;
   String _selectedPeriod = 'week'; // week, month, year
@@ -25,7 +24,7 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
   }
 
   Future<void> _loadMoodData() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _supabaseService.currentUser;
     if (user == null) return;
 
     setState(() => _isLoading = true);
@@ -48,8 +47,8 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
           startDate = now.subtract(const Duration(days: 7));
       }
 
-      final entries = await _firestoreService.getMoodEntriesForPeriod(
-        userId: user.uid,
+      final entries = await _supabaseService.getMoodEntriesForPeriod(
+        userId: user.id,
         start: startDate,
         end: now,
       );
@@ -63,9 +62,9 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading mood data: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading mood data: $e')));
       }
     }
   }
@@ -73,7 +72,10 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
   // Calculate average mood
   double get _averageMood {
     if (_moodEntries.isEmpty) return 0.0;
-    final sum = _moodEntries.fold<int>(0, (sum, entry) => sum + entry.moodLevel);
+    final sum = _moodEntries.fold<int>(
+      0,
+      (sum, entry) => sum + entry.moodLevel,
+    );
     return sum / _moodEntries.length;
   }
 
@@ -112,34 +114,52 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
 
   String _getMoodEmoji(int level) {
     switch (level) {
-      case 1: return '😞';
-      case 2: return '😕';
-      case 3: return '😐';
-      case 4: return '🙂';
-      case 5: return '😄';
-      default: return '😐';
+      case 1:
+        return '😞';
+      case 2:
+        return '😕';
+      case 3:
+        return '😐';
+      case 4:
+        return '🙂';
+      case 5:
+        return '😄';
+      default:
+        return '😐';
     }
   }
 
   String _getMoodLabel(int level) {
     switch (level) {
-      case 1: return context.l10n.veryPoor;
-      case 2: return context.l10n.poor;
-      case 3: return context.l10n.okay;
-      case 4: return context.l10n.good;
-      case 5: return context.l10n.excellent;
-      default: return context.l10n.okay;
+      case 1:
+        return context.l10n.veryPoor;
+      case 2:
+        return context.l10n.poor;
+      case 3:
+        return context.l10n.okay;
+      case 4:
+        return context.l10n.good;
+      case 5:
+        return context.l10n.excellent;
+      default:
+        return context.l10n.okay;
     }
   }
 
   Color _getMoodColor(int level) {
     switch (level) {
-      case 1: return Colors.red.shade400;
-      case 2: return Colors.orange.shade400;
-      case 3: return Colors.yellow.shade700;
-      case 4: return Colors.lightGreen.shade600;
-      case 5: return Colors.green.shade600;
-      default: return Colors.grey;
+      case 1:
+        return Colors.red.shade400;
+      case 2:
+        return Colors.orange.shade400;
+      case 3:
+        return Colors.yellow.shade700;
+      case 4:
+        return Colors.lightGreen.shade600;
+      case 5:
+        return Colors.green.shade600;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -290,7 +310,7 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
         border: Border.all(color: Colors.grey.shade200, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -341,16 +361,10 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
         children: [
           const Text(
             'Mood Trend',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            height: 200,
-            child: _MoodLineChart(entries: _moodEntries),
-          ),
+          SizedBox(height: 200, child: _MoodLineChart(entries: _moodEntries)),
         ],
       ),
     );
@@ -372,10 +386,7 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
         children: [
           const Text(
             'Mood Distribution',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 16),
           ...distribution.entries.map((entry) {
@@ -432,7 +443,7 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
 
   Widget _buildTopEmotionFactors() {
     final topFactors = _emotionFactorFrequency.entries.take(5).toList();
-    
+
     if (topFactors.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -447,16 +458,13 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
         children: [
           const Text(
             'Top Influencing Factors',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 16),
           ...topFactors.map((entry) {
             final maxCount = topFactors.first.value;
             final percentage = entry.value / maxCount;
-            
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(
@@ -511,10 +519,7 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
       children: [
         const Text(
           'Highlights',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         _buildHighlightCard(
@@ -619,10 +624,7 @@ class _MoodAnalyticsPageState extends State<MoodAnalyticsPage> {
           const SizedBox(height: 8),
           Text(
             'Start logging your mood to see analytics',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),
@@ -684,11 +686,7 @@ class _LineChartPainter extends CustomPainter {
     // Draw grid lines
     for (int i = 0; i <= 5; i++) {
       final y = size.height - (i * size.height / 5);
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        gridPaint,
-      );
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
     // Calculate points
@@ -698,20 +696,20 @@ class _LineChartPainter extends CustomPainter {
     for (int i = 0; i < entries.length; i++) {
       // Validate mood level (must be 1-5)
       final moodLevel = entries[i].moodLevel.clamp(1, 5);
-      
+
       // Handle single entry case to avoid division by zero
       final x = entries.length > 1
           ? (i / (entries.length - 1)) * size.width
           : size.width / 2; // Center the single point
-      
+
       // Calculate y position (moodLevel 1-5 mapped to height)
       final normalizedMood = (moodLevel - 1) / 4; // 0.0 to 1.0
       final y = size.height - (normalizedMood * size.height);
-      
+
       // Validate coordinates before adding
       if (!x.isNaN && !y.isNaN && x.isFinite && y.isFinite) {
         points.add(Offset(x, y));
-        
+
         if (i == 0) {
           path.moveTo(x, y);
         } else {

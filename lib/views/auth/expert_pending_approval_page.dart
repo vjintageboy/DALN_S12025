@@ -1,5 +1,5 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'welcome_page.dart';
 
 class ExpertPendingApprovalPage extends StatelessWidget {
@@ -29,9 +29,9 @@ class ExpertPendingApprovalPage extends StatelessWidget {
                     color: Colors.orange.shade600,
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Title
                 const Text(
                   'Application Submitted!',
@@ -42,9 +42,9 @@ class ExpertPendingApprovalPage extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Message
                 Text(
                   'Your expert application is pending review',
@@ -55,22 +55,19 @@ class ExpertPendingApprovalPage extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Info Card
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.grey.shade200,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: Colors.grey.shade200, width: 1.5),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -114,9 +111,9 @@ class ExpertPendingApprovalPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Estimated time
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -126,9 +123,7 @@ class ExpertPendingApprovalPage extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.blue.shade200,
-                    ),
+                    border: Border.all(color: Colors.blue.shade200),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -150,9 +145,9 @@ class ExpertPendingApprovalPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 48),
-                
+
                 // Logout button
                 SizedBox(
                   width: double.infinity,

@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import '../../models/news_post.dart';
 import '../../models/post_comment.dart';
 import '../../services/news_service.dart';
+import '../../services/supabase_service.dart';
 
 class PostDetailPage extends StatefulWidget {
   final NewsPost post;
 
-  const PostDetailPage({
-    super.key,
-    required this.post,
-  });
+  const PostDetailPage({super.key, required this.post});
 
   @override
   State<PostDetailPage> createState() => _PostDetailPageState();
@@ -21,8 +17,14 @@ class PostDetailPage extends StatefulWidget {
 class _PostDetailPageState extends State<PostDetailPage> {
   final NewsService _newsService = NewsService();
   final TextEditingController _commentController = TextEditingController();
-  final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+  late final String currentUserId;
   bool _commentAnonymously = false; // Anonymous comment toggle
+
+  @override
+  void initState() {
+    super.initState();
+    currentUserId = SupabaseService.instance.currentUser!.id;
+  }
 
   @override
   void dispose() {
@@ -30,35 +32,23 @@ class _PostDetailPageState extends State<PostDetailPage> {
     super.dispose();
   }
 
-  /// Load user avatar from Firestore
+  /// Load user avatar from Supabase
   Future<Map<String, dynamic>> _loadUserAvatar() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = SupabaseService.instance.currentUser;
       if (user == null) return {'avatarUrl': null, 'displayName': 'User'};
 
-      // Get from users collection
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      
-      // Also check profiles collection
-      final profileDoc = await FirebaseFirestore.instance
-          .collection('profiles')
-          .doc(user.uid)
-          .get();
-      
-      final userData = userDoc.data();
-      final profileData = profileDoc.data();
-      
-      final avatarUrl = userData?['photoBase64'] ?? 
-                       profileData?['photoBase64'] ??
-                       userData?['photoURL'] ?? 
-                       profileData?['photoURL'] ??
-                       user.photoURL;
-      
-      final displayName = userData?['displayName'] ?? user.displayName ?? 'User';
-      
+      final userData = await SupabaseService.instance.client
+          .from('users')
+          .select()
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (userData == null) return {'avatarUrl': null, 'displayName': 'User'};
+
+      final avatarUrl = userData['avatar_url'];
+      final displayName = userData['full_name'] ?? 'User';
+
       return {'avatarUrl': avatarUrl, 'displayName': displayName};
     } catch (e) {
       return {'avatarUrl': null, 'displayName': 'User'};
@@ -69,56 +59,41 @@ class _PostDetailPageState extends State<PostDetailPage> {
     if (_commentController.text.trim().isEmpty) return;
 
     try {
-      final user = FirebaseAuth.instance.currentUser!;
-      
+      final user = SupabaseService.instance.currentUser!;
+
       // Determine user info based on anonymous toggle
       String userName;
       String? userAvatarUrl;
-      
+
       if (_commentAnonymously) {
         userName = 'Anonymous';
         userAvatarUrl = null;
       } else {
-        // Get user info from users collection
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        
-        // Also check profiles collection for avatar
-        final profileDoc = await FirebaseFirestore.instance
-            .collection('profiles')
-            .doc(user.uid)
-            .get();
-        
-        final userData = userDoc.data();
-        final profileData = profileDoc.data();
-        
-        userName = userData?['displayName'] ?? user.displayName ?? 'User';
-        
-        // Try to get avatar from multiple sources
-        userAvatarUrl = userData?['photoBase64'] ?? 
-                       profileData?['photoBase64'] ??
-                       userData?['photoURL'] ?? 
-                       profileData?['photoURL'] ??
-                       user.photoURL;
+        final userData = await SupabaseService.instance.client
+            .from('users')
+            .select()
+            .eq('id', user.id)
+            .maybeSingle();
+
+        userName = userData?['full_name'] ?? 'User';
+        userAvatarUrl = userData?['avatar_url'];
       }
 
       final comment = PostComment(
         commentId: '',
         postId: widget.post.postId,
-        userId: user.uid, // Keep real ID for moderation
+        userId: user.id, // Keep real ID for moderation
         userName: userName,
         userAvatarUrl: userAvatarUrl,
         content: _commentController.text.trim(),
       );
 
       await _newsService.addComment(comment);
-      
+
       if (!mounted) return;
-      
+
       _commentController.clear();
-      
+
       // Hide keyboard
       if (mounted) {
         FocusScope.of(context).unfocus();
@@ -157,10 +132,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
-          'Post',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('Post', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF6C63FF),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -185,30 +157,44 @@ class _PostDetailPageState extends State<PostDetailPage> {
                           children: [
                             CircleAvatar(
                               radius: 24,
-                              backgroundColor: widget.post.authorName == 'Anonymous'
+                              backgroundColor:
+                                  widget.post.authorName == 'Anonymous'
                                   ? Colors.grey.shade300
-                                  : const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                              backgroundImage: widget.post.authorName != 'Anonymous' && widget.post.authorAvatarUrl != null
-                                  ? (_isBase64(widget.post.authorAvatarUrl!)
-                                      ? MemoryImage(base64Decode(widget.post.authorAvatarUrl!))
-                                      : NetworkImage(widget.post.authorAvatarUrl!)) as ImageProvider
-                                  : null,
+                                  : const Color(
+                                      0xFF6C63FF,
+                                    ).withValues(alpha: 0.2),
+                              backgroundImage:
+                                  widget.post.authorName != 'Anonymous' &&
+                                          widget.post.authorAvatarUrl != null &&
+                                          widget.post.authorAvatarUrl!.isNotEmpty
+                                      ? (_isBase64(widget.post.authorAvatarUrl!)
+                                              ? MemoryImage(
+                                                  base64Decode(
+                                                    widget.post.authorAvatarUrl!,
+                                                  ),
+                                                )
+                                              : NetworkImage(
+                                                  widget.post.authorAvatarUrl!,
+                                                ))
+                                          as ImageProvider
+                                      : null,
                               child: widget.post.authorName == 'Anonymous'
                                   ? Icon(
                                       Icons.visibility_off,
                                       size: 24,
                                       color: Colors.grey.shade700,
                                     )
-                                  : (widget.post.authorAvatarUrl == null
-                                      ? Text(
-                                          widget.post.authorName[0].toUpperCase(),
-                                          style: const TextStyle(
-                                            color: Color(0xFF6C63FF),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                          ),
-                                        )
-                                      : null),
+                                  : (widget.post.authorAvatarUrl == null || widget.post.authorAvatarUrl!.isEmpty
+                                        ? Text(
+                                            widget.post.authorName[0]
+                                                .toUpperCase(),
+                                            style: const TextStyle(
+                                              color: Color(0xFF6C63FF),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          )
+                                        : null),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -224,7 +210,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                           fontSize: 16,
                                         ),
                                       ),
-                                      if (widget.post.authorRole == 'expert') ...[
+                                      if (widget.post.authorRole ==
+                                          'expert') ...[
                                         const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
@@ -232,8 +219,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(4),
+                                            color: const Color(
+                                              0xFF6C63FF,
+                                            ).withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                           child: const Text(
                                             'Expert',
@@ -264,7 +255,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: _getCategoryColor(widget.post.category).withValues(alpha: 0.1),
+                                color: _getCategoryColor(
+                                  widget.post.category,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -272,7 +265,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: _getCategoryColor(widget.post.category),
+                                  color: _getCategoryColor(
+                                    widget.post.category,
+                                  ),
                                 ),
                               ),
                             ),
@@ -301,7 +296,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         ),
 
                         // Image
-                        if (widget.post.imageUrl != null) ...[
+                        if (widget.post.imageUrl != null && widget.post.imageUrl!.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
@@ -352,8 +347,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
-                                          isLiked ? Icons.favorite : Icons.favorite_border,
-                                          color: isLiked ? Colors.red : Colors.grey.shade600,
+                                          isLiked
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          color: isLiked
+                                              ? Colors.red
+                                              : Colors.grey.shade600,
                                           size: 20,
                                         ),
                                         const SizedBox(width: 6),
@@ -391,9 +390,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                   ),
                                   const SizedBox(width: 6),
                                   StreamBuilder<List<PostComment>>(
-                                    stream: _newsService.streamComments(widget.post.postId),
+                                    stream: _newsService.streamComments(
+                                      widget.post.postId,
+                                    ),
                                     builder: (context, snapshot) {
-                                      final count = snapshot.data?.length ?? widget.post.commentCount;
+                                      final count =
+                                          snapshot.data?.length ??
+                                          widget.post.commentCount;
                                       return Text(
                                         '$count',
                                         style: TextStyle(
@@ -431,10 +434,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         ),
                         const SizedBox(height: 16),
                         StreamBuilder<List<PostComment>>(
-                          stream: _newsService.streamComments(widget.post.postId),
+                          stream: _newsService.streamComments(
+                            widget.post.postId,
+                          ),
                           builder: (context, snapshot) {
                             // Show loading only on first load
-                            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                            if (snapshot.connectionState ==
+                                    ConnectionState.waiting &&
+                                !snapshot.hasData) {
                               return const Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(32.0),
@@ -446,11 +453,15 @@ class _PostDetailPageState extends State<PostDetailPage> {
                             // Handle error
                             if (snapshot.hasError) {
                               return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 32),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 32,
+                                ),
                                 child: Center(
                                   child: Text(
                                     'Error loading comments',
-                                    style: TextStyle(color: Colors.grey.shade500),
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                    ),
                                   ),
                                 ),
                               );
@@ -460,7 +471,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
                             if (comments.isEmpty) {
                               return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 32),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 32,
+                                ),
                                 child: Center(
                                   child: Column(
                                     children: [
@@ -486,7 +499,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: comments.length,
-                              separatorBuilder: (context, index) => const Divider(height: 24),
+                              separatorBuilder: (context, index) =>
+                                  const Divider(height: 24),
                               itemBuilder: (context, index) {
                                 final comment = comments[index];
                                 return _buildCommentItem(comment);
@@ -508,10 +522,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border(
-                  top: BorderSide(
-                    color: Colors.grey.shade200,
-                    width: 1,
-                  ),
+                  top: BorderSide(color: Colors.grey.shade200, width: 1),
                 ),
               ),
               padding: const EdgeInsets.only(
@@ -529,9 +540,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     child: FutureBuilder<Map<String, dynamic>>(
                       future: _loadUserAvatar(),
                       builder: (context, snapshot) {
-                        final avatarUrl = snapshot.data?['avatarUrl'] as String?;
-                        final displayName = snapshot.data?['displayName'] as String?;
-                        
+                        final avatarUrl =
+                            snapshot.data?['avatarUrl'] as String?;
+                        final displayName =
+                            snapshot.data?['displayName'] as String?;
+
                         return GestureDetector(
                           onTap: () {
                             setState(() {
@@ -542,24 +555,32 @@ class _PostDetailPageState extends State<PostDetailPage> {
                             radius: 18,
                             backgroundColor: _commentAnonymously
                                 ? Colors.grey.shade300
-                                : const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                            backgroundImage: !_commentAnonymously && avatarUrl != null
+                                : const Color(
+                                    0xFF6C63FF,
+                                  ).withValues(alpha: 0.2),
+                            backgroundImage:
+                                !_commentAnonymously && avatarUrl != null && avatarUrl.isNotEmpty
                                 ? (_isBase64(avatarUrl)
-                                    ? MemoryImage(base64Decode(avatarUrl))
-                                    : NetworkImage(avatarUrl)) as ImageProvider
+                                          ? MemoryImage(base64Decode(avatarUrl))
+                                          : NetworkImage(avatarUrl))
+                                      as ImageProvider
                                 : null,
                             child: _commentAnonymously
-                                ? Icon(Icons.visibility_off, size: 18, color: Colors.grey.shade700)
-                                : (avatarUrl == null
-                                    ? Text(
-                                        (displayName ?? 'U')[0].toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Color(0xFF6C63FF),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      )
-                                    : null),
+                                ? Icon(
+                                    Icons.visibility_off,
+                                    size: 18,
+                                    color: Colors.grey.shade700,
+                                  )
+                                : (avatarUrl == null || avatarUrl.isEmpty
+                                      ? Text(
+                                          (displayName ?? 'U')[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            color: Color(0xFF6C63FF),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        )
+                                      : null),
                           ),
                         );
                       },
@@ -568,17 +589,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   const SizedBox(width: 12),
                   // Comment input field
                   Expanded(
-                    child: FutureBuilder<User?>(
-                      future: Future.value(FirebaseAuth.instance.currentUser),
+                    child: FutureBuilder<Map<String, dynamic>>(
+                      future: _loadUserAvatar(),
                       builder: (context, userSnapshot) {
-                        final user = userSnapshot.data;
-                        final userName = user?.displayName ?? 
-                                        (user?.email?.split('@')[0] ?? 'User');
-                        
+                        final userName = userSnapshot.data?['displayName'] ?? 'User';
+
                         return Container(
-                          constraints: const BoxConstraints(
-                            maxHeight: 100,
-                          ),
+                          constraints: const BoxConstraints(maxHeight: 100),
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(20),
@@ -635,10 +652,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
           backgroundColor: comment.userName == 'Anonymous'
               ? Colors.grey.shade300
               : const Color(0xFF6C63FF).withValues(alpha: 0.2),
-          backgroundImage: comment.userName != 'Anonymous' && comment.userAvatarUrl != null
+          backgroundImage:
+              comment.userName != 'Anonymous' && comment.userAvatarUrl != null && comment.userAvatarUrl!.isNotEmpty
               ? (_isBase64(comment.userAvatarUrl!)
-                  ? MemoryImage(base64Decode(comment.userAvatarUrl!))
-                  : NetworkImage(comment.userAvatarUrl!)) as ImageProvider
+                        ? MemoryImage(base64Decode(comment.userAvatarUrl!))
+                        : NetworkImage(comment.userAvatarUrl!))
+                    as ImageProvider
               : null,
           child: comment.userName == 'Anonymous'
               ? Icon(
@@ -646,16 +665,16 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   size: 18,
                   color: Colors.grey.shade700,
                 )
-              : (comment.userAvatarUrl == null
-                  ? Text(
-                      comment.userName[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(0xFF6C63FF),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    )
-                  : null),
+              : (comment.userAvatarUrl == null || comment.userAvatarUrl!.isEmpty
+                    ? Text(
+                        comment.userName[0].toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFF6C63FF),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      )
+                    : null),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -674,10 +693,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   const SizedBox(width: 8),
                   Text(
                     _formatTime(comment.createdAt),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -716,6 +732,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   /// Check if string is Base64 encoded
   bool _isBase64(String str) {
+    if (str.isEmpty) return false;
     // Base64 strings don't start with http/https
     if (str.startsWith('http://') || str.startsWith('https://')) {
       return false;

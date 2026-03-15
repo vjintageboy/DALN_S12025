@@ -1,16 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/supabase_service.dart';
 
-/// Expert account status
 enum ExpertStatus {
-  pending,    // Đang chờ duyệt
-  approved,   // Đã được duyệt, có thể hoạt động
-  active,     // Đang hoạt động
-  inactive,   // Tạm ngừng
-  rejected,   // Bị từ chối
-  suspended   // Bị đình chỉ
+  pending, // Đang chờ duyệt
+  approved, // Đã được duyệt
+  active, // Đang hoạt động
+  inactive, // Tạm ngừng
+  rejected, // Bị từ chối
+  suspended, // Bị đình chỉ
 }
 
-/// Expert credentials model
 class ExpertCredentials {
   final String? licenseNumber;
   final String? licenseUrl;
@@ -34,12 +32,12 @@ class ExpertCredentials {
 
   Map<String, dynamic> toMap() {
     return {
-      'licenseNumber': licenseNumber,
-      'licenseUrl': licenseUrl,
-      'certificateUrls': certificateUrls,
+      'license_number': licenseNumber,
+      'license_url': licenseUrl,
+      'certificate_urls': certificateUrls,
       'education': education,
       'university': university,
-      'graduationYear': graduationYear,
+      'graduation_year': graduationYear,
       'specialization': specialization,
       'bio': bio,
     };
@@ -47,35 +45,40 @@ class ExpertCredentials {
 
   factory ExpertCredentials.fromMap(Map<String, dynamic> map) {
     return ExpertCredentials(
-      licenseNumber: map['licenseNumber'],
-      licenseUrl: map['licenseUrl'],
-      certificateUrls: List<String>.from(map['certificateUrls'] ?? []),
-      education: map['education'],
-      university: map['university'],
-      graduationYear: map['graduationYear'],
-      specialization: map['specialization'],
-      bio: map['bio'],
+      licenseNumber: map['license_number']?.toString(),
+      licenseUrl: map['license_url']?.toString(),
+      certificateUrls: _parseList(map['certificate_urls']),
+      education: map['education']?.toString(),
+      university: map['university']?.toString(),
+      graduationYear: int.tryParse(map['graduation_year']?.toString() ?? ''),
+      specialization: map['specialization']?.toString(),
+      bio: map['bio']?.toString(),
     );
+  }
+
+  static List<String> _parseList(dynamic data) {
+    if (data == null) return [];
+    if (data is List) return data.map((e) => e.toString()).toList();
+    return [];
   }
 }
 
-/// Expert User model - extends regular user with expert-specific fields
 class ExpertUser {
   final String uid;
   final String email;
   final String displayName;
   final String? photoUrl;
   final ExpertStatus status;
-  final String? expertId; // Link to expert profile in 'experts' collection
+  final String? expertId;
   final ExpertCredentials credentials;
   final DateTime createdAt;
   final DateTime? approvedAt;
-  final String? approvedBy; // Admin UID who approved
+  final String? approvedBy;
   final DateTime? rejectedAt;
-  final String? rejectedBy; // Admin UID who rejected
+  final String? rejectedBy;
   final String? rejectionReason;
   final DateTime? suspendedAt;
-  final String? suspendedBy; // Admin UID who suspended
+  final String? suspendedBy;
   final String? suspensionReason;
   final DateTime? lastLoginAt;
 
@@ -99,9 +102,9 @@ class ExpertUser {
     this.lastLoginAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  // Getters
   bool get isPending => status == ExpertStatus.pending;
-  bool get isApproved => status == ExpertStatus.approved || status == ExpertStatus.active;
+  bool get isApproved =>
+      status == ExpertStatus.approved || status == ExpertStatus.active;
   bool get isActive => status == ExpertStatus.active;
   bool get isRejected => status == ExpertStatus.rejected;
   bool get isSuspended => status == ExpertStatus.suspended;
@@ -124,159 +127,50 @@ class ExpertUser {
     }
   }
 
-  // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
     return {
-      'uid': uid,
-      'email': email,
-      'displayName': displayName,
-      'photoUrl': photoUrl,
-      'role': 'expert', // Always expert role
+      'id': uid,
       'status': status.name,
-      'expertId': expertId,
-      'credentials': credentials.toMap(),
-      'createdAt': Timestamp.fromDate(createdAt),
-      'approvedAt': approvedAt != null ? Timestamp.fromDate(approvedAt!) : null,
-      'approvedBy': approvedBy,
-      'rejectedAt': rejectedAt != null ? Timestamp.fromDate(rejectedAt!) : null,
-      'rejectedBy': rejectedBy,
-      'rejectionReason': rejectionReason,
-      'suspendedAt': suspendedAt != null ? Timestamp.fromDate(suspendedAt!) : null,
-      'suspendedBy': suspendedBy,
-      'suspensionReason': suspensionReason,
-      'lastLoginAt': lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : null,
+      'is_approved': isApproved,
+      'created_at': createdAt.toIso8601String(),
+      // Join fields would be in experts table
     };
   }
 
-  // Create from Firestore document
   factory ExpertUser.fromMap(Map<String, dynamic> map, String uid) {
+    final userData = map['users'] as Map<String, dynamic>?;
+
     return ExpertUser(
       uid: uid,
-      email: map['email'] ?? '',
-      displayName: map['displayName'] ?? '',
-      photoUrl: map['photoUrl'],
-      status: ExpertStatus.values.firstWhere(
-        (e) => e.name == map['status'],
-        orElse: () => ExpertStatus.pending,
-      ),
-      expertId: map['expertId'],
-      credentials: ExpertCredentials.fromMap(map['credentials'] ?? {}),
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      approvedAt: (map['approvedAt'] as Timestamp?)?.toDate(),
-      approvedBy: map['approvedBy'],
-      rejectedAt: (map['rejectedAt'] as Timestamp?)?.toDate(),
-      rejectedBy: map['rejectedBy'],
-      rejectionReason: map['rejectionReason'],
-      suspendedAt: (map['suspendedAt'] as Timestamp?)?.toDate(),
-      suspendedBy: map['suspendedBy'],
-      suspensionReason: map['suspensionReason'],
-      lastLoginAt: (map['lastLoginAt'] as Timestamp?)?.toDate(),
+      email: userData?['email']?.toString() ?? '',
+      displayName: userData?['full_name']?.toString() ?? '',
+      photoUrl: userData?['avatar_url']?.toString(),
+      status: map['is_approved'] == true ? ExpertStatus.active : ExpertStatus.pending,
+      expertId: map['id']?.toString(),
+      credentials: ExpertCredentials.fromMap(map),
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'])
+          : DateTime.now(),
+      approvedAt: map['approved_at'] != null ? DateTime.parse(map['approved_at']) : null,
+      approvedBy: map['approved_by']?.toString(),
     );
   }
 
-  // Create from Firestore DocumentSnapshot
-  factory ExpertUser.fromSnapshot(DocumentSnapshot doc) {
-    return ExpertUser.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-  }
-
-  // Copy with method
-  ExpertUser copyWith({
-    String? uid,
-    String? email,
-    String? displayName,
-    String? photoUrl,
-    ExpertStatus? status,
-    String? expertId,
-    ExpertCredentials? credentials,
-    DateTime? createdAt,
-    DateTime? approvedAt,
-    String? approvedBy,
-    DateTime? rejectedAt,
-    String? rejectedBy,
-    String? rejectionReason,
-    DateTime? suspendedAt,
-    String? suspendedBy,
-    String? suspensionReason,
-    DateTime? lastLoginAt,
-  }) {
-    return ExpertUser(
-      uid: uid ?? this.uid,
-      email: email ?? this.email,
-      displayName: displayName ?? this.displayName,
-      photoUrl: photoUrl ?? this.photoUrl,
-      status: status ?? this.status,
-      expertId: expertId ?? this.expertId,
-      credentials: credentials ?? this.credentials,
-      createdAt: createdAt ?? this.createdAt,
-      approvedAt: approvedAt ?? this.approvedAt,
-      approvedBy: approvedBy ?? this.approvedBy,
-      rejectedAt: rejectedAt ?? this.rejectedAt,
-      rejectedBy: rejectedBy ?? this.rejectedBy,
-      rejectionReason: rejectionReason ?? this.rejectionReason,
-      suspendedAt: suspendedAt ?? this.suspendedAt,
-      suspendedBy: suspendedBy ?? this.suspendedBy,
-      suspensionReason: suspensionReason ?? this.suspensionReason,
-      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
-    );
-  }
-
-  // Static methods for Firestore operations
   static Future<ExpertUser?> getByUid(String uid) async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('expertUsers')
-          .doc(uid)
-          .get();
-      
-      if (!doc.exists) return null;
-      return ExpertUser.fromSnapshot(doc);
-    } catch (e) {
-      print('❌ Error getting expert user: $e');
-      return null;
+    final data = await SupabaseService.instance.getExpertById(uid);
+    if (data != null) {
+      return ExpertUser.fromMap(data, uid);
     }
+    return null;
   }
 
   static Future<List<ExpertUser>> getAllExperts({ExpertStatus? status}) async {
-    try {
-      Query query = FirebaseFirestore.instance.collection('expertUsers');
-      
-      if (status != null) {
-        query = query.where('status', isEqualTo: status.name);
-      }
-      
-      final snapshot = await query.get();
-      return snapshot.docs
-          .map((doc) => ExpertUser.fromSnapshot(doc))
-          .toList();
-    } catch (e) {
-      print('❌ Error getting all experts: $e');
-      return [];
+    final data = await SupabaseService.instance.getApprovedExperts();
+    final experts = data.map((m) => ExpertUser.fromMap(m, m['id'].toString())).toList();
+    if (status != null) {
+      return experts.where((e) => e.status == status).toList();
     }
-  }
-
-  static Future<List<ExpertUser>> getPendingExperts() async {
-    return getAllExperts(status: ExpertStatus.pending);
-  }
-
-  static Stream<List<ExpertUser>> streamPendingExperts() {
-    return FirebaseFirestore.instance
-        .collection('expertUsers')
-        .where('status', isEqualTo: ExpertStatus.pending.name)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ExpertUser.fromSnapshot(doc))
-            .toList());
-  }
-
-  static Stream<ExpertUser?> streamExpertUser(String uid) {
-    return FirebaseFirestore.instance
-        .collection('expertUsers')
-        .doc(uid)
-        .snapshots()
-        .map((doc) {
-          if (!doc.exists) return null;
-          return ExpertUser.fromSnapshot(doc);
-        });
+    return experts;
   }
 }
+

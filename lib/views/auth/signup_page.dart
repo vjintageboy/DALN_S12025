@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
 import '../home/home_page.dart';
 import '../../core/providers/auth_provider.dart';
@@ -19,7 +17,8 @@ class SignUpPage extends StatefulWidget {
   State<SignUpPage> createState() => _SignUpPageState();
 }
 
-class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateMixin {
+class _SignUpPageState extends State<SignUpPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -60,7 +59,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
     }
 
     final authProvider = context.read<AuthProvider>();
-    
+
     final success = await authProvider.signUp(
       email: _emailController.text,
       password: _passwordController.text,
@@ -70,21 +69,23 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
     if (!mounted) return;
 
     if (success) {
-      print('🎉 Signup successful! Navigating to HomePage...');
-      
+      debugPrint('🎉 Signup successful! Navigating to HomePage...');
+
       // For new signups, role is always 'user'
       // Navigate and clear entire stack
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const HomePage()),
         (route) => false,
       );
-    } else{
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.errorMessage ?? AppStrings.signUpFailed),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -125,7 +126,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -203,7 +204,9 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                       obscureText: _obscurePassword,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
                           color: AppColors.textSecondary,
                           size: 22,
                         ),
@@ -233,7 +236,9 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                       obscureText: _obscureConfirmPassword,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          _obscureConfirmPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
                           color: AppColors.textSecondary,
                           size: 22,
                         ),
@@ -269,7 +274,12 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                     // Divider
                     Row(
                       children: [
-                        const Expanded(child: Divider(color: AppColors.borderMedium, thickness: 1)),
+                        const Expanded(
+                          child: Divider(
+                            color: AppColors.borderMedium,
+                            thickness: 1,
+                          ),
+                        ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
@@ -282,7 +292,12 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                             ),
                           ),
                         ),
-                        const Expanded(child: Divider(color: AppColors.borderMedium, thickness: 1)),
+                        const Expanded(
+                          child: Divider(
+                            color: AppColors.borderMedium,
+                            thickness: 1,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -327,11 +342,15 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                             onPressed: () {
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => const LoginPage()),
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginPage(),
+                                ),
                               );
                             },
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),

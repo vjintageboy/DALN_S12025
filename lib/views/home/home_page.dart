@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../mood/mood_log_page.dart';
 import '../mood/mood_history_page.dart';
 import '../meditation/meditation_detail_page.dart';
@@ -9,14 +8,15 @@ import '../expert/expert_list_page.dart';
 import '../streak/streak_history_page.dart';
 import '../chatbot/chatbot_page.dart';
 import '../news/news_feed_page.dart';
-import '../../services/firestore_service.dart';
 import '../../models/meditation.dart';
 import '../../models/streak.dart';
 import '../../scripts/migrate_existing_users.dart';
 import '../../core/services/localization_service.dart';
 import '../notification/notifications_page.dart';
 import '../../services/notification_service.dart';
+import '../../services/supabase_service.dart';
 import '../chat/chat_list_page.dart';
+import '../../core/constants/app_colors.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     Widget currentTab;
-    
+
     switch (_selectedIndex) {
       case 0:
         currentTab = const HomeTab();
@@ -54,7 +54,7 @@ class _HomePageState extends State<HomePage> {
       default:
         currentTab = _buildOtherTab();
     }
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: currentTab,
@@ -62,10 +62,7 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-            ),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
           ],
         ),
         child: SafeArea(
@@ -74,22 +71,52 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               children: [
                 Expanded(
-                  child: _buildNavItem(0, Icons.home_outlined, Icons.home, context.l10n.home),
+                  child: _buildNavItem(
+                    0,
+                    Icons.home_outlined,
+                    Icons.home,
+                    context.l10n.home,
+                  ),
                 ),
                 Expanded(
-                  child: _buildNavItem(1, Icons.mood_outlined, Icons.mood, context.l10n.mood),
+                  child: _buildNavItem(
+                    1,
+                    Icons.mood_outlined,
+                    Icons.mood,
+                    context.l10n.mood,
+                  ),
                 ),
                 Expanded(
-                  child: _buildNavItem(2, Icons.article_outlined, Icons.article, 'News'),
+                  child: _buildNavItem(
+                    2,
+                    Icons.article_outlined,
+                    Icons.article,
+                    'News',
+                  ),
                 ),
                 Expanded(
-                  child: _buildNavItem(3, Icons.spa_outlined, Icons.spa, context.l10n.experts),
+                  child: _buildNavItem(
+                    3,
+                    Icons.spa_outlined,
+                    Icons.spa,
+                    context.l10n.experts,
+                  ),
                 ),
                 Expanded(
-                  child: _buildNavItem(4, Icons.chat_bubble_outline, Icons.chat_bubble, context.l10n.chatbot),
+                  child: _buildNavItem(
+                    4,
+                    Icons.chat_bubble_outline,
+                    Icons.chat_bubble,
+                    context.l10n.chatbot,
+                  ),
                 ),
                 Expanded(
-                  child: _buildNavItem(5, Icons.person_outline, Icons.person, context.l10n.profile),
+                  child: _buildNavItem(
+                    5,
+                    Icons.person_outline,
+                    Icons.person,
+                    context.l10n.profile,
+                  ),
                 ),
               ],
             ),
@@ -99,7 +126,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData outlinedIcon, IconData filledIcon, String label) {
+  Widget _buildNavItem(
+    int index,
+    IconData outlinedIcon,
+    IconData filledIcon,
+    String label,
+  ) {
     final isSelected = _selectedIndex == index;
     return InkWell(
       onTap: () {
@@ -137,7 +169,7 @@ class _HomePageState extends State<HomePage> {
       // Profile tab
       return const ProfilePage();
     }
-    
+
     return Center(
       child: Text(
         'Tab ${_selectedIndex + 1}',
@@ -154,8 +186,9 @@ class HomeTab extends StatefulWidget {
   State<HomeTab> createState() => _HomeTabState();
 }
 
+
 class _HomeTabState extends State<HomeTab> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final _supabaseService = SupabaseService.instance;
   Streak? _streak;
   bool _isLoading = true;
   String? _errorMessage;
@@ -188,31 +221,44 @@ class _HomeTabState extends State<HomeTab> {
 
   // Load streak data
   Future<void> _loadNonStreamData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    final user = _supabaseService.currentUser;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      return;
+    }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       // Recalculate streak to ensure it's up-to-date
-      await _firestoreService.recalculateStreak(user.uid);
-      
-      // Load streak
-      final streak = await _firestoreService.getOrCreateStreak(user.uid);
+      await _supabaseService.recalculateStreak(user.id);
 
-      setState(() {
-        _streak = streak;
-        _isLoading = false;
-      });
+      // Load streak
+      final streak = await _supabaseService.getStreak(user.id);
+
+      if (mounted) {
+        setState(() {
+          _streak = streak;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      print('❌ Error loading data: $e');
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Không thể tải dữ liệu. Vui lòng thử lại.';
-      });
+      debugPrint('❌ Error loading data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Không thể tải dữ liệu. Vui lòng thử lại.';
+        });
+      }
     }
   }
 
@@ -224,11 +270,11 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   String _getUserName() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user?.displayName != null && user!.displayName!.isNotEmpty) {
-      return user.displayName!;
+    final user = _supabaseService.currentUser;
+    if (user?.userMetadata?['full_name'] != null) {
+      return user!.userMetadata!['full_name'];
     }
-    return 'User';
+    return user?.email?.split('@').first ?? 'User';
   }
 
   @override
@@ -247,19 +293,12 @@ class _HomeTabState extends State<HomeTab> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.red.shade300,
-              ),
+              Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
@@ -325,10 +364,14 @@ class _HomeTabState extends State<HomeTab> {
                     const SizedBox(width: 8), // Spacing between icons
                     // Notification Icon
                     StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: NotificationService().streamNotifications(FirebaseAuth.instance.currentUser?.uid ?? ''),
+                      stream: NotificationService().streamNotifications(
+                        _supabaseService.currentUser?.id ?? '',
+                      ),
                       builder: (context, snapshot) {
                         final notifications = snapshot.data ?? [];
-                        final unreadCount = notifications.where((n) => n['isRead'] == false).length;
+                        final unreadCount = notifications
+                            .where((n) => n['isRead'] == false)
+                            .length;
 
                         return Stack(
                           children: [
@@ -337,11 +380,15 @@ class _HomeTabState extends State<HomeTab> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const NotificationsPage(),
+                                    builder: (context) =>
+                                        const NotificationsPage(),
                                   ),
                                 );
                               },
-                              icon: const Icon(Icons.notifications_outlined, size: 28),
+                              icon: const Icon(
+                                Icons.notifications_outlined,
+                                size: 28,
+                              ),
                               color: Colors.black87,
                             ),
                             if (unreadCount > 0)
@@ -383,18 +430,14 @@ class _HomeTabState extends State<HomeTab> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: _buildMoodCard(),
-                    ),
+                    Expanded(child: _buildMoodCard()),
                     const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildStreakCard(),
-                    ),
+                    Expanded(child: _buildStreakCard()),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               // Featured Meditations title with padding
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -444,8 +487,8 @@ class _HomeTabState extends State<HomeTab> {
               // Meditation list - full width scroll with left padding only
               SizedBox(
                 height: 240,
-                child: StreamBuilder<List<Meditation>>(
-                  stream: _firestoreService.streamMeditations(),
+                child: FutureBuilder<List<Meditation>>(
+                  future: _supabaseService.getFeaturedMeditations(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
@@ -456,7 +499,7 @@ class _HomeTabState extends State<HomeTab> {
                       );
                     }
 
-                    if (!snapshot.hasData) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
                         child: CircularProgressIndicator(
                           color: Color(0xFF4CAF50),
@@ -464,7 +507,7 @@ class _HomeTabState extends State<HomeTab> {
                       );
                     }
 
-                    final allMeditations = snapshot.data!;
+                    final allMeditations = snapshot.data ?? [];
                     // Take only first 5 for featured display
                     final featuredMeditations = allMeditations.take(5).toList();
 
@@ -499,7 +542,9 @@ class _HomeTabState extends State<HomeTab> {
                         final meditation = featuredMeditations[index];
                         return Padding(
                           padding: EdgeInsets.only(
-                            right: index < featuredMeditations.length - 1 ? 16 : 0,
+                            right: index < featuredMeditations.length - 1
+                                ? 16
+                                : 0,
                           ),
                           child: _buildMeditationCard(
                             meditation,
@@ -512,7 +557,7 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
               const SizedBox(height: 32),
-              
+
               // Categories with padding
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -531,12 +576,30 @@ class _HomeTabState extends State<HomeTab> {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    _buildCategoryChip(context.l10n.stress, const Color(0xFFE8F5E9)),
-                    _buildCategoryChip(context.l10n.anxiety, const Color(0xFFE3F2FD)),
-                    _buildCategoryChip(context.l10n.sleep, const Color(0xFFD1F2EB)),
-                    _buildCategoryChip(context.l10n.focus, const Color(0xFFFFF3E0)),
-                    _buildCategoryChip(context.l10n.meditation, const Color(0xFFF3E5F5)),
-                    _buildCategoryChip(context.l10n.calm, const Color(0xFFFCE4EC)),
+                    _buildCategoryChip(
+                      context.l10n.stress,
+                      const Color(0xFFE8F5E9),
+                    ),
+                    _buildCategoryChip(
+                      context.l10n.anxiety,
+                      const Color(0xFFE3F2FD),
+                    ),
+                    _buildCategoryChip(
+                      context.l10n.sleep,
+                      const Color(0xFFD1F2EB),
+                    ),
+                    _buildCategoryChip(
+                      context.l10n.focus,
+                      const Color(0xFFFFF3E0),
+                    ),
+                    _buildCategoryChip(
+                      context.l10n.meditation,
+                      const Color(0xFFF3E5F5),
+                    ),
+                    _buildCategoryChip(
+                      context.l10n.calm,
+                      const Color(0xFFFCE4EC),
+                    ),
                   ],
                 ),
               ),
@@ -556,7 +619,7 @@ class _HomeTabState extends State<HomeTab> {
           context,
           MaterialPageRoute(builder: (context) => const MoodLogPage()),
         );
-        
+
         // Reload data if mood was logged
         if (result == true && mounted) {
           _loadNonStreamData();
@@ -569,7 +632,7 @@ class _HomeTabState extends State<HomeTab> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -592,7 +655,7 @@ class _HomeTabState extends State<HomeTab> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.1),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -622,7 +685,7 @@ class _HomeTabState extends State<HomeTab> {
 
   Widget _buildStreakCard() {
     final streakDays = _streak?.currentStreak ?? 0;
-    
+
     return GestureDetector(
       onTap: () {
         // Navigate to Streak History Page
@@ -638,7 +701,7 @@ class _HomeTabState extends State<HomeTab> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -661,7 +724,7 @@ class _HomeTabState extends State<HomeTab> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B6B).withOpacity(0.1),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -718,7 +781,7 @@ class _HomeTabState extends State<HomeTab> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
+              color: color.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 8),
             ),
@@ -730,7 +793,9 @@ class _HomeTabState extends State<HomeTab> {
             children: [
               // Background: Thumbnail or Gradient
               Positioned.fill(
-                child: meditation.thumbnailUrl != null && meditation.thumbnailUrl!.isNotEmpty
+                child:
+                    meditation.thumbnailUrl != null &&
+                        meditation.thumbnailUrl!.isNotEmpty
                     ? Image.network(
                         meditation.thumbnailUrl!,
                         fit: BoxFit.cover,
@@ -741,10 +806,7 @@ class _HomeTabState extends State<HomeTab> {
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                  color,
-                                  color.withOpacity(0.7),
-                                ],
+                                colors: [color, color.withValues(alpha: 0.7)],
                               ),
                             ),
                           );
@@ -757,19 +819,17 @@ class _HomeTabState extends State<HomeTab> {
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                  color,
-                                  color.withOpacity(0.7),
-                                ],
+                                colors: [color, color.withValues(alpha: 0.7)],
                               ),
                             ),
                             child: Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
+                                value:
+                                    loadingProgress.expectedTotalBytes != null
                                     ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
+                                          loadingProgress.expectedTotalBytes!
                                     : null,
-                                color: Colors.white.withOpacity(0.5),
+                                color: AppColors.primaryPurple.withValues(alpha: 0.1),
                               ),
                             ),
                           );
@@ -780,15 +840,12 @@ class _HomeTabState extends State<HomeTab> {
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              color,
-                              color.withOpacity(0.7),
-                            ],
+                            colors: [color, color.withValues(alpha: 0.7)],
                           ),
                         ),
                       ),
               ),
-              
+
               // Overlay gradient for text readability
               Positioned.fill(
                 child: Container(
@@ -798,13 +855,13 @@ class _HomeTabState extends State<HomeTab> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.7),
+                        Colors.black.withValues(alpha: 0.7),
                       ],
                     ),
                   ),
                 ),
               ),
-              
+
               // Subtle pattern overlay
               Positioned.fill(
                 child: Container(
@@ -813,37 +870,36 @@ class _HomeTabState extends State<HomeTab> {
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
                       colors: [
-                        Colors.white.withOpacity(0.1),
+                        Colors.white.withValues(alpha: 0.1),
                         Colors.transparent,
                       ],
                     ),
                   ),
                 ),
               ),
-              
+
               // Rating badge
               if (meditation.rating > 0)
                 Positioned(
                   top: 16,
                   right: 16,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
+                      color: Colors.white.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.white,
-                          size: 16,
-                        ),
+                        const Icon(Icons.star, color: Colors.white, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           meditation.rating.toStringAsFixed(1),
@@ -857,7 +913,7 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                   ),
                 ),
-              
+
               // Content
               Padding(
                 padding: const EdgeInsets.all(20),
@@ -879,7 +935,7 @@ class _HomeTabState extends State<HomeTab> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],

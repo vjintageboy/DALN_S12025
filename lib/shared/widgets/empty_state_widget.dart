@@ -32,7 +32,7 @@ class EmptyStateWidget extends StatelessWidget {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+                color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -42,7 +42,7 @@ class EmptyStateWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Title
             Text(
               title,
@@ -55,7 +55,7 @@ class EmptyStateWidget extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            
+
             // Message
             Text(
               message,
@@ -66,7 +66,7 @@ class EmptyStateWidget extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             // Action button
             if (actionText != null && onAction != null) ...[
               const SizedBox(height: 32),
@@ -111,7 +111,8 @@ class NoMoodEntriesEmpty extends StatelessWidget {
     return EmptyStateWidget(
       icon: Icons.mood,
       title: 'No Mood Entries',
-      message: 'You haven\'t logged any moods yet.\nStart tracking your emotions today!',
+      message:
+          'You haven\'t logged any moods yet.\nStart tracking your emotions today!',
       actionText: 'Log Your Mood',
       onAction: onAddEntry,
       iconColor: AppColors.primaryLight,

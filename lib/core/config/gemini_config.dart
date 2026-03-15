@@ -1,7 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Gemini AI Configuration
-/// 
+///
 /// API key được load từ file .env
 /// Để setup:
 /// 1. Lấy API key: https://aistudio.google.com/app/apikey
@@ -9,15 +9,16 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// 3. Thêm: GEMINI_API_KEY=your_key_here
 class GeminiConfig {
   // Load API key từ .env file
-  static String get apiKey => dotenv.get('GEMINI_API_KEY', fallback: 'YOUR_API_KEY_HERE');
-  
+  static String get apiKey =>
+      dotenv.get('GEMINI_API_KEY', fallback: 'YOUR_API_KEY_HERE');
+
   // Model configuration
   static const String modelName = 'gemini-2.5-flash'; // Free tier model
-  
+
   // Safety settings
   static const double temperature = 0.7; // Creativity level (0.0 - 1.0)
   static const int maxOutputTokens = 1000; // Max response length
-  
+
   // System prompt - Personality của AI chatbot
   static const String systemPrompt = '''
 Bạn là AI Assistant của ứng dụng Moodiki - một ứng dụng về sức khỏe tinh thần và thiền định (meditation).
@@ -45,7 +46,8 @@ Lưu ý:
 - Gợi ý người dùng tìm chuyên gia nếu vấn đề nghiêm trọng
 - Luôn tích cực và khuyến khích self-care
 ''';
-  
+
   // Check if API key is configured
-  static bool get isConfigured => apiKey != 'YOUR_API_KEY_HERE' && apiKey.isNotEmpty;
+  static bool get isConfigured =>
+      apiKey != 'YOUR_API_KEY_HERE' && apiKey.isNotEmpty;
 }

@@ -1,16 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:n04_app/dummy_firebase.dart';
 import '../models/mood_entry.dart';
 
 /// Script to create 29 consecutive days of mood entries for testing streak calculation
-/// 
+///
 /// Usage: Call this function from your app to populate test data
 /// Example: createStreakTestData(days: 29)
 class StreakTestDataGenerator {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   /// Create consecutive mood entries for testing
-  /// 
+  ///
   /// [days] - Number of consecutive days to create (default: 29)
   /// [startDate] - Starting date (default: 29 days ago from today)
   static Future<void> createStreakTestData({
@@ -19,37 +19,34 @@ class StreakTestDataGenerator {
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print('❌ No user logged in!');
+      debugPrint('❌ No user logged in!');
       return;
     }
 
-    print('🎭 Creating $days consecutive mood entries for testing...');
-    print('👤 User ID: ${user.uid}');
+    debugPrint('🎭 Creating $days consecutive mood entries for testing...');
+    debugPrint('👤 User ID: ${user.uid}');
 
     // Calculate start date (default: days ago from today)
     final now = DateTime.now();
-    final start = startDate ?? DateTime(
-      now.year,
-      now.month,
-      now.day - days + 1,
-    );
+    final start =
+        startDate ?? DateTime(now.year, now.month, now.day - days + 1);
 
-    print('📅 Start date: ${start.toString().split(' ')[0]}');
-    print('📅 End date: ${now.toString().split(' ')[0]}');
-    print('');
+    debugPrint('📅 Start date: ${start.toString().split(' ')[0]}');
+    debugPrint('📅 End date: ${now.toString().split(' ')[0]}');
+    debugPrint('');
 
     int successCount = 0;
     int errorCount = 0;
 
     for (int i = 0; i < days; i++) {
       final date = start.add(Duration(days: i));
-      
+
       // Random mood level (1-5)
       final moodLevel = (i % 5) + 1; // Cycle through 1,2,3,4,5
-      
+
       // Random emotions based on mood
       final emotions = _getEmotionsForMood(moodLevel);
-      
+
       // Random note
       final note = _getNoteForMood(moodLevel, i);
 
@@ -83,35 +80,39 @@ class StreakTestDataGenerator {
         );
 
         await docRef.set(entryWithId.toMap());
-        
+
         successCount++;
-        print('✅ Day ${i + 1}/$days: ${date.toString().split(' ')[0]} - Mood: ${_getMoodEmoji(moodLevel)} ($moodLevel)');
+        debugPrint(
+          '✅ Day ${i + 1}/$days: ${date.toString().split(' ')[0]} - Mood: ${_getMoodEmoji(moodLevel)} ($moodLevel)',
+        );
       } catch (e) {
         errorCount++;
-        print('❌ Day ${i + 1}/$days: ${date.toString().split(' ')[0]} - Error: $e');
+        debugPrint(
+          '❌ Day ${i + 1}/$days: ${date.toString().split(' ')[0]} - Error: $e',
+        );
       }
     }
 
-    print('');
-    print('🎉 Test data creation completed!');
-    print('✅ Success: $successCount entries');
+    debugPrint('');
+    debugPrint('🎉 Test data creation completed!');
+    debugPrint('✅ Success: $successCount entries');
     if (errorCount > 0) {
-      print('❌ Errors: $errorCount entries');
+      debugPrint('❌ Errors: $errorCount entries');
     }
-    print('');
-    print('💡 Now open Streak History to see the results!');
-    print('   Expected: Current Streak = $days, Longest Streak = $days');
+    debugPrint('');
+    debugPrint('💡 Now open Streak History to see the results!');
+    debugPrint('   Expected: Current Streak = $days, Longest Streak = $days');
   }
 
   /// Delete all test data (mood entries with 'test_data' tag)
   static Future<void> deleteTestData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print('❌ No user logged in!');
+      debugPrint('❌ No user logged in!');
       return;
     }
 
-    print('🗑️  Deleting test data...');
+    debugPrint('🗑️  Deleting test data...');
 
     try {
       final snapshot = await _db
@@ -126,9 +127,9 @@ class StreakTestDataGenerator {
         deleteCount++;
       }
 
-      print('✅ Deleted $deleteCount test entries');
+      debugPrint('✅ Deleted $deleteCount test entries');
     } catch (e) {
-      print('❌ Error deleting test data: $e');
+      debugPrint('❌ Error deleting test data: $e');
     }
   }
 
@@ -136,11 +137,11 @@ class StreakTestDataGenerator {
   static Future<void> deleteAllMoodEntries() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print('❌ No user logged in!');
+      debugPrint('❌ No user logged in!');
       return;
     }
 
-    print('⚠️  WARNING: Deleting ALL mood entries for user ${user.uid}...');
+    debugPrint('⚠️  WARNING: Deleting ALL mood entries for user ${user.uid}...');
 
     try {
       final snapshot = await _db
@@ -154,8 +155,8 @@ class StreakTestDataGenerator {
         deleteCount++;
       }
 
-      print('✅ Deleted $deleteCount entries');
-      
+      debugPrint('✅ Deleted $deleteCount entries');
+
       // Also reset streak
       await _db.collection('streaks').doc(user.uid).set({
         'streakId': user.uid,
@@ -165,10 +166,10 @@ class StreakTestDataGenerator {
         'lastActivityDate': null,
         'totalActivities': 0,
       });
-      
-      print('✅ Streak reset to 0');
+
+      debugPrint('✅ Streak reset to 0');
     } catch (e) {
-      print('❌ Error deleting entries: $e');
+      debugPrint('❌ Error deleting entries: $e');
     }
   }
 
@@ -192,26 +193,10 @@ class StreakTestDataGenerator {
 
   static String _getNoteForMood(int moodLevel, int dayIndex) {
     final notes = {
-      1: [
-        'Feeling stressed today',
-        'Not a great day',
-        'Struggling with work',
-      ],
-      2: [
-        'Could be better',
-        'Feeling a bit down',
-        'Tired and unmotivated',
-      ],
-      3: [
-        'Average day',
-        'Nothing special',
-        'Just okay',
-      ],
-      4: [
-        'Good day overall!',
-        'Feeling positive',
-        'Things are going well',
-      ],
+      1: ['Feeling stressed today', 'Not a great day', 'Struggling with work'],
+      2: ['Could be better', 'Feeling a bit down', 'Tired and unmotivated'],
+      3: ['Average day', 'Nothing special', 'Just okay'],
+      4: ['Good day overall!', 'Feeling positive', 'Things are going well'],
       5: [
         'Amazing day! 🎉',
         'Feeling fantastic!',
@@ -241,31 +226,31 @@ class StreakTestDataGenerator {
   }
 
   /// Create a custom streak pattern for testing
-  /// 
+  ///
   /// Example: Create 10 days, skip 2, create 5 days
   static Future<void> createCustomStreakPattern({
     required List<int> pattern,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print('❌ No user logged in!');
+      debugPrint('❌ No user logged in!');
       return;
     }
 
-    print('🎭 Creating custom streak pattern: $pattern');
-    
+    debugPrint('🎭 Creating custom streak pattern: $pattern');
+
     final now = DateTime.now();
     int dayOffset = 0;
 
     for (int i = 0; i < pattern.length; i++) {
       final daysToCreate = pattern[i];
-      
+
       if (i % 2 == 0) {
         // Create entries
-        print('✅ Creating $daysToCreate consecutive days...');
+        debugPrint('✅ Creating $daysToCreate consecutive days...');
         for (int j = 0; j < daysToCreate; j++) {
           final date = now.subtract(Duration(days: dayOffset));
-          
+
           final moodEntry = MoodEntry(
             entryId: '',
             userId: user.uid,
@@ -278,17 +263,17 @@ class StreakTestDataGenerator {
 
           final docRef = _db.collection('moodEntries').doc();
           await docRef.set(moodEntry.copyWith(entryId: docRef.id).toMap());
-          
+
           dayOffset++;
         }
       } else {
         // Skip days
-        print('⏭️  Skipping $daysToCreate days...');
+        debugPrint('⏭️  Skipping $daysToCreate days...');
         dayOffset += daysToCreate;
       }
     }
 
-    print('🎉 Custom pattern created!');
+    debugPrint('🎉 Custom pattern created!');
   }
 }
 

@@ -1,8 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NotificationService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static final NotificationService instance = NotificationService._internal();
+  factory NotificationService() => instance;
+  NotificationService._internal();
 
+  final _supabase = Supabase.instance.client;
+  
   // Send notification to user
   Future<void> sendNotification({
     required String userId,
@@ -11,43 +16,39 @@ class NotificationService {
     String type = 'general', // general, refund, appointment, etc.
   }) async {
     try {
-      await _db.collection('notifications').add({
-        'userId': userId,
+      await _supabase.from('notifications').insert({
+        'user_id': userId,
         'title': title,
         'message': message,
         'type': type,
-        'isRead': false,
-        'createdAt': FieldValue.serverTimestamp(),
+        'is_read': false,
       });
     } catch (e) {
-      print('❌ Error sending notification: $e');
+      debugPrint('❌ Error sending notification: $e');
     }
   }
 
   // Stream notifications for a user
   Stream<List<Map<String, dynamic>>> streamNotifications(String userId) {
-    return _db
-        .collection('notifications')
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-    });
+    if (userId.isEmpty) return Stream.value([]);
+    
+    return _supabase
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .map((data) => List<Map<String, dynamic>>.from(data));
   }
 
   // Mark notification as read
   Future<void> markAsRead(String notificationId) async {
     try {
-      await _db.collection('notifications').doc(notificationId).update({
-        'isRead': true,
-      });
+      await _supabase
+          .from('notifications')
+          .update({'is_read': true})
+          .eq('id', notificationId);
     } catch (e) {
-      print('❌ Error marking notification as read: $e');
+      debugPrint('❌ Error marking notification as read: $e');
     }
   }
 }

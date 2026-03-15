@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/appointment.dart';
 import '../../services/appointment_service.dart';
+import '../../services/supabase_service.dart';
 
 class AppointmentDetailPage extends StatefulWidget {
   final Appointment appointment;
 
-  const AppointmentDetailPage({
-    super.key,
-    required this.appointment,
-  });
+  const AppointmentDetailPage({super.key, required this.appointment});
 
   @override
   State<AppointmentDetailPage> createState() => _AppointmentDetailPageState();
 }
 
 class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final _supabase = SupabaseService.instance.client;
   final AppointmentService _appointmentService = AppointmentService();
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
@@ -30,35 +27,36 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
 
   Future<void> _loadUserProfile() async {
     try {
-      final userDoc = await _db.collection('users').doc(widget.appointment.userId).get();
-      if (userDoc.exists) {
+      final response = await _supabase
+          .from('users')
+          .select()
+          .eq('id', widget.appointment.userId)
+          .maybeSingle();
+      
+      if (response != null && mounted) {
         setState(() {
-          _userData = userDoc.data();
+          _userData = response;
+          _isLoading = false;
+        });
+      } else if (mounted) {
+        setState(() {
           _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint('Error loading user profile: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _confirmAppointment() async {
-    setState(() {
-      _isProcessing = true;
-    });
-
+    setState(() => _isProcessing = true);
     try {
-      await _db
-          .collection('appointments')
-          .doc(widget.appointment.appointmentId)
-          .update({
-        'status': AppointmentStatus.confirmed.name,
-        'confirmedAt': FieldValue.serverTimestamp(),
-      });
-
+      await _appointmentService.confirmAppointment(widget.appointment.appointmentId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -78,28 +76,14 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
   Future<void> _completeAppointment() async {
-    setState(() {
-      _isProcessing = true;
-    });
-
+    setState(() => _isProcessing = true);
     try {
-      await _db
-          .collection('appointments')
-          .doc(widget.appointment.appointmentId)
-          .update({
-        'status': AppointmentStatus.completed.name,
-        'completedAt': FieldValue.serverTimestamp(),
-      });
-
+      await _appointmentService.completeAppointment(widget.appointment.appointmentId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -119,11 +103,7 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -131,16 +111,12 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
     final reason = await _showCancelDialog();
     if (reason == null) return;
 
-    setState(() {
-      _isProcessing = true;
-    });
-
+    setState(() => _isProcessing = true);
     try {
       await _appointmentService.cancelAppointmentWithReason(
         widget.appointment.appointmentId,
         reason,
       );
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -160,17 +136,12 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
   Future<String?> _showCancelDialog() async {
     final TextEditingController reasonController = TextEditingController();
-    
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -205,9 +176,7 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
               }
               Navigator.pop(context, reasonController.text.trim());
             },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('Confirm Cancel'),
           ),
         ],
@@ -276,17 +245,16 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Appointment Details'),
-        backgroundColor: const Color(0xFF6B4CE6),
+        backgroundColor: const Color(0xFF4CAF50),
         foregroundColor: Colors.white,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Status Badge
                   Center(
                     child: _buildStatusBadge(widget.appointment.status.name),
                   ),
@@ -309,9 +277,8 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                               const SizedBox(width: 12),
                               Text(
                                 'Patient Information',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -319,28 +286,20 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                           _buildInfoRow(
                             Icons.account_circle,
                             'Name',
-                            _userData?['displayName'] ?? 'Loading...',
+                            _userData?['full_name'] ?? 'Unknown User',
                           ),
                           const SizedBox(height: 12),
                           _buildInfoRow(
                             Icons.email,
                             'Email',
-                            _userData?['email'] ?? 'Loading...',
+                            _userData?['email'] ?? 'N/A',
                           ),
-                          if (_userData?['phoneNumber'] != null) ...[
+                          if (_userData?['phone_number'] != null) ...[
                             const SizedBox(height: 12),
                             _buildInfoRow(
                               Icons.phone,
                               'Phone',
-                              _userData!['phoneNumber'],
-                            ),
-                          ],
-                          if (_userData?['gender'] != null) ...[
-                            const SizedBox(height: 12),
-                            _buildInfoRow(
-                              Icons.wc,
-                              'Gender',
-                              _userData!['gender'],
+                              _userData!['phone_number'],
                             ),
                           ],
                         ],
@@ -366,9 +325,8 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                               const SizedBox(width: 12),
                               Text(
                                 'Appointment Details',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -421,9 +379,8 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                                 const SizedBox(width: 12),
                                 Text(
                                   'Patient Notes',
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -439,7 +396,8 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                   ],
 
                   // Cancellation Info (if cancelled)
-                  if (widget.appointment.status == AppointmentStatus.cancelled) ...[
+                  if (widget.appointment.status ==
+                      AppointmentStatus.cancelled) ...[
                     const SizedBox(height: 16),
                     Card(
                       elevation: 2,
@@ -466,7 +424,8 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                                 const SizedBox(width: 12),
                                 Text(
                                   'Cancellation Information',
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.orange.shade700,
                                       ),
@@ -477,8 +436,8 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                             _buildInfoRow(
                               Icons.person_outline,
                               'Cancelled By',
-                              widget.appointment.cancelledBy == 'expert' 
-                                  ? 'Expert' 
+                              widget.appointment.cancelledBy == 'expert'
+                                  ? 'Expert'
                                   : 'Patient',
                             ),
                             if (widget.appointment.cancellationReason != null &&
@@ -508,7 +467,7 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
 
                   // Action Buttons
                   if (_isProcessing)
-                    const Center(child: CircularProgressIndicator())
+                    const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
                   else
                     _buildActionButtons(),
                 ],
@@ -529,10 +488,7 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 4),
               Text(
@@ -553,7 +509,6 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
     final status = widget.appointment.status;
 
     if (status == AppointmentStatus.pending) {
-      // Pending: Show Confirm & Cancel
       return Column(
         children: [
           SizedBox(
@@ -563,9 +518,7 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
               onPressed: _confirmAppointment,
               icon: const Icon(Icons.check_circle),
               label: const Text('Confirm Appointment'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: Colors.green),
             ),
           ),
           const SizedBox(height: 12),
@@ -585,7 +538,6 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
         ],
       );
     } else if (status == AppointmentStatus.confirmed) {
-      // Confirmed: Show Complete & Cancel
       return Column(
         children: [
           SizedBox(
@@ -595,9 +547,7 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
               onPressed: _completeAppointment,
               icon: const Icon(Icons.check_circle),
               label: const Text('Mark as Completed'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.blue,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: Colors.blue),
             ),
           ),
           const SizedBox(height: 12),
@@ -617,16 +567,12 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
         ],
       );
     } else {
-      // Completed or Cancelled: No actions available
       return Center(
         child: Text(
           status == AppointmentStatus.completed
               ? 'This appointment has been completed'
               : 'This appointment has been cancelled',
-          style: TextStyle(
-            fontSize: 15,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
         ),
       );
     }

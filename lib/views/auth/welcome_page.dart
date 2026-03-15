@@ -36,9 +36,10 @@ class _WelcomePageState extends State<WelcomePage>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
     // Scale animation
     _scaleController = AnimationController(
@@ -54,12 +55,10 @@ class _WelcomePageState extends State<WelcomePage>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
 
     // Start animations
     _fadeController.forward();
@@ -83,10 +82,7 @@ class _WelcomePageState extends State<WelcomePage>
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => page,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
+          return FadeTransition(opacity: animation, child: child);
         },
         transitionDuration: const Duration(milliseconds: 300),
       ),
@@ -298,7 +294,7 @@ class _WelcomePageState extends State<WelcomePage>
                             borderRadius: BorderRadius.circular(28),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 40,
                                 offset: const Offset(0, 20),
                                 spreadRadius: 0,
@@ -366,10 +362,7 @@ class _WelcomePageState extends State<WelcomePage>
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.grey[300]!,
-                        width: 1,
-                      ),
+                      border: Border.all(color: Colors.grey[300]!, width: 1),
                     ),
                     child: Text(
                       context.l10n.welcomeTagline,
@@ -435,7 +428,8 @@ class _WelcomePageState extends State<WelcomePage>
 
                         // ⭐ NEW - Expert Sign Up Link
                         TextButton(
-                          onPressed: () => _navigateToPage(const ExpertSignupPage()),
+                          onPressed: () =>
+                              _navigateToPage(const ExpertSignupPage()),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -459,7 +453,6 @@ class _WelcomePageState extends State<WelcomePage>
                         ),
 
                         // (debug button removed — use long-press on logo to trigger onboarding in debug builds)
-
                         const SizedBox(height: 16),
 
                         // Terms link
@@ -505,10 +498,7 @@ class _FeatureItem extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _FeatureItem({
-    required this.icon,
-    required this.text,
-  });
+  const _FeatureItem({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -522,11 +512,7 @@ class _FeatureItem extends StatelessWidget {
             color: const Color(0xFF1A1A1A),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 20,
-          ),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
         const SizedBox(width: 12),
         Text(
@@ -550,10 +536,7 @@ class _PrimaryButton extends StatefulWidget {
   final String text;
   final VoidCallback onPressed;
 
-  const _PrimaryButton({
-    required this.text,
-    required this.onPressed,
-  });
+  const _PrimaryButton({required this.text, required this.onPressed});
 
   @override
   State<_PrimaryButton> createState() => _PrimaryButtonState();
@@ -572,9 +555,10 @@ class _PrimaryButtonState extends State<_PrimaryButton>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.96).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -617,7 +601,7 @@ class _PrimaryButtonState extends State<_PrimaryButton>
                 ? []
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -665,10 +649,7 @@ class _SecondaryButton extends StatefulWidget {
   final String text;
   final VoidCallback onPressed;
 
-  const _SecondaryButton({
-    required this.text,
-    required this.onPressed,
-  });
+  const _SecondaryButton({required this.text, required this.onPressed});
 
   @override
   State<_SecondaryButton> createState() => _SecondaryButtonState();
@@ -687,9 +668,10 @@ class _SecondaryButtonState extends State<_SecondaryButton>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.96).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -736,7 +718,7 @@ class _SecondaryButtonState extends State<_SecondaryButton>
                 ? []
                 : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),

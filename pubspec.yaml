@@ -36,9 +36,6 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  firebase_core: ^4.2.0
-  firebase_auth: ^6.1.1
-  cloud_firestore: ^6.0.3
   go_router: ^16.3.0
   google_fonts: ^6.2.1
   intl: ^0.20.2
@@ -52,6 +49,7 @@ dependencies:
 
   crypto: ^3.0.3        # Để mã hóa chữ ký (Signature)
   url_launcher: ^6.3.0 # Để mở app MoMo hoặc Web thanh toán
+  supabase_flutter: ^2.12.0
 
 dev_dependencies:
   flutter_test:

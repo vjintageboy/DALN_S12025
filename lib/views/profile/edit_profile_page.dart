@@ -1,6 +1,5 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -47,12 +46,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
           .collection('users')
           .doc(user.uid)
           .get();
-      
-      final role = userDoc.data()?['role'] as String? ?? 'user';
+
+      final role = userDoc.data()['role'] as String? ?? 'user';
 
       // Determine which collection to load from based on role
       DocumentSnapshot? profileDoc;
-      
+
       if (role == 'expert') {
         // Load from expertUsers collection
         profileDoc = await FirebaseFirestore.instance
@@ -66,7 +65,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             .doc(user.uid)
             .get();
       }
-      
+
       // If no profile doc found, try to load from users collection
       if (profileDoc == null || !profileDoc.exists) {
         profileDoc = userDoc;
@@ -84,49 +83,54 @@ class _EditProfilePageState extends State<EditProfilePage> {
               }
             } else {
               // Regular user uses 'photoBase64'
-              if (data.containsKey('photoBase64') && data['photoBase64'] != null) {
+              if (data.containsKey('photoBase64') &&
+                  data['photoBase64'] != null) {
                 _photoUrl = data['photoBase64'] as String;
               }
             }
-            
+
             // Load phone number (only in users collection)
-            if (data.containsKey('phoneNumber') && data['phoneNumber'] != null) {
+            if (data.containsKey('phoneNumber') &&
+                data['phoneNumber'] != null) {
               _phoneController.text = data['phoneNumber'] as String;
             }
-            
+
             // Load gender (only in users collection)
             if (data.containsKey('gender') && data['gender'] != null) {
               _gender = data['gender'] as String;
             }
-            
+
             // Load date of birth (only in users collection)
-            if (data.containsKey('dateOfBirth') && data['dateOfBirth'] != null) {
-              _dateOfBirth = (data['dateOfBirth'] as Timestamp).toDate();
+            if (data.containsKey('dateOfBirth') &&
+                data['dateOfBirth'] != null) {
+              _dateOfBirth = (data['dateOfBirth'] as DateTime).toDate();
             }
           });
         }
       }
-      
+
       // For experts, also load from users collection to get profile fields
       if (role == 'expert') {
         final usersData = userDoc.data();
-        if (usersData != null) {
-          setState(() {
-            if (usersData.containsKey('phoneNumber') && usersData['phoneNumber'] != null) {
-              _phoneController.text = usersData['phoneNumber'] as String;
+        setState(() {
+          if (usersData.containsKey('phoneNumber') &&
+              usersData['phoneNumber'] != null) {
+            _phoneController.text = usersData['phoneNumber'] as String;
+          }
+          if (usersData.containsKey('gender') &&
+              usersData['gender'] != null) {
+            _gender = usersData['gender'] as String;
+          }
+          if (usersData.containsKey('dateOfBirth') &&
+              usersData['dateOfBirth'] != null) {
+            _dateOfBirth = (usersData['dateOfBirth'] as DateTime).toDate();
+          }
+          if (usersData.containsKey('photoBase64') &&
+              usersData['photoBase64'] != null) {
+            _photoUrl = usersData['photoBase64'] as String;
+          }
+        });
             }
-            if (usersData.containsKey('gender') && usersData['gender'] != null) {
-              _gender = usersData['gender'] as String;
-            }
-            if (usersData.containsKey('dateOfBirth') && usersData['dateOfBirth'] != null) {
-              _dateOfBirth = (usersData['dateOfBirth'] as Timestamp).toDate();
-            }
-            if (usersData.containsKey('photoBase64') && usersData['photoBase64'] != null) {
-              _photoUrl = usersData['photoBase64'] as String;
-            }
-          });
-        }
-      }
     } catch (e) {
       debugPrint('Error loading profile: $e');
       if (mounted) {
@@ -178,21 +182,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       // Read image file as bytes
       final bytes = await _imageFile!.readAsBytes();
-      
+
       // Convert to Base64
       final base64String = base64Encode(bytes);
-      
+
       // Get user role to determine which collections to update
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-      
-      final role = userDoc.data()?['role'] as String? ?? 'user';
-      
+
+      final role = userDoc.data()['role'] as String? ?? 'user';
+
       final photoData = {
         'photoBase64': base64String,
-        'updatedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverDateTime(),
       };
 
       // Always update users collection
@@ -208,9 +212,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
             .collection('expertUsers')
             .doc(user.uid)
             .set({
-          'photoUrl': base64String, // ExpertUser uses 'photoUrl' not 'photoBase64'
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+              'photoUrl':
+                  base64String, // ExpertUser uses 'photoUrl' not 'photoBase64'
+              'updatedAt': FieldValue.serverDateTime(),
+            }, SetOptions(merge: true));
       } else if (role == 'user') {
         await FirebaseFirestore.instance
             .collection('profiles')
@@ -271,20 +276,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
         final profileData = <String, dynamic>{
           'displayName': _nameController.text.trim(),
           'email': _emailController.text.trim(),
-          'updatedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverDateTime(),
         };
 
         // Add optional fields only if they have values
         if (_phoneController.text.isNotEmpty) {
           profileData['phoneNumber'] = _phoneController.text.trim();
         }
-        
+
         if (_gender != null) {
           profileData['gender'] = _gender;
         }
-        
+
         if (_dateOfBirth != null) {
-          profileData['dateOfBirth'] = Timestamp.fromDate(_dateOfBirth!);
+          profileData['dateOfBirth'] = (_dateOfBirth!);
         }
 
         // Get user role to determine which collections to update
@@ -292,8 +297,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
             .collection('users')
             .doc(user.uid)
             .get();
-        
-        final role = userDoc.data()?['role'] as String? ?? 'user';
+
+        final role = userDoc.data()['role'] as String? ?? 'user';
 
         // Always update users collection (for admin system)
         await FirebaseFirestore.instance
@@ -310,7 +315,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             'email': profileData['email'],
             'updatedAt': profileData['updatedAt'],
           };
-          
+
           await FirebaseFirestore.instance
               .collection('expertUsers')
               .doc(user.uid)
@@ -327,11 +332,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
         // Update email if changed
         if (_emailController.text != user.email) {
           await user.verifyBeforeUpdateEmail(_emailController.text.trim());
-          
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Verification email sent. Please check your inbox.'),
+                content: Text(
+                  'Verification email sent. Please check your inbox.',
+                ),
                 backgroundColor: Colors.orange,
                 duration: Duration(seconds: 4),
               ),
@@ -362,12 +369,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         } else if (e.code == 'invalid-email') {
           message = 'Invalid email address';
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
@@ -418,7 +422,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               children: [
                 const SizedBox(height: 20),
 
-                                // Avatar with Camera
+                // Avatar with Camera
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -427,7 +431,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF8BC34A).withOpacity(0.3),
+                            color: const Color(0xFF8BC34A).withValues(alpha: 0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -439,7 +443,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               backgroundColor: Colors.white,
                               child: CircleAvatar(
                                 radius: 56,
-                                backgroundColor: const Color(0xFF8BC34A).withOpacity(0.1),
+                                backgroundColor: const Color(
+                                  0xFF8BC34A,
+                                ).withValues(alpha: 0.1),
                                 child: const CircularProgressIndicator(
                                   color: Color(0xFF689F38),
                                 ),
@@ -450,17 +456,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               backgroundColor: Colors.white,
                               child: CircleAvatar(
                                 radius: 56,
-                                backgroundColor: const Color(0xFF8BC34A).withOpacity(0.1),
+                                backgroundColor: const Color(
+                                  0xFF8BC34A,
+                                ).withValues(alpha: 0.1),
                                 backgroundImage: _imageFile != null
                                     ? FileImage(_imageFile!)
-                                    : (_photoUrl != null && _photoUrl!.isNotEmpty
-                                        ? MemoryImage(base64Decode(_photoUrl!)) as ImageProvider
-                                        : null),
-                                child: (_imageFile == null && (_photoUrl == null || _photoUrl!.isEmpty))
+                                    : (_photoUrl != null &&
+                                              _photoUrl!.isNotEmpty
+                                          ? MemoryImage(
+                                                  base64Decode(_photoUrl!),
+                                                )
+                                                as ImageProvider
+                                          : null),
+                                child:
+                                    (_imageFile == null &&
+                                        (_photoUrl == null ||
+                                            _photoUrl!.isEmpty))
                                     ? Text(
                                         _nameController.text.isNotEmpty
-                                            ? _nameController.text[0].toUpperCase()
-                                            : user?.displayName?.substring(0, 1).toUpperCase() ?? 'U',
+                                            ? _nameController.text[0]
+                                                  .toUpperCase()
+                                            : user?.displayName
+                                                      ?.substring(0, 1)
+                                                      .toUpperCase() ??
+                                                  'U',
                                         style: const TextStyle(
                                           fontSize: 48,
                                           fontWeight: FontWeight.w700,
@@ -481,10 +500,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           decoration: BoxDecoration(
                             color: const Color(0xFF8BC34A),
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 3,
-                            ),
+                            border: Border.all(color: Colors.white, width: 3),
                           ),
                           child: const Icon(
                             Icons.camera_alt,
@@ -570,7 +586,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter your email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
                       return 'Invalid email address';
                     }
                     return null;
@@ -670,7 +688,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ? '${_dateOfBirth!.day}/${_dateOfBirth!.month}/${_dateOfBirth!.year}'
                           : 'Not set',
                       style: TextStyle(
-                        color: _dateOfBirth != null ? Colors.black87 : Colors.grey[600],
+                        color: _dateOfBirth != null
+                            ? Colors.black87
+                            : Colors.grey[600],
                         fontSize: 16,
                       ),
                     ),
@@ -681,7 +701,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                 // Gender Field
                 DropdownButtonFormField<String>(
-                  value: _gender,
+                  initialValue: _gender,
                   decoration: InputDecoration(
                     labelText: 'Gender',
                     hintText: 'Select your gender',
@@ -819,18 +839,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   void _showChangePasswordDialog() {
+    final parentContext = context;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Change Password',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
         content: const Text(
           'We will send a password reset link to your email address.',
@@ -853,8 +869,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   await FirebaseAuth.instance.sendPasswordResetEmail(
                     email: user!.email!,
                   );
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (parentContext.mounted) {
+                    ScaffoldMessenger.of(parentContext).showSnackBar(
                       const SnackBar(
                         content: Text('Password reset email sent!'),
                         backgroundColor: Color(0xFF8BC34A),
@@ -863,8 +879,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   }
                 }
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                if (parentContext.mounted) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
                     SnackBar(
                       content: Text('Error: $e'),
                       backgroundColor: Colors.red,

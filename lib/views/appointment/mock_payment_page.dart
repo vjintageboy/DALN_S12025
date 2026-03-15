@@ -12,17 +12,15 @@ import '../../services/chat_service.dart';
 class MockPaymentPage extends StatefulWidget {
   final Appointment appointment;
 
-  const MockPaymentPage({
-    super.key,
-    required this.appointment,
-  });
+  const MockPaymentPage({super.key, required this.appointment});
 
   @override
   State<MockPaymentPage> createState() => _MockPaymentPageState();
 }
 
 class _MockPaymentPageState extends State<MockPaymentPage> {
-  final AppointmentService _appointmentService = AppointmentService(); // Instantiate
+  final AppointmentService _appointmentService =
+      AppointmentService(); // Instantiate
   final MomoService _momoService = MomoService(); // Khởi tạo service
   final ChatService _chatService = ChatService();
   String? _currentOrderId; // Lưu orderId để kiểm tra trạng thái
@@ -33,47 +31,47 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
   Future<void> _processPayment() async {
     setState(() => _isProcessing = true);
 
-  if (_selectedMethod == 'momo') {
-    String orderId = "MOMO${DateTime.now().millisecondsSinceEpoch}";
-    String orderInfo =
-        "Thanh toan lich hen voi ${widget.appointment.expertName}";
+    if (_selectedMethod == 'momo') {
+      String orderId = "MOMO${DateTime.now().millisecondsSinceEpoch}";
+      String orderInfo =
+          "Thanh toan lich hen voi ${widget.appointment.expertName}";
 
-    final response = await _momoService.createPayment(
-      orderId: orderId,
-      amount: widget.appointment.price,
-      orderInfo: orderInfo,
-    );
+      final response = await _momoService.createPayment(
+        orderId: orderId,
+        amount: widget.appointment.price,
+        orderInfo: orderInfo,
+      );
 
-    if (response != null && response['resultCode'] == 0) {
-      _currentOrderId = response['orderId']; // Use orderId from Backend
-      String payUrl = response["payUrl"]; // LUÔN CÓ TRONG SANDBOX
+      if (response != null && response['resultCode'] == 0) {
+        _currentOrderId = response['orderId']; // Use orderId from Backend
+        String payUrl = response["payUrl"]; // LUÔN CÓ TRONG SANDBOX
 
-      final uri = Uri.parse(payUrl);
+        final uri = Uri.parse(payUrl);
 
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
 
-        // Tự động kiểm tra trạng thái (Polling)
-        if (mounted) {
-           _showPollingDialog();
+          // Tự động kiểm tra trạng thái (Polling)
+          if (mounted) {
+            _showPollingDialog();
+          }
+        } else {
+          _showError("Không mở được MoMo");
         }
       } else {
-        _showError("Không mở được MoMo");
+        String errorMsg = response?['message'] ?? "Tạo giao dịch MoMo thất bại";
+        if (response?['details'] != null) {
+          errorMsg += "\n${response!['details']}";
+        }
+        _showError(errorMsg);
       }
     } else {
-      String errorMsg = response?['message'] ?? "Tạo giao dịch MoMo thất bại";
-      if (response?['details'] != null) {
-         errorMsg += "\n${response!['details']}";
-      }
-      _showError(errorMsg);
-    }
-  }
-else {
       // --- LOGIC GIẢ LẬP (Thẻ/Ngân hàng) ---
       await Future.delayed(const Duration(seconds: 2));
-      
+
       // Generate Mock IDs
-      final mockPaymentId = "MOCK_PAYMENT_${DateTime.now().millisecondsSinceEpoch}";
+      final mockPaymentId =
+          "MOCK_PAYMENT_${DateTime.now().millisecondsSinceEpoch}";
       final mockTransId = "MOCK_TRANS_${DateTime.now().millisecondsSinceEpoch}";
 
       try {
@@ -83,7 +81,7 @@ else {
           mockTransId,
         );
       } catch (e) {
-        print("Error saving mock payment info: $e");
+        debugPrint("Error saving mock payment info: $e");
         // Continue to success dialog anyway for mock flow
       }
 
@@ -94,9 +92,9 @@ else {
           userId: widget.appointment.userId,
           expertId: widget.appointment.expertId,
         );
-        print("✅ Chat room created/updated successfully");
+        debugPrint("✅ Chat room created/updated successfully");
       } catch (e) {
-        print("❌ Error creating chat room: $e");
+        debugPrint("❌ Error creating chat room: $e");
       }
       // -----------------------------
 
@@ -128,7 +126,7 @@ else {
                 setState(() => _isProcessing = false);
               },
               child: const Text("Hủy"),
-            )
+            ),
           ],
         ),
       ),
@@ -145,12 +143,12 @@ else {
 
       if (response != null && response['resultCode'] == 0) {
         timer.cancel();
-        
+
         // Payment success - Update appointment with payment info
         try {
           final transId = response['transId'];
           if (transId == null) {
-             throw Exception("Transaction ID missing from MoMo response");
+            throw Exception("Transaction ID missing from MoMo response");
           }
 
           await _appointmentService.updateAppointmentPaymentId(
@@ -159,12 +157,14 @@ else {
             transId.toString(), // Ensure string
           );
         } catch (e) {
-          print("Error updating payment info: $e");
+          debugPrint("Error updating payment info: $e");
           if (mounted) {
-             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-               content: Text("Lỗi lưu thông tin thanh toán: $e"),
-               backgroundColor: Colors.red,
-             ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Lỗi lưu thông tin thanh toán: $e"),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
           // Still proceed to success dialog as payment was successful
         }
@@ -176,9 +176,9 @@ else {
             userId: widget.appointment.userId,
             expertId: widget.appointment.expertId,
           );
-          print("✅ Chat room created/updated successfully");
+          debugPrint("✅ Chat room created/updated successfully");
         } catch (e) {
-          print("❌ Error creating chat room: $e");
+          debugPrint("❌ Error creating chat room: $e");
         }
         // -----------------------------
 
@@ -186,11 +186,12 @@ else {
           Navigator.pop(context); // Đóng dialog loading
           _showSuccessDialog();
         }
-      } else if (timer.tick > 20) { // Timeout sau 60s (20 * 3)
+      } else if (timer.tick > 20) {
+        // Timeout sau 60s (20 * 3)
         timer.cancel();
         if (mounted) {
-           Navigator.pop(context);
-           _showError("Hết thời gian chờ thanh toán.");
+          Navigator.pop(context);
+          _showError("Hết thời gian chờ thanh toán.");
         }
       }
     });
@@ -198,7 +199,9 @@ else {
 
   void _showError(String message) {
     setState(() => _isProcessing = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // ... (Giữ nguyên các hàm _showSuccessDialog và build UI như file gốc)
@@ -208,9 +211,7 @@ else {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         contentPadding: EdgeInsets.zero,
         content: Container(
           padding: const EdgeInsets.all(24),
@@ -221,7 +222,7 @@ else {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withOpacity(0.1),
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -243,10 +244,7 @@ else {
               Text(
                 'Your appointment has been confirmed',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 24),
               Container(
@@ -265,16 +263,16 @@ else {
                     const SizedBox(height: 8),
                     _buildInfoRow(
                       '📅 Date',
-                      DateFormat('EEE, MMM d, yyyy').format(
-                        widget.appointment.appointmentDate,
-                      ),
+                      DateFormat(
+                        'EEE, MMM d, yyyy',
+                      ).format(widget.appointment.appointmentDate),
                     ),
                     const SizedBox(height: 8),
                     _buildInfoRow(
                       '🕐 Time',
-                      DateFormat('HH:mm').format(
-                        widget.appointment.appointmentDate,
-                      ),
+                      DateFormat(
+                        'HH:mm',
+                      ).format(widget.appointment.appointmentDate),
                     ),
                     const SizedBox(height: 8),
                     _buildInfoRow(
@@ -310,10 +308,7 @@ else {
                   ),
                   child: const Text(
                     'View My Appointments',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -393,7 +388,8 @@ else {
                     children: [
                       CircleAvatar(
                         radius: 30,
-                        backgroundImage: widget.appointment.expertAvatarUrl != null
+                        backgroundImage:
+                            widget.appointment.expertAvatarUrl != null
                             ? NetworkImage(widget.appointment.expertAvatarUrl!)
                             : null,
                         child: widget.appointment.expertAvatarUrl == null
@@ -571,7 +567,7 @@ else {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -631,13 +627,11 @@ else {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF4CAF50).withOpacity(0.05)
+              ? const Color(0xFF4CAF50).withValues(alpha: 0.05)
               : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF4CAF50)
-                : Colors.grey.shade300,
+            color: isSelected ? const Color(0xFF4CAF50) : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -688,10 +682,7 @@ else {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -718,13 +709,11 @@ else {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF4CAF50).withOpacity(0.05)
+              ? const Color(0xFF4CAF50).withValues(alpha: 0.05)
               : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF4CAF50)
-                : Colors.grey.shade300,
+            color: isSelected ? const Color(0xFF4CAF50) : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -786,10 +775,7 @@ else {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                 ],
               ),

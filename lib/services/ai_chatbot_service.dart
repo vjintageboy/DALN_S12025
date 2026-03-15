@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../core/config/gemini_config.dart';
 
@@ -7,15 +7,15 @@ import '../core/config/gemini_config.dart';
 class AIChatbotService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  
+
   // Gemini AI Model
   GenerativeModel? _model;
   ChatSession? _chatSession;
-  
+
   // Initialize Gemini model
   void _initializeGemini() {
     if (!GeminiConfig.isConfigured) return;
-    
+
     _model = GenerativeModel(
       model: GeminiConfig.modelName,
       apiKey: GeminiConfig.apiKey,
@@ -25,7 +25,7 @@ class AIChatbotService {
       ),
       systemInstruction: Content.text(GeminiConfig.systemPrompt),
     );
-    
+
     // Create chat session for context
     _chatSession = _model?.startChat();
   }
@@ -37,22 +37,26 @@ class AIChatbotService {
       if (_model == null && GeminiConfig.isConfigured) {
         _initializeGemini();
       }
-      
+
       // Get user context for personalization
       final user = _auth.currentUser;
       final isAdmin = await _checkIfAdmin(user?.uid);
       final userName = user?.displayName ?? 'bạn';
-      
+
       // Build context message
-      final contextMessage = _buildContextMessage(userMessage, userName, isAdmin);
-      
+      final contextMessage = _buildContextMessage(
+        userMessage,
+        userName,
+        isAdmin,
+      );
+
       // Try Gemini AI first
       if (_chatSession != null) {
         try {
           final response = await _chatSession!.sendMessage(
             Content.text(contextMessage),
           );
-          
+
           final aiText = response.text?.trim();
           if (aiText != null && aiText.isNotEmpty) {
             return ChatMessage(
@@ -62,11 +66,11 @@ class AIChatbotService {
             );
           }
         } catch (geminiError) {
-          print('Gemini API error: $geminiError');
+          debugPrint('Gemini API error: $geminiError');
           // Fall back to rule-based response
         }
       }
-      
+
       // Fallback: Rule-based response
       final response = _generateResponse(userMessage, isAdmin);
       return ChatMessage(
@@ -74,9 +78,8 @@ class AIChatbotService {
         isUser: false,
         timestamp: DateTime.now(),
       );
-      
     } catch (e) {
-      print('Error getting AI response: $e');
+      debugPrint('Error getting AI response: $e');
       return ChatMessage(
         message: 'Xin lỗi, tôi gặp sự cố. Vui lòng thử lại sau. 🙏',
         isUser: false,
@@ -84,7 +87,7 @@ class AIChatbotService {
       );
     }
   }
-  
+
   /// Get AI response with streaming (real-time typing effect)
   Stream<String> getAIResponseStream(String userMessage) async* {
     try {
@@ -92,20 +95,24 @@ class AIChatbotService {
       if (_model == null && GeminiConfig.isConfigured) {
         _initializeGemini();
       }
-      
+
       // Get user context
       final user = _auth.currentUser;
       final isAdmin = await _checkIfAdmin(user?.uid);
       final userName = user?.displayName ?? 'bạn';
-      final contextMessage = _buildContextMessage(userMessage, userName, isAdmin);
-      
+      final contextMessage = _buildContextMessage(
+        userMessage,
+        userName,
+        isAdmin,
+      );
+
       // Try Gemini streaming
       if (_chatSession != null) {
         try {
           final responseStream = _chatSession!.sendMessageStream(
             Content.text(contextMessage),
           );
-          
+
           await for (final chunk in responseStream) {
             final text = chunk.text;
             if (text != null) {
@@ -114,30 +121,33 @@ class AIChatbotService {
           }
           return;
         } catch (geminiError) {
-          print('Gemini streaming error: $geminiError');
+          debugPrint('Gemini streaming error: $geminiError');
           // Fall back to rule-based
         }
       }
-      
+
       // Fallback: Rule-based with simulated streaming
       final response = _generateResponse(userMessage, isAdmin);
       yield response;
-      
     } catch (e) {
-      print('Error in streaming response: $e');
+      debugPrint('Error in streaming response: $e');
       yield 'Xin lỗi, tôi gặp sự cố. Vui lòng thử lại sau. 🙏';
     }
   }
-  
+
   /// Reset chat session (clear context)
   void resetChatSession() {
     if (_model != null) {
       _chatSession = _model!.startChat();
     }
   }
-  
+
   /// Build context message with user info
-  String _buildContextMessage(String userMessage, String userName, bool isAdmin) {
+  String _buildContextMessage(
+    String userMessage,
+    String userName,
+    bool isAdmin,
+  ) {
     final role = isAdmin ? 'Admin' : 'Người dùng';
     return '''
 [User: $userName | Role: $role]
@@ -150,7 +160,7 @@ $userMessage
     if (uid == null) return false;
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
-      return doc.data()?['role'] == 'admin';
+      return doc.data()['role'] == 'admin';
     } catch (e) {
       return false;
     }
@@ -175,32 +185,66 @@ $userMessage
     }
 
     // Meditation related
-    if (_containsAny(lowerMessage, ['meditation', 'thiền', 'thư giãn', 'relax'])) {
+    if (_containsAny(lowerMessage, [
+      'meditation',
+      'thiền',
+      'thư giãn',
+      'relax',
+    ])) {
       return '🧘‍♀️ Bạn đang tìm kiếm sự thư giãn? Chúng tôi có nhiều chương trình meditation:\n\n• **Meditation cho giấc ngủ** - Giúp bạn ngủ ngon hơn\n• **Giảm stress** - Thư giãn sau ngày làm việc\n• **Tập trung** - Nâng cao năng suất\n• **Chánh niệm** - Sống trong hiện tại\n\nBạn muốn khám phá loại nào?';
     }
 
     // Mood tracking
-    if (_containsAny(lowerMessage, ['mood', 'tâm trạng', 'cảm xúc', 'feeling'])) {
+    if (_containsAny(lowerMessage, [
+      'mood',
+      'tâm trạng',
+      'cảm xúc',
+      'feeling',
+    ])) {
       return '😊 Theo dõi tâm trạng giúp bạn hiểu rõ hơn về cảm xúc của mình!\n\nMỗi ngày, hãy dành vài giây để ghi lại cảm xúc. Bạn sẽ nhận được:\n\n• Insights về patterns cảm xúc\n• Gợi ý meditations phù hợp\n• Streak và achievements\n\nHôm nay bạn cảm thấy thế nào?';
     }
 
     // Expert/Appointment
-    if (_containsAny(lowerMessage, ['expert', 'chuyên gia', 'tư vấn', 'appointment', 'đặt lịch'])) {
+    if (_containsAny(lowerMessage, [
+      'expert',
+      'chuyên gia',
+      'tư vấn',
+      'appointment',
+      'đặt lịch',
+    ])) {
       return '👨‍⚕️ Bạn muốn đặt lịch với chuyên gia?\n\nChúng tôi có đội ngũ chuyên gia tâm lý và wellness coaches sẵn sàng hỗ trợ bạn.\n\n**Cách đặt lịch:**\n1. Vào tab "Chuyên gia"\n2. Chọn chuyên gia phù hợp\n3. Chọn thời gian\n4. Xác nhận\n\nCuộc hẹn của bạn sẽ được xác nhận qua email!';
     }
 
     // Statistics (Admin)
-    if (isAdmin && _containsAny(lowerMessage, ['thống kê', 'stats', 'statistics', 'số liệu'])) {
+    if (isAdmin &&
+        _containsAny(lowerMessage, [
+          'thống kê',
+          'stats',
+          'statistics',
+          'số liệu',
+        ])) {
       return '📊 Để xem thống kê chi tiết:\n\n• **Dashboard** - Tổng quan hệ thống\n• **User Analytics** - Phân tích người dùng\n• **Meditation Stats** - Thống kê meditations\n• **Engagement** - Tỷ lệ tương tác\n\nBạn muốn xem phần nào?';
     }
 
     // User management (Admin)
-    if (isAdmin && _containsAny(lowerMessage, ['user', 'người dùng', 'quản lý', 'ban', 'unban'])) {
+    if (isAdmin &&
+        _containsAny(lowerMessage, [
+          'user',
+          'người dùng',
+          'quản lý',
+          'ban',
+          'unban',
+        ])) {
       return '👥 Quản lý người dùng:\n\n• Vào "Manage Users" để xem danh sách\n• Click vào user để xem chi tiết\n• Ban/Unban user nếu cần\n• Xem lịch sử hoạt động\n\nBạn cần làm gì cụ thể?';
     }
 
     // Streak/Progress
-    if (_containsAny(lowerMessage, ['streak', 'tiến độ', 'progress', 'thành tích'])) {
+    if (_containsAny(lowerMessage, [
+      'streak',
+      'tiến độ',
+      'progress',
+      'thành tích',
+    ])) {
       return '🔥 Streak của bạn:\n\nGhi nhận tâm trạng liên tục mỗi ngày để duy trì streak và nhận rewards!\n\n• **Daily check-in** - Ghi nhận mood\n• **Meditation** - Hoàn thành sessions\n• **Achievements** - Mở khóa thành tích\n\nTiếp tục cố gắng nhé! 💪';
     }
 
@@ -247,11 +291,11 @@ $userMessage
           .doc(user.uid)
           .collection('chat_history')
           .add({
-        'messages': messages.map((m) => m.toMap()).toList(),
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+            'messages': messages.map((m) => m.toMap()).toList(),
+            'timestamp': FieldValue.serverDateTime(),
+          });
     } catch (e) {
-      print('Error saving chat history: $e');
+      debugPrint('Error saving chat history: $e');
     }
   }
 }

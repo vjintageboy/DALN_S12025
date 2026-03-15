@@ -1,10 +1,9 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   final Function(int)? onNavigate;
-  
+
   const AdminDashboardPage({super.key, this.onNavigate});
 
   @override
@@ -14,9 +13,9 @@ class AdminDashboardPage extends StatefulWidget {
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  
+
   bool _isLoading = true;
-  
+
   // Stats
   int _totalUsers = 0;
   int _totalExperts = 0;
@@ -33,7 +32,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Future<void> _loadDashboardData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
@@ -50,7 +49,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       final meditationsSnapshot = results[1];
       final appointmentsSnapshot = results[2];
       final expertUsersSnapshot = results[3];
-      
+
       // Filter users by role (count regular users and experts separately)
       final regularUsersCount = usersSnapshot.docs.where((doc) {
         final data = doc.data();
@@ -61,7 +60,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         final data = doc.data();
         return data['role'] == 'expert';
       }).length;
-      
+
       // Filter expertUsers by status (count pending applications)
       final pendingExpertsCount = expertUsersSnapshot.docs.where((doc) {
         final data = doc.data();
@@ -71,10 +70,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       // Count today's appointments
       final todayAppts = appointmentsSnapshot.docs.where((doc) {
         final data = doc.data();
-        final aptDate = (data['appointmentDate'] as Timestamp).toDate();
+        final aptDate = (data['appointmentDate'] as DateTime).toDate();
         return aptDate.year == today.year &&
-               aptDate.month == today.month &&
-               aptDate.day == today.day;
+            aptDate.month == today.month &&
+            aptDate.day == today.day;
       }).length;
 
       setState(() {
@@ -88,7 +87,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error loading admin dashboard: $e');
+      debugPrint('❌ Error loading admin dashboard: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -112,14 +111,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             slivers: [
               // App Bar
               _buildAppBar(),
-              
+
               // Content
               SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 24),
-                    
+
                     // Quick Stats Grid
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -181,7 +180,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Pending Actions
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -215,7 +214,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Quick Actions
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -276,7 +275,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                   Colors.orange,
                                   () {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Analytics coming soon')),
+                                      const SnackBar(
+                                        content: Text('Analytics coming soon'),
+                                      ),
                                     );
                                   },
                                 ),
@@ -311,7 +312,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               end: Alignment.bottomRight,
               colors: [
                 const Color(0xFF7B2BB0),
-                const Color(0xFF7B2BB0).withOpacity(0.8),
+                const Color(0xFF7B2BB0).withValues(alpha: 0.8),
               ],
             ),
           ),
@@ -327,7 +328,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -367,7 +368,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
@@ -401,7 +402,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -409,7 +415,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -421,7 +427,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -461,10 +467,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -475,7 +481,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -495,10 +501,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -540,10 +543,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.2)),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -554,7 +557,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 24),

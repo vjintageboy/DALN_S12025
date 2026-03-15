@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 enum Gender { male, female, other }
 
 class UserProfile {
@@ -9,8 +7,11 @@ class UserProfile {
   final DateTime? dateOfBirth;
   final Gender? gender;
   final String? avatarUrl;
-  final List<String> goals;
+  final List<dynamic> goals;
   final Map<String, dynamic>? preferences;
+  final String? role;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   UserProfile({
     required this.profileId,
@@ -21,49 +22,53 @@ class UserProfile {
     this.avatarUrl,
     this.goals = const [],
     this.preferences,
+    this.role,
+    this.createdAt,
+    this.updatedAt,
   });
 
-  // Convert to Map for Firestore
+  // Convert to Map for Supabase
   Map<String, dynamic> toMap() {
     return {
-      'profileId': profileId,
-      'userId': userId,
-      'fullName': fullName,
-      'dateOfBirth': dateOfBirth != null ? Timestamp.fromDate(dateOfBirth!) : null,
+      'id': profileId,
+      'full_name': fullName,
+      'date_of_birth': dateOfBirth?.toIso8601String(),
       'gender': gender?.toString().split('.').last,
-      'avatarUrl': avatarUrl,
+      'avatar_url': avatarUrl,
       'goals': goals,
       'preferences': preferences,
+      'role': role,
     };
   }
 
-  // Create from Firestore document
+  // Create from Supabase record
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
-      profileId: map['profileId'] ?? '',
-      userId: map['userId'] ?? '',
-      fullName: map['fullName'] ?? '',
-      dateOfBirth: map['dateOfBirth'] != null 
-          ? (map['dateOfBirth'] as Timestamp).toDate() 
+      profileId: map['id'] ?? '',
+      userId: map['id'] ?? '',
+      fullName: map['full_name'] ?? '',
+      dateOfBirth: map['date_of_birth'] != null
+          ? DateTime.parse(map['date_of_birth'])
           : null,
-      gender: map['gender'] != null 
+      gender: map['gender'] != null
           ? Gender.values.firstWhere(
               (e) => e.toString().split('.').last == map['gender'],
               orElse: () => Gender.other,
             )
           : null,
-      avatarUrl: map['avatarUrl'],
-      goals: List<String>.from(map['goals'] ?? []),
+      avatarUrl: map['avatar_url'],
+      goals: List<dynamic>.from(map['goals'] ?? []),
       preferences: map['preferences'],
+      role: map['role'] ?? 'user',
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'])
+          : null,
+      updatedAt: map['updated_at'] != null
+          ? DateTime.parse(map['updated_at'])
+          : null,
     );
   }
 
-  // Create from Firestore DocumentSnapshot
-  factory UserProfile.fromSnapshot(DocumentSnapshot doc) {
-    return UserProfile.fromMap(doc.data() as Map<String, dynamic>);
-  }
-
-  // Copy with method for updates
   UserProfile copyWith({
     String? profileId,
     String? userId,
@@ -71,8 +76,9 @@ class UserProfile {
     DateTime? dateOfBirth,
     Gender? gender,
     String? avatarUrl,
-    List<String>? goals,
+    List<dynamic>? goals,
     Map<String, dynamic>? preferences,
+    String? role,
   }) {
     return UserProfile(
       profileId: profileId ?? this.profileId,
@@ -83,6 +89,9 @@ class UserProfile {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       goals: goals ?? this.goals,
       preferences: preferences ?? this.preferences,
+      role: role ?? this.role,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 }

@@ -1,15 +1,12 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
 import '../../models/meditation.dart';
-import '../../services/firestore_service.dart';
 
 /// Edit Meditation Page - Trang chỉnh sửa meditation (Admin only)
 class EditMeditationPage extends StatefulWidget {
   final Meditation meditation;
 
-  const EditMeditationPage({
-    super.key,
-    required this.meditation,
-  });
+  const EditMeditationPage({super.key, required this.meditation});
 
   @override
   State<EditMeditationPage> createState() => _EditMeditationPageState();
@@ -22,7 +19,7 @@ class _EditMeditationPageState extends State<EditMeditationPage> {
   late TextEditingController _durationController;
   late TextEditingController _audioUrlController;
   late TextEditingController _thumbnailUrlController;
-  
+
   late MeditationCategory _selectedCategory;
   late MeditationLevel _selectedLevel;
   bool _isSaving = false;
@@ -31,10 +28,18 @@ class _EditMeditationPageState extends State<EditMeditationPage> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.meditation.title);
-    _descriptionController = TextEditingController(text: widget.meditation.description);
-    _durationController = TextEditingController(text: widget.meditation.duration.toString());
-    _audioUrlController = TextEditingController(text: widget.meditation.audioUrl ?? '');
-    _thumbnailUrlController = TextEditingController(text: widget.meditation.thumbnailUrl ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.meditation.description,
+    );
+    _durationController = TextEditingController(
+      text: widget.meditation.duration.toString(),
+    );
+    _audioUrlController = TextEditingController(
+      text: widget.meditation.audioUrl ?? '',
+    );
+    _thumbnailUrlController = TextEditingController(
+      text: widget.meditation.thumbnailUrl ?? '',
+    );
     _selectedCategory = widget.meditation.category;
     _selectedLevel = widget.meditation.level;
   }
@@ -61,11 +66,11 @@ class _EditMeditationPageState extends State<EditMeditationPage> {
         'duration': int.parse(_durationController.text),
         'category': _selectedCategory.toString().split('.').last,
         'level': _selectedLevel.toString().split('.').last,
-        'audioUrl': _audioUrlController.text.trim().isEmpty 
-            ? null 
+        'audioUrl': _audioUrlController.text.trim().isEmpty
+            ? null
             : _audioUrlController.text.trim(),
-        'thumbnailUrl': _thumbnailUrlController.text.trim().isEmpty 
-            ? null 
+        'thumbnailUrl': _thumbnailUrlController.text.trim().isEmpty
+            ? null
             : _thumbnailUrlController.text.trim(),
       };
 
@@ -86,10 +91,7 @@ class _EditMeditationPageState extends State<EditMeditationPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -224,7 +226,7 @@ class _EditMeditationPageState extends State<EditMeditationPage> {
 
             // Category
             DropdownButtonFormField<MeditationCategory>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: InputDecoration(
                 labelText: 'Category *',
                 border: OutlineInputBorder(
@@ -248,7 +250,7 @@ class _EditMeditationPageState extends State<EditMeditationPage> {
 
             // Level
             DropdownButtonFormField<MeditationLevel>(
-              value: _selectedLevel,
+              initialValue: _selectedLevel,
               decoration: InputDecoration(
                 labelText: 'Level *',
                 border: OutlineInputBorder(

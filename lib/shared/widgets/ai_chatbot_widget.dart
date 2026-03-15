@@ -15,7 +15,7 @@ class AIChatbotWidget extends StatelessWidget {
           children: [
             // Chat Panel
             if (chatbot.isOpen) _ChatPanel(),
-            
+
             // Floating Action Button
             _ChatbotFAB(),
           ],
@@ -30,7 +30,7 @@ class _ChatbotFAB extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chatbot = context.watch<ChatbotProvider>();
-    
+
     return Positioned(
       right: 16,
       bottom: 16,
@@ -94,7 +94,7 @@ class _ChatPanel extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -104,7 +104,7 @@ class _ChatPanel extends StatelessWidget {
             children: [
               // Header
               _ChatHeader(),
-              
+
               // Messages (only show when not minimized)
               if (!chatbot.isMinimized) ...[
                 Expanded(child: _MessageList()),
@@ -124,15 +124,12 @@ class _ChatHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chatbot = context.read<ChatbotProvider>();
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            const Color(0xFF7B2BB0),
-            const Color(0xFF9B4FD8),
-          ],
+          colors: [const Color(0xFF7B2BB0), const Color(0xFF9B4FD8)],
         ),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
@@ -144,14 +141,10 @@ class _ChatHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.smart_toy,
-              color: Colors.white,
-              size: 24,
-            ),
+            child: const Icon(Icons.smart_toy, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -168,10 +161,7 @@ class _ChatHeader extends StatelessWidget {
                 ),
                 Text(
                   'Online',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
@@ -198,7 +188,7 @@ class _MessageList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chatbot = context.watch<ChatbotProvider>();
-    
+
     return Container(
       color: Colors.grey.shade50,
       child: ListView.builder(
@@ -209,10 +199,10 @@ class _MessageList extends StatelessWidget {
           if (index == 0 && chatbot.isLoading) {
             return _TypingIndicator();
           }
-          
+
           final messageIndex = chatbot.isLoading ? index - 1 : index;
           final message = chatbot.messages[messageIndex];
-          
+
           return _MessageBubble(message: message);
         },
       ),
@@ -231,15 +221,16 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment:
-            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: message.isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!message.isUser) ...[
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF7B2BB0).withOpacity(0.1),
+                color: const Color(0xFF7B2BB0).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -254,13 +245,11 @@ class _MessageBubble extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: message.isUser
-                    ? const Color(0xFF7B2BB0)
-                    : Colors.white,
+                color: message.isUser ? const Color(0xFF7B2BB0) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -281,7 +270,7 @@ class _MessageBubble extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF7B2BB0).withOpacity(0.1),
+                color: const Color(0xFF7B2BB0).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -308,7 +297,7 @@ class _TypingIndicator extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF7B2BB0).withOpacity(0.1),
+              color: const Color(0xFF7B2BB0).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -359,7 +348,7 @@ class _TypingDotState extends State<_TypingDot>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     )..repeat(reverse: true);
-    
+
     Future.delayed(Duration(milliseconds: widget.delay), () {
       if (mounted) _controller.forward();
     });
@@ -380,7 +369,7 @@ class _TypingDotState extends State<_TypingDot>
           width: 8,
           height: 8,
           decoration: BoxDecoration(
-            color: const Color(0xFF7B2BB0).withOpacity(_controller.value),
+            color: const Color(0xFF7B2BB0).withValues(alpha: _controller.value),
             shape: BoxShape.circle,
           ),
         );
@@ -394,14 +383,14 @@ class _QuickReplies extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chatbot = context.read<ChatbotProvider>();
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: FutureBuilder<List<String>>(
         future: chatbot.getQuickReplies(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const SizedBox.shrink();
-          
+
           return Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -410,12 +399,15 @@ class _QuickReplies extends StatelessWidget {
                 onTap: () => chatbot.sendMessage(reply),
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF7B2BB0).withOpacity(0.1),
+                    color: const Color(0xFF7B2BB0).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: const Color(0xFF7B2BB0).withOpacity(0.3),
+                      color: const Color(0xFF7B2BB0).withValues(alpha: 0.3),
                     ),
                   ),
                   child: Text(
@@ -441,7 +433,7 @@ class _InputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chatbot = context.read<ChatbotProvider>();
-    
+
     return Material(
       color: Colors.white,
       child: Container(
@@ -450,7 +442,7 @@ class _InputField extends StatelessWidget {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -488,11 +480,7 @@ class _InputField extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 child: Container(
                   padding: const EdgeInsets.all(12),
-                  child: const Icon(
-                    Icons.send,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  child: const Icon(Icons.send, color: Colors.white, size: 24),
                 ),
               ),
             ),

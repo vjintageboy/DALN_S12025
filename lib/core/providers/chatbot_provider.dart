@@ -4,7 +4,7 @@ import '../../services/ai_chatbot_service.dart';
 /// Chatbot Provider - Quản lý state của chatbot toàn app
 class ChatbotProvider extends ChangeNotifier {
   final AIChatbotService _chatbotService = AIChatbotService();
-  
+
   // State
   bool _isOpen = false;
   bool _isLoading = false;
@@ -54,7 +54,8 @@ class ChatbotProvider extends ChangeNotifier {
   /// Add welcome message
   void _addWelcomeMessage() {
     final welcomeMessage = ChatMessage(
-      message: '👋 Xin chào! Tôi là AI Assistant của Moodiki. Tôi có thể giúp gì cho bạn?',
+      message:
+          '👋 Xin chào! Tôi là AI Assistant của Moodiki. Tôi có thể giúp gì cho bạn?',
       isUser: false,
       timestamp: DateTime.now(),
     );
@@ -91,14 +92,14 @@ class ChatbotProvider extends ChangeNotifier {
         timestamp: DateTime.now(),
       );
       _messages.insert(0, aiMessage);
-      
+
       // Stream AI response (real-time typing effect)
       final responseStream = _chatbotService.getAIResponseStream(text);
       String fullResponse = '';
-      
+
       await for (final chunk in responseStream) {
         fullResponse += chunk;
-        
+
         // Update AI message with accumulated text
         _messages[aiMessageIndex] = ChatMessage(
           message: fullResponse,
@@ -107,18 +108,18 @@ class ChatbotProvider extends ChangeNotifier {
         );
         notifyListeners();
       }
-      
+
       // If no response received, use fallback
       if (fullResponse.isEmpty) {
         _messages[aiMessageIndex] = ChatMessage(
-          message: 'Xin lỗi, tôi không thể trả lời lúc này. Vui lòng thử lại! 🙏',
+          message:
+              'Xin lỗi, tôi không thể trả lời lúc này. Vui lòng thử lại! 🙏',
           isUser: false,
           timestamp: DateTime.now(),
         );
       }
-      
     } catch (e) {
-      print('Error sending message: $e');
+      debugPrint('Error sending message: $e');
       final errorMessage = ChatMessage(
         message: 'Đã có lỗi xảy ra. Vui lòng thử lại. 😔',
         isUser: false,

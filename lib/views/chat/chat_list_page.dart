@@ -1,5 +1,5 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 import '../../services/chat_service.dart';
@@ -7,9 +7,6 @@ import '../../services/appointment_service.dart';
 import '../../models/chat_room.dart';
 import '../../models/appointment.dart';
 import 'chat_detail_page.dart';
-import '../../services/firestore_service.dart';
-import '../../models/user_profile.dart';
-import '../../models/app_user.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -28,10 +25,7 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Tin nhắn',
-          style: TextStyle(color: Colors.black),
-        ),
+        title: const Text('Tin nhắn', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -40,7 +34,7 @@ class _ChatListPageState extends State<ChatListPage> {
         stream: _chatService.getUserChats(_currentAuthId),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            print('❌ Chat List Error: ${snapshot.error}');
+            debugPrint('❌ Chat List Error: ${snapshot.error}');
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
@@ -49,13 +43,17 @@ class _ChatListPageState extends State<ChatListPage> {
           }
 
           final chatRooms = snapshot.data ?? [];
-          
+
           if (chatRooms.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+                  const Icon(
+                    Icons.chat_bubble_outline,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'Chưa có tin nhắn nào',
@@ -68,9 +66,21 @@ class _ChatListPageState extends State<ChatListPage> {
                     color: Colors.grey[200],
                     child: Column(
                       children: [
-                        Text('Current Auth ID: $_currentAuthId', style: const TextStyle(fontSize: 11)),
-                        const Text('Querying: participants array-contains Auth ID', style: TextStyle(fontSize: 11)),
-                        Text('Chats Found: ${chatRooms.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Current Auth ID: $_currentAuthId',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        const Text(
+                          'Querying: participants array-contains Auth ID',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        Text(
+                          'Chats Found: ${chatRooms.length}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -106,7 +116,7 @@ class _ChatListPageState extends State<ChatListPage> {
           // OR, we can just check if _currentAuthId == appointment.userId.
           // If I am the user, then isExpert = false.
           // If I am the expert, then _currentAuthId != appointment.userId.
-          
+
           final isExpert = _currentAuthId != appointment.userId;
 
           if (isExpert) {
@@ -116,49 +126,59 @@ class _ChatListPageState extends State<ChatListPage> {
               builder: (context, userSnapshot) {
                 String displayName = 'Người dùng';
                 String avatarUrl = '';
-                
+
                 if (userSnapshot.hasData) {
                   displayName = userSnapshot.data!['name'] ?? 'Người dùng';
                   avatarUrl = userSnapshot.data!['avatar'] ?? '';
                 }
-                
-                return _buildTile(context, chatRoom, appointment, displayName, avatarUrl, isExpert);
+
+                return _buildTile(
+                  context,
+                  chatRoom,
+                  appointment,
+                  displayName,
+                  avatarUrl,
+                  isExpert,
+                );
               },
             );
           } else {
             // If I am the user, I want to see the Expert's info
             return _buildTile(
-              context, 
-              chatRoom, 
-              appointment, 
-              appointment.expertName, 
-              appointment.expertAvatarUrl ?? '', 
-              isExpert
+              context,
+              chatRoom,
+              appointment,
+              appointment.expertName,
+              appointment.expertAvatarUrl ?? '',
+              isExpert,
             );
           }
-        } else if (snapshot.connectionState == ConnectionState.done && snapshot.data == null) {
-           // Fallback if appointment not found
-           final otherUserId = chatRoom.participants.firstWhere(
+        } else if (snapshot.connectionState == ConnectionState.done &&
+            snapshot.data == null) {
+          // Fallback if appointment not found
+          final otherUserId = chatRoom.participants.firstWhere(
             (id) => id != _currentAuthId,
             orElse: () => 'Unknown',
           );
-           return ListTile(
-             title: Text('Người dùng (ID: ${otherUserId.substring(0, min(5, otherUserId.length))}...)'),
-             subtitle: Text(chatRoom.lastMessage ?? ''),
-           );
+          return ListTile(
+            title: Text(
+              'Người dùng (ID: ${otherUserId.substring(0, min(5, otherUserId.length))}...)',
+            ),
+            subtitle: Text(chatRoom.lastMessage ?? ''),
+          );
         }
-        
+
         // Loading state
-        return const SizedBox.shrink(); 
+        return const SizedBox.shrink();
       },
     );
   }
 
   Widget _buildTile(
-    BuildContext context, 
-    ChatRoom chatRoom, 
-    Appointment appointment, 
-    String displayName, 
+    BuildContext context,
+    ChatRoom chatRoom,
+    Appointment appointment,
+    String displayName,
     String avatarUrl,
     bool isExpert,
   ) {
@@ -166,7 +186,9 @@ class _ChatListPageState extends State<ChatListPage> {
     String statusText = '';
     Color statusColor = Colors.grey;
 
-    final dateStr = DateFormat('dd/MM/yyyy').format(appointment.appointmentDate);
+    final dateStr = DateFormat(
+      'dd/MM/yyyy',
+    ).format(appointment.appointmentDate);
     final timeStr = DateFormat('HH:mm').format(appointment.appointmentDate);
     appointmentTime = 'Lịch hẹn: $timeStr - $dateStr';
 
@@ -259,7 +281,7 @@ class _ChatListPageState extends State<ChatListPage> {
             builder: (_) => ChatDetailPage(
               roomId: chatRoom.id,
               expertName: displayName, // Reusing this field for "Target Name"
-              expertId: targetId,      // Reusing this field for "Target ID"
+              expertId: targetId, // Reusing this field for "Target ID"
               targetAvatarUrl: avatarUrl, // Pass the avatar URL
             ),
           ),
@@ -267,7 +289,7 @@ class _ChatListPageState extends State<ChatListPage> {
       },
     );
   }
-  
+
   Future<Map<String, String>> _fetchUserInfo(String userId) async {
     String displayName = 'Người dùng';
     String avatarUrl = '';
@@ -282,14 +304,16 @@ class _ChatListPageState extends State<ChatListPage> {
         // 2. Fallback to AppUser
         final appUser = await _firestoreService.getUser(userId);
         if (appUser != null) {
-          displayName = appUser.displayName.isNotEmpty ? appUser.displayName : 'Người dùng';
+          displayName = appUser.displayName.isNotEmpty
+              ? appUser.displayName
+              : 'Người dùng';
           avatarUrl = appUser.photoUrl ?? '';
         }
       }
     } catch (e) {
-      print('Error fetching user info: $e');
+      debugPrint('Error fetching user info: $e');
     }
-    
+
     return {'name': displayName, 'avatar': avatarUrl};
   }
 

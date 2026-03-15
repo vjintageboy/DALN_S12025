@@ -8,11 +8,7 @@ class ExpertCard extends StatelessWidget {
   final Expert expert;
   final VoidCallback onTap;
 
-  const ExpertCard({
-    super.key,
-    required this.expert,
-    required this.onTap,
-  });
+  const ExpertCard({super.key, required this.expert, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +26,7 @@ class ExpertCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -117,7 +113,7 @@ class ExpertCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50).withOpacity(0.1),
+                          color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -134,7 +130,11 @@ class ExpertCard extends StatelessWidget {
                       // Rating & Experience
                       Row(
                         children: [
-                          Icon(Icons.star, color: Colors.amber.shade600, size: 16),
+                          Icon(
+                            Icons.star,
+                            color: Colors.amber.shade600,
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             expert.rating.toStringAsFixed(1),
@@ -153,9 +153,11 @@ class ExpertCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Icon(Icons.work_outline, 
-                              size: 14, 
-                              color: Colors.grey.shade600),
+                          Icon(
+                            Icons.work_outline,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '${expert.yearsOfExperience} ${context.l10n.yrs}',
@@ -212,9 +214,6 @@ class ExpertCard extends StatelessWidget {
   }
 
   String _formatPrice(double price) {
-    return '₫${price.toInt().toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        )}';
+    return '₫${price.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
   }
 }

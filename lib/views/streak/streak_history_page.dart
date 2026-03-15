@@ -1,7 +1,6 @@
+import '../../services/supabase_service.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import '../../services/firestore_service.dart';
 import '../../models/streak.dart';
 import 'streak_debug_page.dart';
 
@@ -13,7 +12,7 @@ class StreakHistoryPage extends StatefulWidget {
 }
 
 class _StreakHistoryPageState extends State<StreakHistoryPage> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final _supabaseService = SupabaseService.instance;
   Streak? _streak;
   List<DateTime> _activityDates = [];
   bool _isLoading = true;
@@ -26,25 +25,23 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
   }
 
   Future<void> _loadStreakData() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _supabaseService.currentUser;
     if (user == null) return;
 
     setState(() => _isLoading = true);
 
     try {
       // Recalculate streak first to ensure accuracy
-      await _firestoreService.recalculateStreak(user.uid);
-      
+      await _supabaseService.recalculateStreak(user.id);
+
       // Then load streak data and activity dates
-      final results = await Future.wait([
-        _firestoreService.getOrCreateStreak(user.uid),
-        _firestoreService.getUserActivityDates(user.uid),
-      ]);
+      final streak = await _supabaseService.getStreak(user.id);
+      final moodEntries = await _supabaseService.getMoodEntries(user.id);
 
       if (mounted) {
         setState(() {
-          _streak = results[0] as Streak;
-          _activityDates = results[1] as List<DateTime>;
+          _streak = streak;
+          _activityDates = moodEntries.map((e) => e.timestamp).toList();
           _isLoading = false;
         });
       }
@@ -82,7 +79,9 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const StreakDebugPage()),
+                MaterialPageRoute(
+                  builder: (context) => const StreakDebugPage(),
+                ),
               );
             },
           ),
@@ -129,7 +128,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4CAF50).withOpacity(0.3),
+            color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -150,7 +149,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
               Container(
                 width: 1,
                 height: 60,
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
               ),
               Expanded(
                 child: _buildStatItem(
@@ -166,13 +165,17 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   '$totalActivities total activities',
@@ -189,13 +192,17 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.local_fire_department, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.local_fire_department,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -221,10 +228,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
   Widget _buildStatItem(String emoji, String value, String label, String unit) {
     return Column(
       children: [
-        Text(
-          emoji,
-          style: const TextStyle(fontSize: 32),
-        ),
+        Text(emoji, style: const TextStyle(fontSize: 32)),
         const SizedBox(height: 8),
         Text(
           value,
@@ -238,7 +242,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
           unit,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -247,7 +251,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
           label,
           style: TextStyle(
             fontSize: 13,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -263,7 +267,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -333,8 +337,16 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
   }
 
   Widget _buildCalendarGrid() {
-    final firstDayOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-    final lastDayOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
+    final firstDayOfMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month,
+      1,
+    );
+    final lastDayOfMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + 1,
+      0,
+    );
     final firstWeekday = firstDayOfMonth.weekday % 7;
     final daysInMonth = lastDayOfMonth.day;
     final totalCells = ((daysInMonth + firstWeekday) / 7).ceil() * 7;
@@ -344,18 +356,20 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
         // Weekday headers
         Row(
           children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-              .map((day) => Expanded(
-                    child: Center(
-                      child: Text(
-                        day,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.grey.shade600,
-                        ),
+              .map(
+                (day) => Expanded(
+                  child: Center(
+                    child: Text(
+                      day,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade600,
                       ),
                     ),
-                  ))
+                  ),
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 12),
@@ -378,13 +392,20 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
               return const SizedBox.shrink();
             }
 
-            final date = DateTime(_selectedMonth.year, _selectedMonth.month, dayNumber);
-            final hasActivity = _activityDates.any((d) =>
-                d.year == date.year &&
-                d.month == date.month &&
-                d.day == date.day);
+            final date = DateTime(
+              _selectedMonth.year,
+              _selectedMonth.month,
+              dayNumber,
+            );
+            final hasActivity = _activityDates.any(
+              (d) =>
+                  d.year == date.year &&
+                  d.month == date.month &&
+                  d.day == date.day,
+            );
 
-            final isToday = DateTime.now().year == date.year &&
+            final isToday =
+                DateTime.now().year == date.year &&
                 DateTime.now().month == date.month &&
                 DateTime.now().day == date.day;
 
@@ -395,8 +416,8 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
                 color: hasActivity
                     ? const Color(0xFF4CAF50)
                     : isFuture
-                        ? Colors.grey.shade100
-                        : Colors.grey.shade200,
+                    ? Colors.grey.shade100
+                    : Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isToday ? Colors.blue.shade400 : Colors.transparent,
@@ -414,8 +435,8 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
                         color: hasActivity
                             ? Colors.white
                             : isFuture
-                                ? Colors.grey.shade400
-                                : Colors.grey.shade600,
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
                       ),
                     ),
                   ),
@@ -453,10 +474,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
         children: [
           const Text(
             'Legend',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           Row(
@@ -488,10 +506,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
         const SizedBox(width: 6),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade700,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
         ),
       ],
     );
@@ -506,7 +521,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -520,7 +535,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withOpacity(0.1),
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -532,10 +547,7 @@ class _StreakHistoryPageState extends State<StreakHistoryPage> {
               const SizedBox(width: 12),
               const Text(
                 'Tips to Maintain Streak',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ],
           ),

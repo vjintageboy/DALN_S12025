@@ -1,239 +1,145 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+/// Maps to one row in the `expert_availability` table.
+///
+/// Schema:
+///   id          uuid  PK
+///   expert_id   uuid  FK → experts.id
+///   day_of_week int   0=Sunday … 6=Saturday
+///   start_time  time  e.g. "09:00:00"
+///   end_time    time  e.g. "17:00:00"
+///   created_at  timestamptz
+class ExpertAvailability {
+  final String id;
+  final String expertId;
 
-/// Represents a time slot for expert availability
-class TimeSlot {
-  final String startTime; // Format: "HH:mm" (e.g., "09:00")
-  final String endTime;   // Format: "HH:mm" (e.g., "17:00")
+  /// 0 = Sunday, 1 = Monday … 6 = Saturday  (matches the DB convention)
+  final int dayOfWeek;
 
-  TimeSlot({
+  /// "HH:mm" – trimmed from the Postgres `time` value
+  final String startTime;
+
+  /// "HH:mm"
+  final String endTime;
+
+  final DateTime? createdAt;
+
+  const ExpertAvailability({
+    required this.id,
+    required this.expertId,
+    required this.dayOfWeek,
     required this.startTime,
     required this.endTime,
+    this.createdAt,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'startTime': startTime,
-      'endTime': endTime,
-    };
-  }
+  // ── Supabase helpers ────────────────────────────────────────────────────────
 
-  factory TimeSlot.fromMap(Map<String, dynamic> map) {
-    return TimeSlot(
-      startTime: map['startTime'] ?? '09:00',
-      endTime: map['endTime'] ?? '17:00',
+  factory ExpertAvailability.fromMap(Map<String, dynamic> map) {
+    return ExpertAvailability(
+      id: map['id']?.toString() ?? '',
+      expertId: map['expert_id']?.toString() ?? '',
+      dayOfWeek: (map['day_of_week'] as num?)?.toInt() ?? 0,
+      startTime: _trimTime(map['start_time']?.toString() ?? '00:00'),
+      endTime: _trimTime(map['end_time']?.toString() ?? '00:00'),
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'].toString())
+          : null,
     );
   }
 
-  @override
-  String toString() => '$startTime - $endTime';
+  Map<String, dynamic> toInsertMap() => {
+        'expert_id': expertId,
+        'day_of_week': dayOfWeek,
+        'start_time': startTime,
+        'end_time': endTime,
+      };
+
+  // ── Utility ─────────────────────────────────────────────────────────────────
+
+  /// Converts DB `day_of_week` (0=Sun) to Dart `DateTime.weekday` (1=Mon…7=Sun).
+  int get dartWeekday {
+    // DB: 0=Sun, 1=Mon … 6=Sat
+    // Dart: 1=Mon, 2=Tue … 7=Sun
+    if (dayOfWeek == 0) return DateTime.sunday; // 7
+    return dayOfWeek; // 1-6 match Mon-Sat in both conventions
+  }
+
+  /// Returns a human-readable day name.
+  String get dayName {
+    const names = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+    return names[dayOfWeek.clamp(0, 6)];
+  }
+
+  /// Strips seconds from a Postgres `time` string ("09:00:00" → "09:00").
+  static String _trimTime(String t) {
+    final parts = t.split(':');
+    if (parts.length >= 2) return '${parts[0]}:${parts[1]}';
+    return t;
+  }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is TimeSlot &&
-          runtimeType == other.runtimeType &&
-          startTime == other.startTime &&
-          endTime == other.endTime;
-
-  @override
-  int get hashCode => startTime.hashCode ^ endTime.hashCode;
+  String toString() =>
+      'ExpertAvailability(day=$dayName, $startTime-$endTime)';
 }
 
-/// Represents expert's availability schedule
-class Availability {
-  final String availabilityId;
-  final String expertId;
-  
-  // Weekly schedule
-  final bool monday;
-  final bool tuesday;
-  final bool wednesday;
-  final bool thursday;
-  final bool friday;
-  final bool saturday;
-  final bool sunday;
-  
-  // Working hours for each day
-  final TimeSlot? mondayHours;
-  final TimeSlot? tuesdayHours;
-  final TimeSlot? wednesdayHours;
-  final TimeSlot? thursdayHours;
-  final TimeSlot? fridayHours;
-  final TimeSlot? saturdayHours;
-  final TimeSlot? sundayHours;
-  
-  // Break times (optional)
-  final TimeSlot? breakTime;
-  
-  final DateTime updatedAt;
+// ── Collection helpers ─────────────────────────────────────────────────────────
 
-  Availability({
-    required this.availabilityId,
-    required this.expertId,
-    this.monday = false,
-    this.tuesday = false,
-    this.wednesday = false,
-    this.thursday = false,
-    this.friday = false,
-    this.saturday = false,
-    this.sunday = false,
-    this.mondayHours,
-    this.tuesdayHours,
-    this.wednesdayHours,
-    this.thursdayHours,
-    this.fridayHours,
-    this.saturdayHours,
-    this.sundayHours,
-    this.breakTime,
-    DateTime? updatedAt,
-  }) : updatedAt = updatedAt ?? DateTime.now();
-
-  // Get time slot for a specific day
-  TimeSlot? getTimeSlotForDay(int weekday) {
-    switch (weekday) {
-      case DateTime.monday:
-        return monday ? mondayHours : null;
-      case DateTime.tuesday:
-        return tuesday ? tuesdayHours : null;
-      case DateTime.wednesday:
-        return wednesday ? wednesdayHours : null;
-      case DateTime.thursday:
-        return thursday ? thursdayHours : null;
-      case DateTime.friday:
-        return friday ? fridayHours : null;
-      case DateTime.saturday:
-        return saturday ? saturdayHours : null;
-      case DateTime.sunday:
-        return sunday ? sundayHours : null;
-      default:
-        return null;
-    }
+extension ExpertAvailabilityList on List<ExpertAvailability> {
+  /// Returns whether the expert has ANY slot on the given [dartWeekday]
+  /// (1=Mon … 7=Sun).
+  bool isAvailableOnWeekday(int dartWeekday) {
+    return any((slot) => slot.dartWeekday == dartWeekday);
   }
 
-  // Check if expert is available on a specific day
-  bool isAvailableOnDay(int weekday) {
-    switch (weekday) {
-      case DateTime.monday:
-        return monday;
-      case DateTime.tuesday:
-        return tuesday;
-      case DateTime.wednesday:
-        return wednesday;
-      case DateTime.thursday:
-        return thursday;
-      case DateTime.friday:
-        return friday;
-      case DateTime.saturday:
-        return saturday;
-      case DateTime.sunday:
-        return sunday;
-      default:
-        return false;
-    }
+  /// Returns ALL rows for [dartWeekday], sorted by start_time.
+  /// Use this to support split shifts (e.g. 09:00–12:00 + 14:00–17:00).
+  List<ExpertAvailability> slotsForWeekday(int dartWeekday) {
+    final matches = where((slot) => slot.dartWeekday == dartWeekday).toList();
+    // Sort by start_time so slots are generated in chronological order.
+    matches.sort((a, b) => a.startTime.compareTo(b.startTime));
+    return matches;
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'availabilityId': availabilityId,
-      'expertId': expertId,
-      'monday': monday,
-      'tuesday': tuesday,
-      'wednesday': wednesday,
-      'thursday': thursday,
-      'friday': friday,
-      'saturday': saturday,
-      'sunday': sunday,
-      'mondayHours': mondayHours?.toMap(),
-      'tuesdayHours': tuesdayHours?.toMap(),
-      'wednesdayHours': wednesdayHours?.toMap(),
-      'thursdayHours': thursdayHours?.toMap(),
-      'fridayHours': fridayHours?.toMap(),
-      'saturdayHours': saturdayHours?.toMap(),
-      'sundayHours': sundayHours?.toMap(),
-      'breakTime': breakTime?.toMap(),
-      'updatedAt': Timestamp.fromDate(updatedAt),
-    };
+  /// Returns only the FIRST row for [dartWeekday], or null.
+  /// For most cases prefer [slotsForWeekday] to handle split shifts.
+  ExpertAvailability? slotForWeekday(int dartWeekday) {
+    final all = slotsForWeekday(dartWeekday);
+    return all.isEmpty ? null : all.first;
   }
 
-  factory Availability.fromSnapshot(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return Availability(
-      availabilityId: doc.id,
-      expertId: data['expertId'] ?? '',
-      monday: data['monday'] ?? false,
-      tuesday: data['tuesday'] ?? false,
-      wednesday: data['wednesday'] ?? false,
-      thursday: data['thursday'] ?? false,
-      friday: data['friday'] ?? false,
-      saturday: data['saturday'] ?? false,
-      sunday: data['sunday'] ?? false,
-      mondayHours: data['mondayHours'] != null
-          ? TimeSlot.fromMap(data['mondayHours'])
-          : null,
-      tuesdayHours: data['tuesdayHours'] != null
-          ? TimeSlot.fromMap(data['tuesdayHours'])
-          : null,
-      wednesdayHours: data['wednesdayHours'] != null
-          ? TimeSlot.fromMap(data['wednesdayHours'])
-          : null,
-      thursdayHours: data['thursdayHours'] != null
-          ? TimeSlot.fromMap(data['thursdayHours'])
-          : null,
-      fridayHours: data['fridayHours'] != null
-          ? TimeSlot.fromMap(data['fridayHours'])
-          : null,
-      saturdayHours: data['saturdayHours'] != null
-          ? TimeSlot.fromMap(data['saturdayHours'])
-          : null,
-      sundayHours: data['sundayHours'] != null
-          ? TimeSlot.fromMap(data['sundayHours'])
-          : null,
-      breakTime: data['breakTime'] != null
-          ? TimeSlot.fromMap(data['breakTime'])
-          : null,
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-    );
-  }
+  /// Returns a sorted list of distinct enabled Dart weekdays (1-7).
+  List<int> get enabledDartWeekdays =>
+      map((s) => s.dartWeekday).toSet().toList()..sort();
+}
 
-  Availability copyWith({
-    String? availabilityId,
-    String? expertId,
-    bool? monday,
-    bool? tuesday,
-    bool? wednesday,
-    bool? thursday,
-    bool? friday,
-    bool? saturday,
-    bool? sunday,
-    TimeSlot? mondayHours,
-    TimeSlot? tuesdayHours,
-    TimeSlot? wednesdayHours,
-    TimeSlot? thursdayHours,
-    TimeSlot? fridayHours,
-    TimeSlot? saturdayHours,
-    TimeSlot? sundayHours,
-    TimeSlot? breakTime,
-    DateTime? updatedAt,
-  }) {
-    return Availability(
-      availabilityId: availabilityId ?? this.availabilityId,
-      expertId: expertId ?? this.expertId,
-      monday: monday ?? this.monday,
-      tuesday: tuesday ?? this.tuesday,
-      wednesday: wednesday ?? this.wednesday,
-      thursday: thursday ?? this.thursday,
-      friday: friday ?? this.friday,
-      saturday: saturday ?? this.saturday,
-      sunday: sunday ?? this.sunday,
-      mondayHours: mondayHours ?? this.mondayHours,
-      tuesdayHours: tuesdayHours ?? this.tuesdayHours,
-      wednesdayHours: wednesdayHours ?? this.wednesdayHours,
-      thursdayHours: thursdayHours ?? this.thursdayHours,
-      fridayHours: fridayHours ?? this.fridayHours,
-      saturdayHours: saturdayHours ?? this.saturdayHours,
-      sundayHours: sundayHours ?? this.sundayHours,
-      breakTime: breakTime ?? this.breakTime,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
+// ---------------------------------------------------------------------------
+// BACKWARD-COMPAT SHIM
+// ---------------------------------------------------------------------------
+// The old `TimeSlot` and `Availability` types were referenced in schedule_page
+// and booking_page. We keep lightweight versions here so callers that haven't
+// been updated yet still compile. They are deprecated – prefer ExpertAvailability.
+
+@Deprecated('Use ExpertAvailability instead')
+class TimeSlot {
+  final String startTime;
+  final String endTime;
+
+  TimeSlot({required this.startTime, required this.endTime});
+
+  Map<String, dynamic> toMap() => {
+        'start_time': startTime,
+        'end_time': endTime,
+      };
+
+  factory TimeSlot.fromMap(Map<String, dynamic> map) => TimeSlot(
+        startTime: map['start_time']?.toString() ?? '00:00',
+        endTime: map['end_time']?.toString() ?? '00:00',
+      );
 }

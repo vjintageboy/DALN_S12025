@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/expert_user.dart';
 import '../../models/expert.dart';
 import '../../models/appointment.dart';
@@ -8,6 +6,7 @@ import 'appointments_page.dart';
 import 'schedule_page.dart';
 import 'analytics_page.dart';
 import '../chat/chat_list_page.dart';
+import '../../services/supabase_service.dart';
 
 class ExpertDashboardPage extends StatefulWidget {
   const ExpertDashboardPage({super.key});
@@ -17,13 +16,12 @@ class ExpertDashboardPage extends StatefulWidget {
 }
 
 class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  
+  final _supabase = SupabaseService.instance.client;
+
   ExpertUser? _expertUser;
   Expert? _expertProfile;
   bool _isLoading = true;
-  
+
   // Stats
   int _todayAppointments = 0;
   int _upcomingAppointments = 0;
@@ -38,31 +36,29 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
 
   Future<void> _loadDashboardData() async {
     setState(() => _isLoading = true);
-    
+
     try {
-      final user = _auth.currentUser;
+      final user = _supabase.auth.currentUser;
       if (user == null) return;
 
-      // Load expert user data
-      final expertUserDoc = await _db.collection('expertUsers').doc(user.uid).get();
-      if (expertUserDoc.exists) {
-        _expertUser = ExpertUser.fromSnapshot(expertUserDoc);
-        
-        // Load expert profile
-        if (_expertUser?.expertId != null) {
-          final expertDoc = await _db.collection('experts').doc(_expertUser!.expertId).get();
-          if (expertDoc.exists) {
-            _expertProfile = Expert.fromSnapshot(expertDoc);
-          }
-        }
+      // Load expert profile and basic info
+      final expertData = await _supabase
+          .from('experts')
+          .select('*, users!id(*)')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (expertData != null) {
+        _expertProfile = Expert.fromMap(expertData);
+        _expertUser = ExpertUser.fromMap(expertData, user.id);
       }
 
       // Load appointment stats
       await _loadAppointmentStats();
-      
+
       setState(() => _isLoading = false);
     } catch (e) {
-      print('❌ Error loading dashboard: $e');
+      debugPrint('❌ Error loading dashboard: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -75,78 +71,75 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
       final today = DateTime(now.year, now.month, now.day);
 
       // Get all appointments for this expert
-      final appointmentsSnapshot = await _db
-          .collection('appointments')
-          .where('expertId', isEqualTo: _expertProfile!.expertId)
-          .get();
+      final response = await _supabase
+          .from('appointments')
+          .select('*, experts!expert_id(hourly_rate), users:user_id(full_name, avatar_url)')
+          .eq('expert_id', _expertProfile!.expertId);
 
-      final appointments = appointmentsSnapshot.docs
-          .map((doc) => Appointment.fromSnapshot(doc))
+      final appointments = (response as List)
+          .map((m) => Appointment.fromMap(m))
           .toList();
 
       // Calculate stats
       _totalAppointments = appointments.length;
-      
+
       _todayAppointments = appointments.where((apt) {
         final aptDate = apt.appointmentDate;
         return aptDate.year == today.year &&
-               aptDate.month == today.month &&
-               aptDate.day == today.day &&
-               apt.status != AppointmentStatus.cancelled;
+            aptDate.month == today.month &&
+            aptDate.day == today.day &&
+            apt.status != AppointmentStatus.cancelled;
       }).length;
 
       _upcomingAppointments = appointments.where((apt) {
         return apt.appointmentDate.isAfter(now) &&
-               apt.status != AppointmentStatus.cancelled &&
-               apt.status != AppointmentStatus.completed;
+            apt.status != AppointmentStatus.cancelled &&
+            apt.status != AppointmentStatus.completed;
       }).length;
 
       // Use expert profile rating
       _averageRating = _expertProfile?.rating ?? 0.0;
-
     } catch (e) {
-      print('❌ Error loading appointment stats: $e');
+      debugPrint('❌ Error loading appointment stats: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+        ),
       );
     }
 
     if (_expertUser == null || !_expertUser!.canLogin) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.orange.shade400,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Expert Account Not Approved',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.orange.shade400,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Your expert application is ${_expertUser?.statusLabel ?? "pending"}. Please wait for admin approval.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
+                const SizedBox(height: 16),
+                const Text(
+                  'Expert Account Not Approved',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  'Your expert application is ${_expertUser?.statusLabel ?? "pending"}. Please wait for admin approval.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -163,26 +156,26 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
             slivers: [
               // App Bar
               _buildAppBar(),
-              
+
               // Content
               SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 24),
-                    
+
                     // Stats Cards
                     _buildStatsCards(),
                     const SizedBox(height: 32),
-                    
+
                     // Quick Actions
                     _buildQuickActions(),
                     const SizedBox(height: 32),
-                    
+
                     // Today's Appointments
                     _buildTodayAppointments(),
                     const SizedBox(height: 32),
-                    
+
                     // Upcoming Appointments Preview
                     _buildUpcomingPreview(),
                     const SizedBox(height: 24),
@@ -210,7 +203,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
               end: Alignment.bottomRight,
               colors: [
                 const Color(0xFF4CAF50),
-                const Color(0xFF4CAF50).withOpacity(0.8),
+                const Color(0xFF4CAF50).withValues(alpha: 0.8),
               ],
             ),
           ),
@@ -231,7 +224,8 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                             : null,
                         child: _expertProfile?.avatarUrl == null
                             ? Text(
-                                _expertUser?.displayName.substring(0, 1).toUpperCase() ?? 'E',
+                                _expertUser?.displayName
+                                        .isNotEmpty == true ? _expertUser!.displayName.substring(0, 1).toUpperCase() : '?',
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w700,
@@ -255,7 +249,9 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _expertProfile?.displayName ?? _expertUser?.displayName ?? 'Expert',
+                              _expertProfile?.fullName ??
+                                  _expertUser?.displayName ??
+                                  'Expert',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -271,7 +267,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -358,7 +354,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -370,7 +366,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -406,10 +402,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
         children: [
           const Text(
             'Quick Actions',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 16),
           // Row 1
@@ -506,10 +499,10 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.2)),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -520,7 +513,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 24),
@@ -554,10 +547,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
             children: [
               const Text(
                 "Today's Schedule",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
               if (_todayAppointments > 0)
                 Container(
@@ -604,16 +594,15 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
             children: [
               const Text(
                 'Upcoming Appointments',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
               TextButton(
                 onPressed: () {
-                  // TODO: Navigate to all appointments
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('View all coming soon')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AppointmentsPage(),
+                    ),
                   );
                 },
                 child: const Text('View All'),
@@ -641,11 +630,8 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: _db
-          .collection('appointments')
-          .where('expertId', isEqualTo: _expertProfile!.expertId)
-          .snapshots(),
+    return FutureBuilder<List<Appointment>>(
+      future: _getFilteredAppointments(isToday, today, now),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(
@@ -653,23 +639,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
           );
         }
 
-        final appointments = snapshot.data!.docs
-            .map((doc) => Appointment.fromSnapshot(doc))
-            .where((apt) {
-              if (isToday) {
-                final aptDate = apt.appointmentDate;
-                return aptDate.year == today.year &&
-                       aptDate.month == today.month &&
-                       aptDate.day == today.day &&
-                       apt.status != AppointmentStatus.cancelled;
-              } else {
-                return apt.appointmentDate.isAfter(now) &&
-                       apt.status != AppointmentStatus.cancelled &&
-                       apt.status != AppointmentStatus.completed;
-              }
-            })
-            .toList()
-          ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+        final appointments = snapshot.data!;
 
         if (appointments.isEmpty) {
           return _buildEmptyState(
@@ -688,6 +658,32 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
     );
   }
 
+  Future<List<Appointment>> _getFilteredAppointments(bool isToday, DateTime today, DateTime now) async {
+    final response = await _supabase
+        .from('appointments')
+        .select('*, experts!expert_id(hourly_rate), users:user_id(full_name, avatar_url)')
+        .eq('expert_id', _expertProfile!.expertId);
+
+    final all = (response as List).map((m) => Appointment.fromMap(m)).toList();
+
+    final filtered = all.where((apt) {
+      if (isToday) {
+        final aptDate = apt.appointmentDate;
+        return aptDate.year == today.year &&
+            aptDate.month == today.month &&
+            aptDate.day == today.day &&
+            apt.status != AppointmentStatus.cancelled;
+      } else {
+        return apt.appointmentDate.isAfter(now) &&
+            apt.status != AppointmentStatus.cancelled &&
+            apt.status != AppointmentStatus.completed;
+      }
+    }).toList();
+
+    filtered.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+    return filtered;
+  }
+
   Widget _buildAppointmentCard(Appointment appointment) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -698,7 +694,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -712,7 +708,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withOpacity(0.1),
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -727,7 +723,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Patient #${appointment.userId.substring(0, 8)}',
+                      appointment.userName ?? 'Patient #${appointment.userId.substring(0, 8)}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -772,7 +768,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
   Widget _buildStatusBadge(AppointmentStatus status) {
     Color color;
     String label;
-    
+
     switch (status) {
       case AppointmentStatus.pending:
         color = Colors.orange;
@@ -795,7 +791,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -803,10 +799,7 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Color.alphaBlend(
-            Colors.black.withOpacity(0.3),
-            color,
-          ),
+          color: Color.alphaBlend(Colors.black.withValues(alpha: 0.3), color),
         ),
       ),
     );
@@ -822,26 +815,16 @@ class _ExpertDashboardPageState extends State<ExpertDashboardPage> {
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            size: 48,
-            color: Colors.grey.shade400,
-          ),
+          Icon(icon, size: 48, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
         ],
       ),

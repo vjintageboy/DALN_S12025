@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/appointment.dart';
+import '../../services/supabase_service.dart';
 
 /// 📊 Analytics Dashboard
-/// 
+///
 /// Shows expert's performance metrics:
 /// - Total appointments by status (confirmed, completed, cancelled)
 /// - Revenue/earnings from completed appointments
@@ -19,12 +18,17 @@ class AnalyticsPage extends StatefulWidget {
 }
 
 class _AnalyticsPageState extends State<AnalyticsPage> {
-  final String currentUid = FirebaseAuth.instance.currentUser!.uid;
+  final _supabase = SupabaseService.instance.client;
   String? expertProfileId;
 
   // Time period filter
   String _selectedPeriod = 'All Time';
-  final List<String> _periods = ['All Time', 'This Month', 'Last Month', 'This Year'];
+  final List<String> _periods = [
+    'All Time',
+    'This Month',
+    'Last Month',
+    'This Year',
+  ];
 
   bool _isLoading = true;
 
@@ -43,22 +47,27 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 
   Future<void> _loadExpertProfile() async {
-    try {
-      // Get expert profile ID from expertUsers collection
-      final expertUserQuery = await FirebaseFirestore.instance
-          .collection('expertUsers')
-          .where('uid', isEqualTo: currentUid)
-          .limit(1)
-          .get();
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
 
-      if (expertUserQuery.docs.isNotEmpty) {
-        expertProfileId = expertUserQuery.docs.first.data()['expertId'];
+    try {
+      // In Supabase, the expert ID is the same as the user ID in the experts table
+      final response = await _supabase
+          .from('experts')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (response != null) {
+        expertProfileId = response['id'] as String?;
         await _loadAnalytics();
       }
     } catch (e) {
       debugPrint('Error loading expert profile: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -69,28 +78,29 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       if (mounted) {
         setState(() => _isLoading = true);
       }
-      
+
       // Get date range based on selected period
       final dateRange = _getDateRange();
 
       // Query appointments
-      Query query = FirebaseFirestore.instance
-          .collection('appointments')
-          .where('expertId', isEqualTo: expertProfileId);
+      var query = _supabase
+          .from('appointments')
+          .select('*, experts!expert_id(hourly_rate)')
+          .eq('expert_id', expertProfileId!);
 
       // Add date filter if not "All Time"
       if (dateRange != null) {
         query = query
-            .where('appointmentDate', isGreaterThanOrEqualTo: dateRange['start'])
-            .where('appointmentDate', isLessThanOrEqualTo: dateRange['end']);
+            .gte('appointment_date', dateRange['start']!.toIso8601String())
+            .lte('appointment_date', dateRange['end']!.toIso8601String());
       }
 
-      final snapshot = await query.get();
-      
+      final response = await query;
+
       if (!mounted) return;
-      
-      final appointments = snapshot.docs
-          .map((doc) => Appointment.fromSnapshot(doc))
+
+      final appointments = (response as List)
+          .map((m) => Appointment.fromMap(m))
           .toList();
 
       // Calculate metrics
@@ -108,12 +118,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       // Calculate revenue from completed appointments
       _totalRevenue = appointments
           .where((apt) => apt.status == AppointmentStatus.completed)
-          .fold(0.0, (total, apt) {
-            // Calculate price based on duration and base price
-            final hours = apt.durationMinutes / 60.0;
-            final price = apt.expertBasePrice * hours;
-            return total + price;
-          });
+          .fold(0.0, (total, apt) => total + apt.price);
 
       // Calculate cancellation rate
       _cancellationRate = _totalAppointments > 0
@@ -133,7 +138,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   Map<String, DateTime>? _getDateRange() {
     final now = DateTime.now();
-    
+
     switch (_selectedPeriod) {
       case 'This Month':
         return {
@@ -159,11 +164,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Analytics',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: const Color(0xFF6C63FF),
+        title: const Text('Analytics', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF4CAF50),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           // Period filter
@@ -171,15 +173,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             padding: const EdgeInsets.only(right: 8.0),
             child: DropdownButton<String>(
               value: _selectedPeriod,
-              dropdownColor: const Color(0xFF6C63FF),
+              dropdownColor: const Color(0xFF4CAF50),
               style: const TextStyle(color: Colors.white, fontSize: 14),
               underline: Container(),
               icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
               items: _periods.map((period) {
-                return DropdownMenuItem(
-                  value: period,
-                  child: Text(period),
-                );
+                return DropdownMenuItem(value: period, child: Text(period));
               }).toList(),
               onChanged: (value) {
                 if (value != null && mounted) {
@@ -194,40 +193,46 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
           : expertProfileId == null
-              ? const Center(child: Text('Expert profile not found'))
-              : RefreshIndicator(
-                  onRefresh: _loadAnalytics,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      // Header
-                      _buildHeader(),
-                      const SizedBox(height: 24),
+          ? const Center(child: Text('Expert profile not found'))
+          : RefreshIndicator(
+              onRefresh: _loadAnalytics,
+              color: const Color(0xFF4CAF50),
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Header
+                  _buildHeader(),
+                  const SizedBox(height: 24),
 
-                      // Summary Cards
-                      _buildSummaryCards(),
-                      const SizedBox(height: 24),
+                  // Summary Cards
+                  _buildSummaryCards(),
+                  const SizedBox(height: 24),
 
-                      // Revenue Card
-                      _buildRevenueCard(),
-                      const SizedBox(height: 24),
+                  // Revenue Card
+                  _buildRevenueCard(),
+                  const SizedBox(height: 24),
 
-                      // Status Breakdown
-                      _buildStatusBreakdown(),
-                      const SizedBox(height: 24),
+                  // Status Breakdown
+                  _buildStatusBreakdown(),
+                  const SizedBox(height: 24),
 
-                      // Cancellation Rate
-                      _buildCancellationRate(),
-                    ],
-                  ),
-                ),
+                  // Cancellation Rate
+                  _buildCancellationRate(),
+                ],
+              ),
+            ),
     );
   }
 
   Widget _buildHeader() {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -238,12 +243,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.analytics,
-                    color: Color(0xFF6C63FF),
+                    color: Color(0xFF4CAF50),
                     size: 32,
                   ),
                 ),
@@ -309,6 +314,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     Color color,
   ) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -317,18 +327,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
           ],
         ),
@@ -338,45 +342,44 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   Widget _buildRevenueCard() {
     return Card(
-      color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+      elevation: 0,
+      color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFF4CAF50), width: 0.5),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(
-                  Icons.attach_money,
-                  color: const Color(0xFF6C63FF),
+                  Icons.account_balance_wallet,
+                  color: Color(0xFF4CAF50),
                   size: 28,
                 ),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'Total Revenue',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Text(
-              '\$${_totalRevenue.toStringAsFixed(2)}',
+              '${_totalRevenue.toStringAsFixed(0)} ₫',
               style: const TextStyle(
-                fontSize: 36,
+                fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF6C63FF),
+                color: Color(0xFF4CAF50),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'From $_completedCount completed appointment${_completedCount != 1 ? 's' : ''}',
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
             ),
           ],
         ),
@@ -386,6 +389,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   Widget _buildStatusBreakdown() {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -393,10 +401,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           children: [
             const Text(
               'Appointments by Status',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             _buildStatusRow(
@@ -425,12 +430,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  Widget _buildStatusRow(
-    String label,
-    int count,
-    Color color,
-    int total,
-  ) {
+  Widget _buildStatusRow(String label, int count, Color color, int total) {
     final percentage = total > 0 ? (count / total) * 100 : 0.0;
 
     return Row(
@@ -438,35 +438,23 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           ),
         ),
         Text(
           count.toString(),
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(width: 8),
         Text(
           '(${percentage.toStringAsFixed(1)}%)',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
       ],
     );
@@ -488,6 +476,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     }
 
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -495,10 +488,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           children: [
             const Text(
               'Cancellation Rate',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
@@ -542,8 +532,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         _cancellationRate < 10
                             ? Icons.trending_down
                             : _cancellationRate < 20
-                                ? Icons.trending_flat
-                                : Icons.trending_up,
+                            ? Icons.trending_flat
+                            : Icons.trending_up,
                         color: rateColor,
                         size: 32,
                       ),
@@ -571,8 +561,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.lightbulb_outline, 
-                    size: 18, 
+                  Icon(
+                    Icons.lightbulb_outline,
+                    size: 18,
                     color: Colors.blue.shade700,
                   ),
                   const SizedBox(width: 8),

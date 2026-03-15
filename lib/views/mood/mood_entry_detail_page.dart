@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/mood_entry.dart';
-import '../../services/firestore_service.dart';
 import '../../core/services/localization_service.dart';
+import '../../services/supabase_service.dart';
 
 class MoodEntryDetailPage extends StatefulWidget {
   final MoodEntry entry;
 
-  const MoodEntryDetailPage({
-    super.key,
-    required this.entry,
-  });
+  const MoodEntryDetailPage({super.key, required this.entry});
 
   @override
   State<MoodEntryDetailPage> createState() => _MoodEntryDetailPageState();
 }
 
 class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService.instance;
   final TextEditingController _noteController = TextEditingController();
-  
+
   late int _selectedMoodLevel;
   late Set<String> _selectedFactors;
   bool _isEditing = false;
@@ -54,41 +51,59 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
 
   String _getMoodEmoji(int level) {
     switch (level) {
-      case 1: return '😞';
-      case 2: return '😕';
-      case 3: return '😐';
-      case 4: return '🙂';
-      case 5: return '😄';
-      default: return '😐';
+      case 1:
+        return '😞';
+      case 2:
+        return '😕';
+      case 3:
+        return '😐';
+      case 4:
+        return '🙂';
+      case 5:
+        return '😄';
+      default:
+        return '😐';
     }
   }
 
   String _getMoodLabel(int level) {
     switch (level) {
-      case 1: return context.l10n.veryPoor;
-      case 2: return context.l10n.poor;
-      case 3: return context.l10n.okay;
-      case 4: return context.l10n.good;
-      case 5: return context.l10n.excellent;
-      default: return context.l10n.okay;
+      case 1:
+        return context.l10n.veryPoor;
+      case 2:
+        return context.l10n.poor;
+      case 3:
+        return context.l10n.okay;
+      case 4:
+        return context.l10n.good;
+      case 5:
+        return context.l10n.excellent;
+      default:
+        return context.l10n.okay;
     }
   }
 
   Color _getMoodColor(int level) {
     switch (level) {
-      case 1: return Colors.red.shade400;
-      case 2: return Colors.orange.shade400;
-      case 3: return Colors.yellow.shade700;
-      case 4: return Colors.lightGreen.shade600;
-      case 5: return Colors.green.shade600;
-      default: return Colors.grey;
+      case 1:
+        return Colors.red.shade400;
+      case 2:
+        return Colors.orange.shade400;
+      case 3:
+        return Colors.yellow.shade700;
+      case 4:
+        return Colors.lightGreen.shade600;
+      case 5:
+        return Colors.green.shade600;
+      default:
+        return Colors.grey;
     }
   }
 
   String _getEmotionFactorLabel(String factor) {
     // Normalize to lowercase for key matching (backward compatibility with old data)
     final key = factor.toLowerCase().replaceAll(' ', '');
-    
+
     switch (key) {
       case 'work':
         return context.l10n.work;
@@ -119,14 +134,11 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
     setState(() => _isSaving = true);
 
     try {
-      await _firestoreService.updateMoodEntry(
-        widget.entry.entryId,
-        {
-          'moodLevel': _selectedMoodLevel,
-          'note': _noteController.text.trim(),
-          'emotionFactors': _selectedFactors.toList(),
-        },
-      );
+      await _supabaseService.updateMoodEntry(widget.entry.entryId, {
+        'moodLevel': _selectedMoodLevel,
+        'note': _noteController.text.trim(),
+        'emotionFactors': _selectedFactors.toList(),
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -287,12 +299,12 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
                             width: 60,
                             height: 60,
                             decoration: BoxDecoration(
-                              color: isSelected 
-                                  ? _getMoodColor(level).withOpacity(0.2)
+                              color: isSelected
+                                  ? _getMoodColor(level).withValues(alpha: 0.2)
                                   : Colors.grey.shade50,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isSelected 
+                                color: isSelected
                                     ? _getMoodColor(level)
                                     : Colors.transparent,
                                 width: 3,
@@ -310,10 +322,12 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
                             _getMoodLabel(level).split(' ').last,
                             style: TextStyle(
                               fontSize: 11,
-                              color: isSelected 
+                              color: isSelected
                                   ? _getMoodColor(level)
                                   : Colors.grey.shade700,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
                             ),
                           ),
                         ],
@@ -327,10 +341,12 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
                   child: Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: _getMoodColor(_selectedMoodLevel).withOpacity(0.1),
+                      color: _getMoodColor(_selectedMoodLevel).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _getMoodColor(_selectedMoodLevel).withOpacity(0.3),
+                        color: _getMoodColor(
+                          _selectedMoodLevel,
+                        ).withValues(alpha: 0.3),
                         width: 2,
                       ),
                     ),
@@ -370,10 +386,7 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.grey.shade200,
-                    width: 1.5,
-                  ),
+                  border: Border.all(color: Colors.grey.shade200, width: 1.5),
                 ),
                 child: TextField(
                   controller: _noteController,
@@ -409,27 +422,29 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
                 children: _emotionFactorKeys.map((factorKey) {
                   final isSelected = _selectedFactors.contains(factorKey);
                   return GestureDetector(
-                    onTap: _isEditing ? () {
-                      setState(() {
-                        if (isSelected) {
-                          _selectedFactors.remove(factorKey);
-                        } else {
-                          _selectedFactors.add(factorKey);
-                        }
-                      });
-                    } : null,
+                    onTap: _isEditing
+                        ? () {
+                            setState(() {
+                              if (isSelected) {
+                                _selectedFactors.remove(factorKey);
+                              } else {
+                                _selectedFactors.add(factorKey);
+                              }
+                            });
+                          }
+                        : null,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: isSelected 
-                            ? const Color(0xFF81C784).withOpacity(0.3)
+                        color: isSelected
+                            ? const Color(0xFF81C784).withValues(alpha: 0.3)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: isSelected 
+                          color: isSelected
                               ? const Color(0xFF4CAF50)
                               : Colors.grey.shade300,
                           width: 1.5,
@@ -439,8 +454,10 @@ class _MoodEntryDetailPageState extends State<MoodEntryDetailPage> {
                         _getEmotionFactorLabel(factorKey),
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                          color: isSelected 
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: isSelected
                               ? const Color(0xFF2E7D32)
                               : Colors.grey.shade700,
                         ),

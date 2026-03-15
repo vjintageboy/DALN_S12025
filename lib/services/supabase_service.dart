@@ -1,0 +1,509 @@
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/app_user.dart';
+import '../models/meditation.dart';
+import '../models/streak.dart';
+import '../models/mood_entry.dart';
+
+class SupabaseService {
+  static final SupabaseService instance = SupabaseService._internal();
+  factory SupabaseService() => instance;
+  SupabaseService._internal();
+
+  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get client => _supabase;
+  User? get currentUser => _supabase.auth.currentUser;
+
+  // ==========================================
+  // USERS (bảng `users` thay vì `profiles`)
+  // ==========================================
+
+  /// Tạo hoặc cập nhật user trong bảng `users`
+  Future<void> createUserProfile({
+    required String id,
+    required String email,
+    required String fullName,
+    String role = 'user',
+  }) async {
+    await _supabase.from('users').upsert({
+      'id': id,
+      'email': email,
+      'full_name': fullName,
+      'role': role,
+    });
+  }
+
+  /// Lấy thông tin user từ bảng `users`
+  Future<AppUser?> getUserById(String userId) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select()
+          .eq('id', userId)
+          .single();
+      return AppUser.fromMap(response);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Lấy role của user
+  Future<String> getUserRole(String userId) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('role')
+          .eq('id', userId)
+          .single();
+      return response['role'] ?? 'user';
+    } catch (e) {
+      return 'user';
+    }
+  }
+
+  // --- Mood Entries ---
+  Future<void> createMoodEntry(MoodEntry entry) async {
+    await _supabase.from('mood_entries').insert({
+      'user_id': entry.userId,
+      'mood_score': entry.moodLevel,
+      'note': entry.note,
+      'emotion_factors': entry.emotionFactors,
+      'tags': entry.tags,
+    });
+
+    // ✅ Tự động tính lại streak sau mỗi lần log mood
+    await recalculateStreak(entry.userId);
+  }
+
+  Stream<List<MoodEntry>> streamMoodEntries(String userId) {
+    return _supabase
+        .from('mood_entries')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .map((data) => data.map((map) => MoodEntry.fromMap(map)).toList());
+  }
+
+  Future<List<MoodEntry>> getMoodEntries(String userId) async {
+    final response = await _supabase
+        .from('mood_entries')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+
+    return (response as List).map((map) => MoodEntry.fromMap(map)).toList();
+  }
+
+  Future<void> deleteMoodEntry(String id) async {
+    await _supabase.from('mood_entries').delete().eq('id', id);
+  }
+
+  Future<List<MoodEntry>> getMoodEntriesForPeriod({
+    required String userId,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final response = await _supabase
+        .from('mood_entries')
+        .select()
+        .eq('user_id', userId)
+        .gte('created_at', start.toIso8601String())
+        .lte('created_at', end.toIso8601String())
+        .order('created_at', ascending: false);
+
+    return (response as List).map((map) => MoodEntry.fromMap(map)).toList();
+  }
+
+  Future<void> updateMoodEntry(String id, Map<String, dynamic> data) async {
+    final supabaseData = <String, dynamic>{};
+    if (data.containsKey('moodLevel')) {
+      supabaseData['mood_score'] = data['moodLevel'];
+    }
+    if (data.containsKey('note')) supabaseData['note'] = data['note'];
+    if (data.containsKey('emotionFactors')) {
+      supabaseData['emotion_factors'] = data['emotionFactors'];
+    }
+    if (data.containsKey('tags')) supabaseData['tags'] = data['tags'];
+
+    await _supabase.from('mood_entries').update(supabaseData).eq('id', id);
+  }
+
+  /// Kiểm tra user có bị ban không
+  Future<bool> isUserBanned(String userId) async {
+    try {
+      // Bảng users hiện không có cột is_banned trong schema ảnh
+      // Nếu sau này cần, thêm cột is_banned vào bảng users
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Lấy danh sách tất cả users (admin only)
+  Future<List<AppUser>> getAllUsers() async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select()
+          .order('created_at', ascending: false);
+      return (response as List).map((data) => AppUser.fromMap(data)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Cập nhật thông tin user
+  Future<void> updateUser(String userId, Map<String, dynamic> data) async {
+    await _supabase.from('users').update(data).eq('id', userId);
+  }
+
+  // ==========================================
+  // EXPERTS (bảng `experts`)
+  // ==========================================
+
+  /// Lấy danh sách tất cả expert đã được phê duyệt
+  Future<List<Map<String, dynamic>>> getApprovedExperts() async {
+    try {
+      // Join với bảng users để lấy thêm full_name, avatar_url
+      final response = await _supabase
+          .from('experts')
+          .select('*, users!id(full_name, avatar_url, email)')
+          .eq('is_approved', true)
+          .order('rating', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Lấy thông tin 1 expert theo id
+  Future<Map<String, dynamic>?> getExpertById(String expertId) async {
+    try {
+      final response = await _supabase
+          .from('experts')
+          .select('*, users!id(full_name, avatar_url, email)')
+          .eq('id', expertId)
+          .single();
+      return response;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ==========================================
+  // MOOD ENTRIES (bảng `mood_entries`)
+  // ==========================================
+
+  /// Ghi nhật ký cảm xúc
+  Future<void> addMoodEntry({
+    required String userId,
+    required int moodScore,
+    String? note,
+  }) async {
+    await _supabase.from('mood_entries').insert({
+      'user_id': userId,
+      'mood_score': moodScore,
+      'note': note,
+    });
+  }
+
+  /// Lấy lịch sử cảm xúc của user
+  Future<List<Map<String, dynamic>>> getMoodHistory(String userId) async {
+    try {
+      final response = await _supabase
+          .from('mood_entries')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ==========================================
+  // APPOINTMENTS (bảng `appointments`)
+  // ==========================================
+
+  Future<List<Map<String, dynamic>>> getUserAppointments(String userId) async {
+    try {
+      final response = await _supabase
+          .from('appointments')
+          .select(
+            '*, experts!expert_id(bio, specialization, users!id(full_name, avatar_url))',
+          )
+          .eq('user_id', userId)
+          .order('appointment_date', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getExpertAppointments(
+    String expertId,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('appointments')
+          .select('*, users!user_id(full_name, avatar_url, email)')
+          .eq('expert_id', expertId)
+          .order('appointment_date', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> updateAppointmentStatus(
+    String appointmentId,
+    String status,
+  ) async {
+    await _supabase
+        .from('appointments')
+        .update({'status': status})
+        .eq('id', appointmentId);
+  }
+
+  // ==========================================
+  // POSTS (bảng `posts`, thay vì `news_posts`)
+  // ==========================================
+
+  Future<List<Map<String, dynamic>>> getPosts() async {
+    try {
+      final response = await _supabase
+          .from('posts')
+          .select('*, users!author_id(full_name, avatar_url)')
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> createPost({
+    required String authorId,
+    required String title,
+    required String content,
+    String? imageUrl,
+  }) async {
+    await _supabase.from('posts').insert({
+      'author_id': authorId,
+      'title': title,
+      'content': content,
+      'image_url': imageUrl,
+    });
+  }
+
+  Future<void> toggleLike(String postId, int currentLikes, bool isLiked) async {
+    await _supabase
+        .from('posts')
+        .update({'likes_count': isLiked ? currentLikes - 1 : currentLikes + 1})
+        .eq('id', postId);
+  }
+
+  // ==========================================
+  // POST COMMENTS (bảng `post_comments`)
+  // ==========================================
+
+  Future<List<Map<String, dynamic>>> getComments(String postId) async {
+    try {
+      final response = await _supabase
+          .from('post_comments')
+          .select('*, users!user_id(full_name, avatar_url)')
+          .eq('post_id', postId)
+          .order('created_at', ascending: true);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> addComment({
+    required String postId,
+    required String userId,
+    required String content,
+  }) async {
+    await _supabase.from('post_comments').insert({
+      'post_id': postId,
+      'user_id': userId,
+      'content': content,
+    });
+  }
+
+  // ==========================================
+  // CHAT (chat_rooms + chat_participants + messages)
+  // ==========================================
+
+  Future<List<Map<String, dynamic>>> getUserChatRooms(String userId) async {
+    try {
+      // Lấy các room mà user tham gia qua chat_participants
+      final participantRows = await _supabase
+          .from('chat_participants')
+          .select('room_id')
+          .eq('user_id', userId);
+
+      final roomIds = (participantRows as List)
+          .map((row) => row['room_id'] as String)
+          .toList();
+
+      if (roomIds.isEmpty) return [];
+
+      final response = await _supabase
+          .from('chat_rooms')
+          .select()
+          .filter('id', 'in', '(${roomIds.map((id) => '"$id"').join(',')})')
+          .order('updated_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMessages(String roomId) async {
+    try {
+      final response = await _supabase
+          .from('messages')
+          .select('*, users!sender_id(full_name, avatar_url)')
+          .eq('room_id', roomId)
+          .order('created_at', ascending: true);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> sendMessage({
+    required String roomId,
+    required String senderId,
+    required String content,
+  }) async {
+    await _supabase.from('messages').insert({
+      'room_id': roomId,
+      'sender_id': senderId,
+      'content': content,
+    });
+    // Cập nhật last_message trong chat_rooms
+    await _supabase
+        .from('chat_rooms')
+        .update({
+          'last_message': content,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', roomId);
+  }
+
+  // ==========================================
+  // MEDITATIONS (bảng `meditations`)
+  // ==========================================
+
+  Future<List<Map<String, dynamic>>> getMeditations({String? category}) async {
+    try {
+      var query = _supabase.from('meditations').select();
+      if (category != null) {
+        query = query.eq('category', category);
+      }
+      final response = await query.order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Stream meditations (Realtime)
+  Stream<List<Meditation>> streamMeditations() {
+    return _supabase
+        .from('meditations')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((data) => data.map((map) => Meditation.fromMap(map)).toList());
+  }
+
+  /// Get meditations (Future-based for robustness)
+  Future<List<Meditation>> getFeaturedMeditations({int limit = 5}) async {
+    try {
+      final response = await _supabase
+          .from('meditations')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(limit);
+      return (response as List).map((m) => Meditation.fromMap(m)).toList();
+    } catch (e) {
+      debugPrint('Error fetching featured meditations: $e');
+      return [];
+    }
+  }
+
+  // EXPERTS section simplified (using existing methods or cleanup)
+  // getApprovedExperts and getExpertById are already defined above (lines 157-184)
+
+  // ==========================================
+  // STREAKS (Lấy từ bảng `users`)
+  // ==========================================
+
+  Future<Streak?> getStreak(String userId) async {
+    try {
+      // Đọc toàn bộ mood entries rồi tính streak client-side
+      // → không cần bảng phụ, không cần trigger DB
+      final entries = await getMoodEntries(userId);
+      return Streak.fromMoodEntries(userId: userId, entries: entries);
+    } catch (e) {
+      debugPrint('getStreak error: $e');
+      return null;
+    }
+  }
+
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
+  }
+
+  /// Tính lại streak từ bảng mood_entries và lưu kết quả vào users.streak_count.
+  /// Không cần bảng phụ nào thêm.
+  Future<void> recalculateStreak(String userId) async {
+    try {
+      final entries = await getMoodEntries(userId);
+      final streak = Streak.fromMoodEntries(userId: userId, entries: entries);
+
+      // Ghi streak_count về bảng users (cột này đã tồn tại)
+      await _supabase
+          .from('users')
+          .update({'streak_count': streak.currentStreak})
+          .eq('id', userId);
+
+      debugPrint(
+        '🔥 Streak recalculated for $userId: '
+        'current=${streak.currentStreak}, longest=${streak.longestStreak}',
+      );
+    } catch (e) {
+      debugPrint('recalculateStreak error: $e');
+    }
+  }
+
+  Stream<Streak?> streamStreak(String userId) {
+    // Stream mood_entries và tính lại streak mỗi khi có thay đổi
+    return _supabase
+        .from('mood_entries')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .map((rows) {
+          final entries =
+              rows.map((m) => MoodEntry.fromMap(m)).toList();
+          return Streak.fromMoodEntries(userId: userId, entries: entries);
+        });
+  }
+
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+      return response;
+    } catch (e) {
+      return null;
+    }
+  }
+}

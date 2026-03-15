@@ -1,12 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 enum PostCategory {
-  mentalHealth,  // Sức khỏe tâm thần
-  meditation,    // Thiền & Mindfulness
-  wellness,      // Sức khỏe tổng quát
-  tips,          // Mẹo & Lời khuyên
-  community,     // Cộng đồng
-  news,          // Tin tức
+  mentalHealth, // Sức khỏe tâm thần
+  meditation, // Thiền & Mindfulness
+  wellness, // Sức khỏe tổng quát
+  tips, // Mẹo & Lời khuyên
+  community, // Cộng đồng
+  news, // Tin tức
 }
 
 class NewsPost {
@@ -15,15 +13,15 @@ class NewsPost {
   final String authorName;
   final String? authorAvatarUrl;
   final String authorRole; // 'user', 'expert', 'admin'
-  
+
   final String title;
   final String content;
   final String? imageUrl;
   final PostCategory category;
-  
+
   final List<String> likedBy; // List of user IDs who liked
   final int commentCount;
-  
+
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -41,12 +39,12 @@ class NewsPost {
     this.commentCount = 0,
     DateTime? createdAt,
     this.updatedAt,
-  })  : likedBy = likedBy ?? [],
-        createdAt = createdAt ?? DateTime.now();
+  }) : likedBy = likedBy ?? [],
+       createdAt = createdAt ?? DateTime.now();
 
   // Helper methods
   int get likeCount => likedBy.length;
-  
+
   bool isLikedBy(String userId) => likedBy.contains(userId);
 
   String get categoryDisplayName {
@@ -66,45 +64,66 @@ class NewsPost {
     }
   }
 
-  // Firestore conversion
+  // Supabase conversion
   Map<String, dynamic> toMap() {
-    return {
-      'postId': postId,
-      'authorId': authorId,
-      'authorName': authorName,
-      'authorAvatarUrl': authorAvatarUrl,
-      'authorRole': authorRole,
+    final map = <String, dynamic>{
+      'author_id': authorId,
       'title': title,
       'content': content,
-      'imageUrl': imageUrl,
+      'image_url': imageUrl,
       'category': category.name,
-      'likedBy': likedBy,
-      'commentCount': commentCount,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'likes_count': likedBy.length,
+      'comment_count': commentCount,
+      'created_at': createdAt.toIso8601String(),
     };
+    
+    if (postId.isNotEmpty) {
+      map['id'] = postId;
+    }
+    
+    if (updatedAt != null) {
+      map['updated_at'] = updatedAt!.toIso8601String();
+    }
+    
+    return map;
   }
 
-  factory NewsPost.fromSnapshot(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory NewsPost.fromMap(Map<String, dynamic> data) {
+    // Check if author data is joined
+    final users = data['users'] as Map<String, dynamic>?;
+    final authorName = users?['full_name'] ?? 'Unknown';
+    final authorAvatarUrl = users?['avatar_url'];
+    final authorRole = users?['role'] ?? 'user';
     
+    // Parse likedBy if we join with post_likes
+    List<String> likedByList = [];
+    if (data['post_likes'] != null) {
+      likedByList = (data['post_likes'] as List)
+          .map((e) => e['user_id'].toString())
+          .toList();
+    }
+
     return NewsPost(
-      postId: doc.id,
-      authorId: data['authorId'] ?? '',
-      authorName: data['authorName'] ?? 'Unknown',
-      authorAvatarUrl: data['authorAvatarUrl'],
-      authorRole: data['authorRole'] ?? 'user',
+      postId: data['id'] ?? '',
+      authorId: data['author_id'] ?? '',
+      authorName: authorName,
+      authorAvatarUrl: authorAvatarUrl,
+      authorRole: authorRole,
       title: data['title'] ?? '',
       content: data['content'] ?? '',
-      imageUrl: data['imageUrl'],
+      imageUrl: data['image_url'],
       category: PostCategory.values.firstWhere(
         (e) => e.name == data['category'],
         orElse: () => PostCategory.community,
       ),
-      likedBy: List<String>.from(data['likedBy'] ?? []),
-      commentCount: data['commentCount'] ?? 0,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+      likedBy: likedByList,
+      commentCount: data['comment_count'] ?? 0,
+      createdAt: data['created_at'] != null 
+          ? DateTime.parse(data['created_at']).toLocal() 
+          : DateTime.now(),
+      updatedAt: data['updated_at'] != null 
+          ? DateTime.parse(data['updated_at']).toLocal() 
+          : null,
     );
   }
 

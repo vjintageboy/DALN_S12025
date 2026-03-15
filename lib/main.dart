@@ -1,44 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'l10n/app_localizations.dart';
-import 'firebase_options.dart';
 import 'views/auth/welcome_page.dart';
-import 'views/home/home_page.dart';
-import 'views/expert_dashboard/expert_main_page.dart';
-import 'views/admin/admin_main_page.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/mood_provider.dart';
 import 'core/providers/chatbot_provider.dart';
 import 'core/services/localization_service.dart';
+import 'core/constants/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Load environment variables
   await dotenv.load(fileName: '.env');
-  
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
-  
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarIconBrightness: Brightness.dark,
-  ));
-  
+
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -59,12 +58,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
-    
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Moodiki',
       theme: AppTheme.lightTheme,
-      
+
       // Localization configuration
       locale: localeProvider.locale,
       localizationsDelegates: const [
@@ -77,7 +76,7 @@ class MyApp extends StatelessWidget {
         Locale('en'), // English
         Locale('vi'), // Vietnamese
       ],
-      
+
       // Use key to force rebuild when auth status changes
       home: AuthWrapper(key: ValueKey(authProvider.status)),
     );
@@ -85,146 +84,15 @@ class MyApp extends StatelessWidget {
 }
 
 // ============================================================================
-// AUTH WRAPPER - Check if user is logged in
+// AUTH WRAPPER - Temporarily mocked
 // ============================================================================
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        // Show loading while checking auth state
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Color(0xFFFFF5F6),
-            body: Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF7B2BB0),
-              ),
-            ),
-          );
-        }
-        
-        // If user is logged in, check ban status before showing HomePage
-        if (snapshot.hasData) {
-          return FutureBuilder<Map<String, dynamic>>(
-            future: _checkUserStatus(snapshot.data!.uid),
-            builder: (context, statusSnapshot) {
-              // Loading status check
-              if (statusSnapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  backgroundColor: Color(0xFFFFF5F6),
-                  body: Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF7B2BB0),
-                    ),
-                  ),
-                );
-              }
-
-              final status = statusSnapshot.data ?? {};
-              
-              // User is banned - force logout
-              if (status['isBanned'] == true) {
-                _handleBannedUser(context, snapshot.data!.uid);
-                return const WelcomePage();
-              }
-
-              // Check if user is expert or admin
-              final role = status['role'] as String?;
-              
-              // Admin gets dedicated dashboard
-              if (role == 'admin') {
-                return const AdminMainPage();
-              }
-              
-              // Expert gets expert dashboard
-              if (role == 'expert') {
-                return const ExpertMainPage();
-              }
-
-              // Regular user - show home page
-              print('🏠 Showing HomePage');
-              return const HomePage();
-            },
-          );
-        }
-        
-        // User is not logged in, show onboarding page (then WelcomePage after onboarding)
-        // Note: OnboardingPage is defined below in this file.
-        return const OnboardingPage();
-      },
-    );
-  }
-
-  Future<Map<String, dynamic>> _checkUserStatus(String uid) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      // We don't use ensureUserDocument here because we expect AuthProvider to have handled it during login.
-      // However, if we are auto-logging in via persistent state, it might not have run ensureUserDocument recently.
-      // But typically, persistent login implies valid previous session.
-      // If we encounter permission-denied here, it's likely a critical rules/data mismatch.
-      
-      final doc = await firestore.collection('users').doc(uid).get();
-      
-      if (!doc.exists) {
-        // If doc doesn't exist, we might be in a weird state where user is Auth-ed but no Firestore doc.
-        // We return default user role so they can enter the app.
-        // The side effect is they might see a fresh profile.
-        return {
-          'isBanned': false,
-          'role': 'user',
-        };
-      }
-      
-      final data = doc.data();
-      return {
-        'isBanned': data?['isBanned'] ?? false,
-        'role': data?['role'] ?? 'user',
-        'banReason': data?['banReason'],
-      };
-    } catch (e) {
-      print('❌ Error checking user status: $e');
-      // Return safe defaults to allow app entry rather than infinite loading or crash
-      return {
-        'isBanned': false,
-        'role': 'user',
-      };
-    }
-  }
-
-  void _handleBannedUser(BuildContext context, String uid) async {
-    try {
-      // Get ban info
-      final firestore = FirebaseFirestore.instance;
-      final doc = await firestore.collection('users').doc(uid).get();
-      final data = doc.data();
-      final banReason = data?['banReason'];
-
-      // Sign out
-      await FirebaseAuth.instance.signOut();
-
-      // Show message
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              banReason != null 
-                  ? 'Your account has been banned.\nReason: $banReason'
-                  : 'Your account has been banned. Please contact support.',
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error handling banned user: $e');
-      await FirebaseAuth.instance.signOut();
-    }
+    // Temporarily always show OnboardingPage since Firebase Auth is removed
+    return const OnboardingPage();
   }
 }
 
@@ -249,15 +117,7 @@ class AppTheme {
 // ============================================================================
 // CONSTANTS & CONFIGURATION
 // ============================================================================
-class AppColors {
-  static const splashBackground = Color(0xFFFFF5F6);
-  static const primaryPurple = Color(0xFF7B2BB0);
-  static const quoteBackground1 = Color(0xFFF2C6D8);
-  static const quoteBackground2 = Color(0xFFBFD9FF);
-  static const white = Colors.white;
-  static const white70 = Colors.white70;
-}
-
+// Local constants used in main.dart
 class AppConstants {
   static const animationDuration = Duration(milliseconds: 600);
   static const pageTransitionDuration = Duration(milliseconds: 400);
@@ -327,11 +187,8 @@ class _OnboardingPageState extends State<OnboardingPage>
                 const WelcomePage(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
-            },
+                  return FadeTransition(opacity: animation, child: child);
+                },
             transitionDuration: AppConstants.animationDuration,
           ),
         );
@@ -351,8 +208,8 @@ class _OnboardingPageState extends State<OnboardingPage>
             child: PageView(
               controller: _controller,
               physics: const NeverScrollableScrollPhysics(),
-              children: const [
-                SplashScreen(),
+              children: [
+                const SplashScreen(),
                 QuoteScreen(
                   backgroundColor: AppColors.quoteBackground1,
                   quote:
@@ -435,7 +292,7 @@ class _SkipButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.white.withOpacity(0.2),
+            color: AppColors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: AppColors.white70, width: 1),
           ),
@@ -477,9 +334,10 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 1200),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -524,7 +382,7 @@ class _SplashScreenState extends State<SplashScreen>
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primaryPurple.withOpacity(0.2),
+                                color: AppColors.primaryPurple.withValues(alpha: 0.2),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),
@@ -541,7 +399,7 @@ class _SplashScreenState extends State<SplashScreen>
                         shaderCallback: (bounds) => LinearGradient(
                           colors: [
                             AppColors.primaryPurple,
-                            AppColors.primaryPurple.withOpacity(0.8),
+                            AppColors.primaryPurple.withValues(alpha: 0.8),
                           ],
                         ).createShader(bounds),
                         child: const Text(
@@ -558,7 +416,7 @@ class _SplashScreenState extends State<SplashScreen>
                       Text(
                         'Hành trình chăm sóc cảm xúc',
                         style: TextStyle(
-                          color: AppColors.primaryPurple.withOpacity(0.6),
+                          color: AppColors.primaryPurple.withValues(alpha: 0.6),
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
@@ -612,14 +470,12 @@ class _QuoteScreenState extends State<QuoteScreen>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     _controller.forward();
   }
@@ -640,7 +496,7 @@ class _QuoteScreenState extends State<QuoteScreen>
           end: Alignment.bottomRight,
           colors: [
             widget.backgroundColor,
-            widget.backgroundColor.withOpacity(0.8),
+            widget.backgroundColor.withValues(alpha: 0.8),
           ],
         ),
       ),
@@ -662,10 +518,10 @@ class _QuoteScreenState extends State<QuoteScreen>
                   height: AppConstants.quoteLogoSize,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    color: AppColors.white.withOpacity(0.2),
+                    color: AppColors.white.withValues(alpha: 0.2),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -703,7 +559,7 @@ class _QuoteScreenState extends State<QuoteScreen>
                               letterSpacing: -0.6,
                               shadows: [
                                 Shadow(
-                                  color: Colors.black.withOpacity(0.15),
+                                  color: Colors.black.withValues(alpha: 0.15),
                                   offset: const Offset(0, 3),
                                   blurRadius: 6,
                                 ),
@@ -718,11 +574,11 @@ class _QuoteScreenState extends State<QuoteScreen>
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.white.withOpacity(0.28),
+                              color: AppColors.white.withValues(alpha: 0.28),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.06),
+                                  color: Colors.black.withValues(alpha: 0.06),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),

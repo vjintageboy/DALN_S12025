@@ -1,5 +1,5 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../services/notification_service.dart';
 
@@ -71,21 +71,22 @@ class NotificationsPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final notification = notifications[index];
               final isRead = notification['isRead'] ?? false;
-              final timestamp = notification['createdAt'] as dynamic; // Timestamp or null
-              
+              final timestamp =
+                  notification['createdAt'] as dynamic; // DateTime or null
+
               DateTime? dateTime;
               if (timestamp != null) {
-                 // Handle Firestore Timestamp
-                 if (timestamp.toString().contains('Timestamp')) {
-                    // Assuming it's a Firestore Timestamp object, but since we get Map<String, dynamic>, 
-                    // it might be dynamic. If we imported cloud_firestore, we could cast.
-                    // For safety, let's try to use it if it has toDate() or similar, 
-                    // but since we are in a pure Dart file without cloud_firestore import in this snippet (wait, I should import it if needed, but service handles it).
-                    // Actually, the service returns Map<String, dynamic>. 
-                    // If it's a Timestamp, we can't easily use it without importing cloud_firestore.
-                    // Let's import cloud_firestore or handle it dynamically.
-                    // Better to import cloud_firestore to be safe.
-                 }
+                // Handle Firestore DateTime
+                if (timestamp.toString().contains('DateTime')) {
+                  // Assuming it's a Firestore DateTime object, but since we get Map<String, dynamic>,
+                  // it might be dynamic. If we imported cloud_firestore, we could cast.
+                  // For safety, let's try to use it if it has toDate() or similar,
+                  // but since we are in a pure Dart file without cloud_firestore import in this snippet (wait, I should import it if needed, but service handles it).
+                  // Actually, the service returns Map<String, dynamic>.
+                  // If it's a DateTime, we can't easily use it without importing cloud_firestore.
+                  // Let's import cloud_firestore or handle it dynamically.
+                  // Better to import cloud_firestore to be safe.
+                }
               }
 
               return Dismissible(
@@ -104,9 +105,7 @@ class NotificationsPage extends StatelessWidget {
                   color: isRead ? Colors.white : const Color(0xFFE8F5E9),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: Colors.grey.shade200,
-                    ),
+                    side: BorderSide(color: Colors.grey.shade200),
                   ),
                   margin: const EdgeInsets.only(bottom: 12),
                   child: InkWell(
@@ -128,14 +127,17 @@ class NotificationsPage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
                                         notification['title'] ?? 'Notification',
                                         style: TextStyle(
                                           fontSize: 16,
-                                          fontWeight: isRead ? FontWeight.w600 : FontWeight.w700,
+                                          fontWeight: isRead
+                                              ? FontWeight.w600
+                                              : FontWeight.w700,
                                           color: const Color(0xFF1A1A1A),
                                         ),
                                       ),
@@ -212,7 +214,7 @@ class NotificationsPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(iconData, color: color, size: 24),
@@ -221,10 +223,10 @@ class NotificationsPage extends StatelessWidget {
 
   String _formatTime(dynamic timestamp) {
     if (timestamp == null) return '';
-    // Handle Firestore Timestamp
+    // Handle Firestore DateTime
     try {
-      // Use dynamic dispatch to call toDate() if it exists (Firestore Timestamp)
-      final date = (timestamp as dynamic).toDate(); 
+      // Use dynamic dispatch to call toDate() if it exists (Firestore DateTime)
+      final date = (timestamp as dynamic).toDate();
       return DateFormat('MMM d, h:mm a').format(date);
     } catch (e) {
       return '';

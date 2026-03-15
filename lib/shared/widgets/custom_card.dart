@@ -34,7 +34,7 @@ class CustomCard extends StatelessWidget {
         boxShadow: elevation > 0
             ? [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: elevation * 2,
                   offset: Offset(0, elevation),
                 ),
@@ -58,10 +58,7 @@ class CustomCard extends StatelessWidget {
       );
     }
 
-    return Container(
-      margin: margin,
-      child: content,
-    );
+    return Container(margin: margin, child: content);
   }
 }
 
@@ -90,7 +87,7 @@ class MoodCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? (selectedColor ?? AppColors.primaryLight).withOpacity(0.15)
+              ? (selectedColor ?? AppColors.primaryLight).withValues(alpha: 0.15)
               : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
@@ -103,17 +100,16 @@ class MoodCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              emoji,
-              style: const TextStyle(fontSize: 32),
-            ),
+            Text(emoji, style: const TextStyle(fontSize: 32)),
             const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                color: isSelected
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -153,7 +149,7 @@ class FeatureCard extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: backgroundColor ?? AppColors.primaryLight.withOpacity(0.1),
+              color: backgroundColor ?? AppColors.primaryLight.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -220,16 +216,12 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomCard(
-      color: color?.withOpacity(0.1) ?? AppColors.backgroundGrey,
+      color: color?.withValues(alpha: 0.1) ?? AppColors.backgroundGrey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (icon != null)
-            Icon(
-              icon,
-              size: 24,
-              color: color ?? AppColors.primary,
-            ),
+            Icon(icon, size: 24, color: color ?? AppColors.primary),
           if (icon != null) const SizedBox(height: 12),
           Text(
             label,

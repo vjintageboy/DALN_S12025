@@ -1,22 +1,22 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 enum CallType {
-  voice,   // 📞 Voice Call
-  video,   // 🎥 Video Call
+  voice, // 📞 Voice Call
+  video, // 🎥 Video Call
 }
 
 enum AppointmentStatus {
-  pending,    // Chờ xác nhận (không dùng vì auto-confirm)
-  confirmed,  // Đã xác nhận
-  completed,  // Đã hoàn thành
-  cancelled,  // Đã hủy
+  pending, // Chờ xác nhận
+  confirmed, // Đã xác nhận
+  completed, // Đã hoàn thành
+  cancelled, // Đã hủy
 }
 
 enum RefundStatus {
-  none,    // Không có hoàn tiền
+  none, // Không có hoàn tiền
   pending, // Đang xử lý
   success, // Đã hoàn tiền
-  failed,  // Hoàn tiền thất bại
+  failed, // Hoàn tiền thất bại
 }
 
 class Appointment {
@@ -25,22 +25,25 @@ class Appointment {
   final String expertId;
   final String expertName;
   final String? expertAvatarUrl;
-  final double expertBasePrice; // ✅ NEW: Lưu base price của expert tại thời điểm book
-  
+  final double expertBasePrice; 
+
+  final String? userName;
+  final String? userAvatarUrl;
+
   final CallType callType;
   final DateTime appointmentDate;
   final int durationMinutes;
-  
+
   final AppointmentStatus status;
   final String? userNotes;
-  
+
   final DateTime createdAt;
   final DateTime? cancelledAt;
-  final String? cancelledBy; // 'user' or 'expert'
-  final String? cancellationReason; // Only for expert cancellations
-  final String? paymentId; // MoMo Order ID
-  final String? paymentTransId; // MoMo Transaction ID
-  final RefundStatus refundStatus; // ✅ NEW: Trạng thái hoàn tiền
+  final String? cancelledBy; 
+  final String? cancellationReason; 
+  final String? paymentId; 
+  final String? paymentTransId; 
+  final RefundStatus refundStatus;
 
   Appointment({
     required this.appointmentId,
@@ -48,12 +51,14 @@ class Appointment {
     required this.expertId,
     required this.expertName,
     this.expertAvatarUrl,
-    required this.expertBasePrice, // ✅ NEW
+    required this.expertBasePrice,
     required this.callType,
     required this.appointmentDate,
     required this.durationMinutes,
     this.status = AppointmentStatus.confirmed,
     this.userNotes,
+    this.userName,
+    this.userAvatarUrl,
     DateTime? createdAt,
     this.cancelledAt,
     this.cancelledBy,
@@ -63,7 +68,6 @@ class Appointment {
     this.refundStatus = RefundStatus.none,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  // ✅ Getter: Tính giá động
   double get price {
     return calculatePrice(
       expertBasePrice: expertBasePrice,
@@ -72,7 +76,6 @@ class Appointment {
     );
   }
 
-  // Getters
   String get callTypeLabel {
     return callType == CallType.voice ? '📞 Voice Call' : '🎥 Video Call';
   }
@@ -90,96 +93,99 @@ class Appointment {
     if (status != AppointmentStatus.confirmed) return false;
     final now = DateTime.now();
     final hoursDiff = appointmentDate.difference(now).inHours;
-    return hoursDiff >= 4; // Phải >= 4 giờ
+    return hoursDiff >= 4;
   }
 
   DateTime get endTime {
     return appointmentDate.add(Duration(minutes: durationMinutes));
   }
 
-  // ✅ Calculate price based on expert base price, call type and duration
   static double calculatePrice({
     required double expertBasePrice,
     required CallType callType,
     required int duration,
   }) {
     double finalPrice = expertBasePrice;
-    
-    // Voice Call = 67% of Video Call
     if (callType == CallType.voice) {
       finalPrice = finalPrice * 0.67;
     }
-    
-    // 30min = 50% of 60min
     if (duration == 30) {
       finalPrice = finalPrice * 0.5;
     }
-    
     return finalPrice;
   }
 
-  // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
     return {
-      'appointmentId': appointmentId,
-      'userId': userId,
-      'expertId': expertId,
-      'expertName': expertName,
-      'expertAvatarUrl': expertAvatarUrl,
-      'expertBasePrice': expertBasePrice, // ✅ NEW
-      'callType': callType.name,
-      'appointmentDate': Timestamp.fromDate(appointmentDate),
-      'durationMinutes': durationMinutes,
+      'user_id': userId,
+      'expert_id': expertId,
+      'appointment_date': appointmentDate.toIso8601String(),
+      'duration_minutes': durationMinutes,
       'status': status.name,
-      'userNotes': userNotes,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
-      'cancelledBy': cancelledBy,
-      'cancellationReason': cancellationReason,
-      'paymentId': paymentId,
-      'paymentTransId': paymentTransId,
-      'refundStatus': refundStatus.name, // ✅ NEW
+      'user_notes': userNotes,
+      'payment_id': paymentId,
+      // Metadata fields not directly in the simple appointments table might need handling
     };
   }
 
-  // Create from Firestore document
-  factory Appointment.fromSnapshot(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory Appointment.fromMap(Map<String, dynamic> map) {
+    // Handle join with experts/users if provided (Expert info)
+    final expertData = map['experts'] as Map<String, dynamic>?;
+    final expertUserData = expertData?['users'] as Map<String, dynamic>?;
+
+    // Handle join with users if provided (Patient info)
+    // In some queries it might be 'users' or 'users!user_id'
+    final patientData =
+        (map['users'] ?? map['users!user_id']) as Map<String, dynamic>?;
+
     return Appointment(
-      appointmentId: doc.id,
-      userId: data['userId'] ?? '',
-      expertId: data['expertId'] ?? '',
-      expertName: data['expertName'] ?? '',
-      expertAvatarUrl: data['expertAvatarUrl'],
-      expertBasePrice: (data['expertBasePrice'] ?? 150000.0).toDouble(), // ✅ NEW
+      appointmentId: map['id']?.toString() ?? '',
+      userId: map['user_id']?.toString() ?? '',
+      expertId: map['expert_id']?.toString() ?? '',
+      expertName: expertUserData?['full_name']?.toString() ??
+          map['expert_name']?.toString() ??
+          'Expert',
+      expertAvatarUrl: expertUserData?['avatar_url']?.toString() ??
+          map['expert_avatar_url']?.toString(),
+      expertBasePrice: double.tryParse(map['expert_base_price']?.toString() ??
+              expertData?['hourly_rate']?.toString() ??
+              '150000.0') ??
+          150000.0,
       callType: CallType.values.firstWhere(
-        (e) => e.name == data['callType'],
+        (e) => e.name == map['call_type'],
         orElse: () => CallType.video,
       ),
-      appointmentDate: (data['appointmentDate'] as Timestamp).toDate(),
-      durationMinutes: data['durationMinutes'] ?? 60,
+      appointmentDate: map['appointment_date'] != null
+          ? DateTime.parse(map['appointment_date'])
+          : DateTime.now(),
+      durationMinutes: map['duration_minutes'] ?? 60,
       status: AppointmentStatus.values.firstWhere(
-        (e) => e.name == data['status'],
+        (e) => e.name == map['status'],
         orElse: () => AppointmentStatus.confirmed,
       ),
-      userNotes: data['userNotes'],
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      cancelledAt: (data['cancelledAt'] as Timestamp?)?.toDate(),
-      cancelledBy: data['cancelledBy'],
-      cancellationReason: data['cancellationReason'],
-      paymentId: data['paymentId'],
-      paymentTransId: data['paymentTransId'],
+      userNotes: map['user_notes'],
+      userName: patientData?['full_name']?.toString(),
+      userAvatarUrl: patientData?['avatar_url']?.toString(),
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'])
+          : DateTime.now(),
+      cancelledAt: map['cancelled_at'] != null
+          ? DateTime.parse(map['cancelled_at'])
+          : null,
+      cancelledBy: map['cancelled_by'],
+      cancellationReason: map['cancellation_reason'],
+      paymentId: map['payment_id'],
+      paymentTransId: map['payment_trans_id'],
       refundStatus: RefundStatus.values.firstWhere(
-        (e) => e.name == (data['refundStatus'] ?? 'none'),
+        (e) => e.name == (map['refund_status'] ?? 'none'),
         orElse: () => RefundStatus.none,
       ),
     );
   }
 
-  // Copy with method for updating fields
   Appointment copyWith({
     String? appointmentId,
-    String? expertId, // Added expertId
+    String? expertId,
     AppointmentStatus? status,
     DateTime? cancelledAt,
     String? cancelledBy,
@@ -187,11 +193,13 @@ class Appointment {
     String? paymentId,
     String? paymentTransId,
     RefundStatus? refundStatus,
+    String? userName,
+    String? userAvatarUrl,
   }) {
     return Appointment(
       appointmentId: appointmentId ?? this.appointmentId,
       userId: userId,
-      expertId: expertId ?? this.expertId, // Use new expertId if provided
+      expertId: expertId ?? this.expertId,
       expertName: expertName,
       expertAvatarUrl: expertAvatarUrl,
       expertBasePrice: expertBasePrice,
@@ -200,6 +208,8 @@ class Appointment {
       durationMinutes: durationMinutes,
       status: status ?? this.status,
       userNotes: userNotes,
+      userName: userName ?? this.userName,
+      userAvatarUrl: userAvatarUrl ?? this.userAvatarUrl,
       createdAt: createdAt,
       cancelledAt: cancelledAt ?? this.cancelledAt,
       cancelledBy: cancelledBy ?? this.cancelledBy,

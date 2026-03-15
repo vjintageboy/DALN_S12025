@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'signup_page.dart';
 import '../home/home_page.dart';
 import '../expert_dashboard/expert_main_page.dart';
 import '../admin/admin_main_page.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/localization_service.dart';
+import '../../services/supabase_service.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/modern_text_field.dart';
@@ -21,11 +21,13 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _forgotPasswordController = TextEditingController();
+  final _supabaseService = SupabaseService();
   bool _obscurePassword = true;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -59,7 +61,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     }
 
     final authProvider = context.read<AuthProvider>();
-    
+
     final success = await authProvider.signIn(
       email: _emailController.text,
       password: _passwordController.text,
@@ -68,18 +70,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (!mounted) return;
 
     if (success) {
-      // Get user role from Firestore
-      final user = FirebaseAuth.instance.currentUser;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        
-        final role = userDoc.data()?['role'] ?? 'user';
-        
+        final profile = await _supabaseService.getUserById(user.id);
+        final role = profile?.role.value ?? 'user';
+
         if (!mounted) return;
-        
+
         // Navigate based on role - clear entire stack
         Widget destinationPage;
         if (role == 'admin') {
@@ -89,7 +86,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         } else {
           destinationPage = const HomePage();
         }
-        
+
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => destinationPage),
           (route) => false,
@@ -101,7 +98,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           content: Text(authProvider.errorMessage ?? AppStrings.signInFailed),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -120,7 +119,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
-            Future<void> _submitRequest() async {
+            Future<void> submitRequest() async {
               if (isSubmitting) return;
               if (!dialogFormKey.currentState!.validate()) return;
 
@@ -128,18 +127,24 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               setState(() => isSubmitting = true);
 
               final authProvider = parentContext.read<AuthProvider>();
-              final success = await authProvider.resetPassword(_forgotPasswordController.text.trim());
+              final success = await authProvider.resetPassword(
+                _forgotPasswordController.text.trim(),
+              );
 
-              if (!mounted) return;
+              if (!mounted || !parentContext.mounted || !dialogContext.mounted) return;
 
               if (success) {
                 Navigator.of(dialogContext).pop();
                 ScaffoldMessenger.of(parentContext).showSnackBar(
                   SnackBar(
-                    content: const Text('Nếu email này đã được đăng ký, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu vào hộp thư của bạn.'),
+                    content: const Text(
+                      'Nếu email này đã được đăng ký, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu vào hộp thư của bạn.',
+                    ),
                     backgroundColor: AppColors.primary,
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     margin: const EdgeInsets.all(16),
                   ),
                 );
@@ -148,10 +153,14 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 setState(() => isSubmitting = false);
                 ScaffoldMessenger.of(parentContext).showSnackBar(
                   SnackBar(
-                    content: Text(authProvider.errorMessage ?? AppStrings.signInFailed),
+                    content: Text(
+                      authProvider.errorMessage ?? AppStrings.signInFailed,
+                    ),
                     backgroundColor: AppColors.error,
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     margin: const EdgeInsets.all(16),
                   ),
                 );
@@ -171,7 +180,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 child: SingleChildScrollView(
                   child: AlertDialog(
                     backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     title: const Text(
                       'Đặt lại mật khẩu',
                       style: TextStyle(fontWeight: FontWeight.w700),
@@ -197,7 +208,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               if (value == null || value.trim().isEmpty) {
                                 return context.l10n.emailAddress;
                               }
-                              final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                              final emailRegex = RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              );
                               if (!emailRegex.hasMatch(value.trim())) {
                                 return context.l10n.emailAddress;
                               }
@@ -207,7 +220,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         ],
                       ),
                     ),
-                    actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    actionsPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () {
@@ -219,23 +235,32 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         child: const Text('Hủy'),
                       ),
                       ElevatedButton(
-                        onPressed: isSubmitting ? null : _submitRequest,
+                        onPressed: isSubmitting ? null : submitRequest,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
                         ),
                         child: isSubmitting
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
                             : const Text(
                                 'Gửi yêu cầu',
-                                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
                               ),
                       ),
                     ],
@@ -283,7 +308,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -347,7 +372,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       obscureText: _obscurePassword,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
                           color: AppColors.textSecondary,
                           size: 22,
                         ),
@@ -374,7 +401,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       child: TextButton(
                         onPressed: _showForgotPasswordDialog,
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                         ),
                         child: Text(
                           context.l10n.forgotPassword,
@@ -402,20 +432,30 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     // Divider
                     Row(
                       children: [
-                        const Expanded(child: Divider(color: AppColors.borderMedium, thickness: 1)),
+                        const Expanded(
+                          child: Divider(
+                            color: AppColors.borderMedium,
+                            thickness: 1,
+                          ),
+                        ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             context.l10n.orContinueWith,
                             style: TextStyle(
-                              color: AppColors.textSecondary.withOpacity(0.8),
+                              color: AppColors.textSecondary.withValues(alpha: 0.8),
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 1,
                             ),
                           ),
                         ),
-                        const Expanded(child: Divider(color: AppColors.borderMedium, thickness: 1)),
+                        const Expanded(
+                          child: Divider(
+                            color: AppColors.borderMedium,
+                            thickness: 1,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -460,11 +500,15 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             onPressed: () {
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => const SignUpPage()),
+                                MaterialPageRoute(
+                                  builder: (context) => const SignUpPage(),
+                                ),
                               );
                             },
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),

@@ -57,17 +57,23 @@ class _ExpertListPageState extends State<ExpertListPage> {
   }
 
   void _filterExperts(String? specializationKey) {
-        setState(() {
-          _selectedSpecialization = specializationKey;
+    setState(() {
+      _selectedSpecialization = specializationKey;
       if (specializationKey == null || specializationKey == 'all') {
         _filteredExperts = _experts;
       } else {
         _filteredExperts = _experts
-            .where((e) => e.specialization.toLowerCase() == specializationKey.toLowerCase())
+            .where(
+              (e) =>
+                  e.specialization.toLowerCase() ==
+                  specializationKey.toLowerCase(),
+            )
             .toList();
       }
     });
-  }  String _getSpecializationLabel(String key) {
+  }
+
+  String _getSpecializationLabel(String key) {
     switch (key) {
       case 'all':
         return context.l10n.all;
@@ -166,11 +172,13 @@ class _ExpertListPageState extends State<ExpertListPage> {
               itemCount: _specializationKeys.length,
               itemBuilder: (context, index) {
                 final specKey = _specializationKeys[index];
-                final isSelected = _selectedSpecialization == specKey ||
+                final isSelected =
+                    _selectedSpecialization == specKey ||
                     (_selectedSpecialization == null && specKey == 'all');
 
                 return GestureDetector(
-                  onTap: () => _filterExperts(specKey == 'all' ? null : specKey),
+                  onTap: () =>
+                      _filterExperts(specKey == 'all' ? null : specKey),
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(
@@ -189,7 +197,9 @@ class _ExpertListPageState extends State<ExpertListPage> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : Colors.grey.shade700,
+                          color: isSelected
+                              ? Colors.white
+                              : Colors.grey.shade700,
                         ),
                       ),
                     ),
@@ -219,63 +229,61 @@ class _ExpertListPageState extends State<ExpertListPage> {
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF4CAF50),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
                   )
                 : _filteredExperts.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 80,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              context.l10n.noExpertsFound,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              context.l10n.tryAnotherFilter,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade500,
-                              ),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 80,
+                          color: Colors.grey.shade300,
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadExperts,
-                        color: const Color(0xFF4CAF50),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredExperts.length,
-                          itemBuilder: (context, index) {
-                            final expert = _filteredExperts[index];
-                            return ExpertCard(
-                              expert: expert,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        ExpertDetailPage(expert: expert),
-                                  ),
-                                );
-                              },
+                        const SizedBox(height: 16),
+                        Text(
+                          context.l10n.noExpertsFound,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          context.l10n.tryAnotherFilter,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadExperts,
+                    color: const Color(0xFF4CAF50),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredExperts.length,
+                      itemBuilder: (context, index) {
+                        final expert = _filteredExperts[index];
+                        return ExpertCard(
+                          expert: expert,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ExpertDetailPage(expert: expert),
+                              ),
                             );
                           },
-                        ),
-                      ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

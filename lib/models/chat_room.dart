@@ -1,10 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:n04_app/dummy_firebase.dart';
 /// Trạng thái phòng chat
-enum ChatRoomStatus {
-  active,
-  archived,
-}
+enum ChatRoomStatus { active, archived }
 
 class ChatRoom {
   final String id;
@@ -31,9 +27,11 @@ class ChatRoom {
       'appointmentId': appointmentId,
       'participants': participants,
       'status': status.name,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': (createdAt),
       'lastMessage': lastMessage,
-      'lastMessageTime': lastMessageTime != null ? Timestamp.fromDate(lastMessageTime!) : null,
+      'lastMessageTime': lastMessageTime != null
+          ? (lastMessageTime!)
+          : null,
     };
   }
 
@@ -52,9 +50,9 @@ class ChatRoom {
       appointmentId: data['appointmentId']?.toString() ?? '',
       participants: _parseParticipants(data['participants']),
       status: _parseStatus(data['status']),
-      createdAt: _parseTimestamp(data['createdAt']),
+      createdAt: _parseDateTime(data['createdAt']),
       lastMessage: data['lastMessage']?.toString(),
-      lastMessageTime: _parseNullableTimestamp(data['lastMessageTime']),
+      lastMessageTime: _parseNullableDateTime(data['lastMessageTime']),
     );
   }
 
@@ -79,14 +77,14 @@ class ChatRoom {
     return ChatRoomStatus.active;
   }
 
-  static DateTime _parseTimestamp(dynamic ts) {
-    if (ts is Timestamp) return ts.toDate();
+  static DateTime _parseDateTime(dynamic ts) {
+    if (ts is DateTime) return ts.toDate();
     if (ts is DateTime) return ts;
     return DateTime.now();
   }
 
-  static DateTime? _parseNullableTimestamp(dynamic ts) {
+  static DateTime? _parseNullableDateTime(dynamic ts) {
     if (ts == null) return null;
-    return _parseTimestamp(ts);
+    return _parseDateTime(ts);
   }
 }

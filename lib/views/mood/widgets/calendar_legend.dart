@@ -18,21 +18,38 @@ class CalendarLegend extends StatelessWidget {
         children: [
           Text(
             AppLocalizations.of(context)!.legend,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 12,
             runSpacing: 8,
             children: [
-              _buildLegendItem('😞', AppLocalizations.of(context)!.veryPoor, Colors.red.shade400),
-              _buildLegendItem('😕', AppLocalizations.of(context)!.poor, Colors.orange.shade400),
-              _buildLegendItem('😐', AppLocalizations.of(context)!.okay, Colors.yellow.shade700),
-              _buildLegendItem('🙂', AppLocalizations.of(context)!.good, Colors.lightGreen.shade600),
-              _buildLegendItem('😄', AppLocalizations.of(context)!.excellent, Colors.green.shade600),
+              _buildLegendItem(
+                '😞',
+                AppLocalizations.of(context)!.veryPoor,
+                Colors.red.shade400,
+              ),
+              _buildLegendItem(
+                '😕',
+                AppLocalizations.of(context)!.poor,
+                Colors.orange.shade400,
+              ),
+              _buildLegendItem(
+                '😐',
+                AppLocalizations.of(context)!.okay,
+                Colors.yellow.shade700,
+              ),
+              _buildLegendItem(
+                '🙂',
+                AppLocalizations.of(context)!.good,
+                Colors.lightGreen.shade600,
+              ),
+              _buildLegendItem(
+                '😄',
+                AppLocalizations.of(context)!.excellent,
+                Colors.green.shade600,
+              ),
             ],
           ),
         ],
@@ -48,16 +65,13 @@ class CalendarLegend extends StatelessWidget {
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: color.withOpacity(0.5)),
+            border: Border.all(color: color.withValues(alpha: 0.5)),
           ),
         ),
         const SizedBox(width: 6),
-        Text(
-          '$emoji $label',
-          style: const TextStyle(fontSize: 12),
-        ),
+        Text('$emoji $label', style: const TextStyle(fontSize: 12)),
       ],
     );
   }

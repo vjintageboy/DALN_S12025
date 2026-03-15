@@ -1,35 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/availability.dart';
 import '../../models/appointment.dart';
 import '../../services/availability_service.dart';
+import '../../services/supabase_service.dart';
 import 'appointments_page.dart';
 
 /// ✅ Schedule Management Page
-/// 
-/// Expert can set their weekly working hours:
-/// - Enable/disable days (Mon-Sun)
-/// - Set working hours for each day (start time - end time)
-/// - Set optional break time (applies to all days)
-/// 
+///
+/// Expert can set their weekly working hours using the new
+/// `expert_availability` table (one row per enabled day).
+///
 /// ⚠️ IMPORTANT: Schedule Conflict Handling
 /// When expert changes schedule, the system checks for conflicts with
-/// existing confirmed appointments:
-/// 
-/// 1. Day disabled → Appointments on that day conflict
-/// 2. Working hours changed → Appointments outside new hours conflict
-/// 3. Break time added → Appointments during break conflict
-/// 
-/// If conflicts found:
-/// - Show warning dialog with list of conflicted appointments
-/// - Expert can:
-///   a) Cancel changes
-///   b) View appointments to reschedule/cancel them
-///   c) Save anyway (appointments remain confirmed but outside working hours)
-/// 
-/// Note: System does NOT auto-cancel appointments. Expert must manually
-/// handle conflicts by contacting patients and rescheduling.
+/// existing confirmed appointments.
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
 
@@ -39,14 +22,18 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   final AvailabilityService _availabilityService = AvailabilityService();
-  final String currentUid = FirebaseAuth.instance.currentUser!.uid;
-  String? expertProfileId; // Expert's profile ID (from experts collection)
+  final _supabase = SupabaseService.instance.client;
+  String? get currentUid => _supabase.auth.currentUser?.id;
 
   bool _isLoading = false;
   bool _isSaving = false;
 
-  // Day availability
-  final Map<int, bool> _dayAvailability = {
+  // --- DB day_of_week uses 0=Sun, 1=Mon … 6=Sat ---
+  // We work with dart weekdays internally (1=Mon … 7=Sun) and convert
+  // only at the DB boundary.
+
+  /// Maps Dart weekday (1-7) → enabled flag
+  final Map<int, bool> _dayEnabled = {
     DateTime.monday: false,
     DateTime.tuesday: false,
     DateTime.wednesday: false,
@@ -56,97 +43,50 @@ class _SchedulePageState extends State<SchedulePage> {
     DateTime.sunday: false,
   };
 
-  // Time slots for each day
-  final Map<int, TimeSlot> _dayTimeSlots = {
-    DateTime.monday: TimeSlot(startTime: '09:00', endTime: '17:00'),
-    DateTime.tuesday: TimeSlot(startTime: '09:00', endTime: '17:00'),
-    DateTime.wednesday: TimeSlot(startTime: '09:00', endTime: '17:00'),
-    DateTime.thursday: TimeSlot(startTime: '09:00', endTime: '17:00'),
-    DateTime.friday: TimeSlot(startTime: '09:00', endTime: '17:00'),
-    DateTime.saturday: TimeSlot(startTime: '09:00', endTime: '17:00'),
-    DateTime.sunday: TimeSlot(startTime: '09:00', endTime: '17:00'),
+  /// Maps Dart weekday (1-7) → working hours for that day
+  final Map<int, _TimeRange> _dayHours = {
+    DateTime.monday: _TimeRange('09:00', '17:00'),
+    DateTime.tuesday: _TimeRange('09:00', '17:00'),
+    DateTime.wednesday: _TimeRange('09:00', '17:00'),
+    DateTime.thursday: _TimeRange('09:00', '17:00'),
+    DateTime.friday: _TimeRange('09:00', '17:00'),
+    DateTime.saturday: _TimeRange('09:00', '17:00'),
+    DateTime.sunday: _TimeRange('09:00', '17:00'),
   };
 
-  // Break time
-  TimeSlot? _breakTime;
+  // Break time is stored client-side only (no dedicated column in the new schema).
+  // If needed, an expert can add a separate synthetic slot for break.
+  // For now we keep the UI but note it has no DB persistence.
+  _TimeRange? _breakTime;
   bool _hasBreakTime = false;
 
   @override
   void initState() {
     super.initState();
-    _loadExpertProfile();
+    _loadAvailability();
   }
 
-  Future<void> _loadExpertProfile() async {
-    setState(() => _isLoading = true);
-    try {
-      // Get expert profile ID from expertUsers collection
-      final expertUserQuery = await FirebaseFirestore.instance
-          .collection('expertUsers')
-          .where('uid', isEqualTo: currentUid)
-          .limit(1)
-          .get();
-
-      if (expertUserQuery.docs.isNotEmpty) {
-        expertProfileId = expertUserQuery.docs.first.data()['expertId'];
-        print('✅ Expert profile ID: $expertProfileId');
-        await _loadAvailability();
-      } else {
-        throw Exception('Expert profile not found');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading expert profile: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
+  // ── LOAD ─────────────────────────────────────────────────────────────────
 
   Future<void> _loadAvailability() async {
+    if (currentUid == null) return;
+
+    setState(() => _isLoading = true);
     try {
-      final availability = await _availabilityService.getAvailability(currentUid);
-      if (availability != null && mounted) {
+      final slots = await _availabilityService.getAvailability(currentUid!);
+
+      if (mounted) {
         setState(() {
-          // Load day availability
-          _dayAvailability[DateTime.monday] = availability.monday;
-          _dayAvailability[DateTime.tuesday] = availability.tuesday;
-          _dayAvailability[DateTime.wednesday] = availability.wednesday;
-          _dayAvailability[DateTime.thursday] = availability.thursday;
-          _dayAvailability[DateTime.friday] = availability.friday;
-          _dayAvailability[DateTime.saturday] = availability.saturday;
-          _dayAvailability[DateTime.sunday] = availability.sunday;
-
-          // Load time slots
-          if (availability.mondayHours != null) {
-            _dayTimeSlots[DateTime.monday] = availability.mondayHours!;
-          }
-          if (availability.tuesdayHours != null) {
-            _dayTimeSlots[DateTime.tuesday] = availability.tuesdayHours!;
-          }
-          if (availability.wednesdayHours != null) {
-            _dayTimeSlots[DateTime.wednesday] = availability.wednesdayHours!;
-          }
-          if (availability.thursdayHours != null) {
-            _dayTimeSlots[DateTime.thursday] = availability.thursdayHours!;
-          }
-          if (availability.fridayHours != null) {
-            _dayTimeSlots[DateTime.friday] = availability.fridayHours!;
-          }
-          if (availability.saturdayHours != null) {
-            _dayTimeSlots[DateTime.saturday] = availability.saturdayHours!;
-          }
-          if (availability.sundayHours != null) {
-            _dayTimeSlots[DateTime.sunday] = availability.sundayHours!;
+          // Reset all days to disabled first
+          for (final k in _dayEnabled.keys) {
+            _dayEnabled[k] = false;
           }
 
-          // Load break time
-          _breakTime = availability.breakTime;
-          _hasBreakTime = availability.breakTime != null;
+          for (final slot in slots) {
+            final dartDay = slot.dartWeekday;
+            _dayEnabled[dartDay] = true;
+            _dayHours[dartDay] = _TimeRange(slot.startTime, slot.endTime);
+          }
         });
       }
     } catch (e) {
@@ -156,64 +96,42 @@ class _SchedulePageState extends State<SchedulePage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // ── SAVE ──────────────────────────────────────────────────────────────────
+
   Future<void> _saveAvailability() async {
-    // ✅ Check for conflicts with existing appointments
-    final conflictedAppointments = await _checkScheduleConflicts();
-    
-    if (conflictedAppointments.isNotEmpty && mounted) {
-      // Show warning dialog
-      final shouldContinue = await _showConflictWarningDialog(
-        conflictedAppointments,
-      );
-      
-      if (!shouldContinue) {
-        return; // User cancelled
-      }
+    if (currentUid == null) return;
+
+    // Check for conflicts with existing appointments
+    final conflicts = await _checkScheduleConflicts();
+    if (conflicts.isNotEmpty && mounted) {
+      final shouldContinue = await _showConflictWarningDialog(conflicts);
+      if (!shouldContinue) return;
     }
 
     setState(() => _isSaving = true);
     try {
-      final availability = Availability(
-        availabilityId: '',
-        expertId: currentUid, // Use uid for availability collection
-        monday: _dayAvailability[DateTime.monday]!,
-        tuesday: _dayAvailability[DateTime.tuesday]!,
-        wednesday: _dayAvailability[DateTime.wednesday]!,
-        thursday: _dayAvailability[DateTime.thursday]!,
-        friday: _dayAvailability[DateTime.friday]!,
-        saturday: _dayAvailability[DateTime.saturday]!,
-        sunday: _dayAvailability[DateTime.sunday]!,
-        mondayHours: _dayAvailability[DateTime.monday]!
-            ? _dayTimeSlots[DateTime.monday]
-            : null,
-        tuesdayHours: _dayAvailability[DateTime.tuesday]!
-            ? _dayTimeSlots[DateTime.tuesday]
-            : null,
-        wednesdayHours: _dayAvailability[DateTime.wednesday]!
-            ? _dayTimeSlots[DateTime.wednesday]
-            : null,
-        thursdayHours: _dayAvailability[DateTime.thursday]!
-            ? _dayTimeSlots[DateTime.thursday]
-            : null,
-        fridayHours: _dayAvailability[DateTime.friday]!
-            ? _dayTimeSlots[DateTime.friday]
-            : null,
-        saturdayHours: _dayAvailability[DateTime.saturday]!
-            ? _dayTimeSlots[DateTime.saturday]
-            : null,
-        sundayHours: _dayAvailability[DateTime.sunday]!
-            ? _dayTimeSlots[DateTime.sunday]
-            : null,
-        breakTime: _hasBreakTime ? _breakTime : null,
-      );
+      // Build list of ExpertAvailability slots from UI state
+      final slots = <ExpertAvailability>[];
 
-      await _availabilityService.setAvailability(availability);
+      _dayEnabled.forEach((dartDay, isEnabled) {
+        if (!isEnabled) return;
+        final hours = _dayHours[dartDay]!;
+        // Convert Dart weekday → DB day_of_week
+        final dbDay = dartDay == DateTime.sunday ? 0 : dartDay; // Sun→0, Mon=1…Sat=6
+        slots.add(ExpertAvailability(
+          id: '',        // ignored on insert
+          expertId: currentUid!,
+          dayOfWeek: dbDay,
+          startTime: hours.start,
+          endTime: hours.end,
+        ));
+      });
+
+      await _availabilityService.setAvailability(currentUid!, slots);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -233,368 +151,287 @@ class _SchedulePageState extends State<SchedulePage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  /// ✅ Check if new schedule conflicts with existing confirmed appointments
+  // ── CONFLICT CHECK ────────────────────────────────────────────────────────
+
   Future<List<Appointment>> _checkScheduleConflicts() async {
     try {
-      print('🔍 Checking schedule conflicts...');
-      print('Current schedule:');
-      _dayAvailability.forEach((day, isEnabled) {
-        print('  ${_getDayName(day)}: ${isEnabled ? "ENABLED" : "DISABLED"}');
-      });
-      
-      // Ensure we have expert profile ID
-      if (expertProfileId == null) {
-        print('❌ No expert profile ID - cannot check conflicts');
-        return [];
-      }
-      
-      // Get all upcoming confirmed appointments
+      if (currentUid == null) return [];
+
+      debugPrint('🔍 Checking schedule conflicts...');
+
       final now = DateTime.now();
-      final snapshot = await FirebaseFirestore.instance
-          .collection('appointments')
-          .where('expertId', isEqualTo: expertProfileId) // Use profile ID, not uid
-          .where('status', isEqualTo: AppointmentStatus.confirmed.name)
-          .get();
+      final response = await _supabase
+          .from('appointments')
+          .select()
+          .eq('expert_id', currentUid!)
+          .eq('status', AppointmentStatus.confirmed.name)
+          .gte('appointment_date', now.toIso8601String());
 
-      print('Found ${snapshot.docs.length} confirmed appointments');
-      final conflictedAppointments = <Appointment>[];
+      debugPrint('Found ${response.length} confirmed appointments');
+      final conflicted = <Appointment>[];
 
-      for (final doc in snapshot.docs) {
-        final appointment = Appointment.fromSnapshot(doc);
-        
-        // Skip past appointments
-        if (appointment.appointmentDate.isBefore(now)) {
+      for (final data in response) {
+        final apt = Appointment.fromMap(data);
+        final dartDay = apt.appointmentDate.weekday;
+        final time = apt.appointmentDate;
+
+        // Check 1: Day disabled
+        if (!(_dayEnabled[dartDay] ?? false)) {
+          conflicted.add(apt);
+          debugPrint('⚠️ Conflict: Appointment on ${_getDayName(dartDay)} – day disabled');
           continue;
         }
 
-        final weekday = appointment.appointmentDate.weekday;
-        final appointmentTime = appointment.appointmentDate;
-        
-        print('Checking appointment: ${appointment.appointmentDate} (${_getDayName(weekday)})');
+        // Check 2: Outside new working hours
+        final hours = _dayHours[dartDay]!;
+        final workStart = _toDateTime(time, hours.start);
+        final workEnd = _toDateTime(time, hours.end);
 
-        // Check 1: Day is disabled in new schedule
-        final isDayEnabled = _dayAvailability[weekday] ?? false;
-        if (!isDayEnabled) {
-          conflictedAppointments.add(appointment);
-          print('⚠️ Conflict: Appointment on ${_getDayName(weekday)} - day is disabled');
-          continue;
-        }
-
-        // Check 2: Outside working hours
-        final timeSlot = _dayTimeSlots[weekday]!;
-        final startParts = timeSlot.startTime.split(':');
-        final endParts = timeSlot.endTime.split(':');
-        
-        final workStart = DateTime(
-          appointmentTime.year,
-          appointmentTime.month,
-          appointmentTime.day,
-          int.parse(startParts[0]),
-          int.parse(startParts[1]),
-        );
-        
-        final workEnd = DateTime(
-          appointmentTime.year,
-          appointmentTime.month,
-          appointmentTime.day,
-          int.parse(endParts[0]),
-          int.parse(endParts[1]),
-        );
-
-        if (appointmentTime.isBefore(workStart) || 
-            appointmentTime.isAfter(workEnd)) {
-          conflictedAppointments.add(appointment);
+        if (time.isBefore(workStart) || time.isAfter(workEnd)) {
+          conflicted.add(apt);
           continue;
         }
 
         // Check 3: During break time
         if (_hasBreakTime && _breakTime != null) {
-          final breakStartParts = _breakTime!.startTime.split(':');
-          final breakEndParts = _breakTime!.endTime.split(':');
-          
-          final breakStart = DateTime(
-            appointmentTime.year,
-            appointmentTime.month,
-            appointmentTime.day,
-            int.parse(breakStartParts[0]),
-            int.parse(breakStartParts[1]),
-          );
-          
-          final breakEnd = DateTime(
-            appointmentTime.year,
-            appointmentTime.month,
-            appointmentTime.day,
-            int.parse(breakEndParts[0]),
-            int.parse(breakEndParts[1]),
-          );
+          final bStart = _toDateTime(time, _breakTime!.start);
+          final bEnd = _toDateTime(time, _breakTime!.end);
+          final aptEnd = time.add(Duration(minutes: apt.durationMinutes));
 
-          final appointmentEnd = appointmentTime.add(
-            Duration(minutes: appointment.durationMinutes),
-          );
-
-          // Check if appointment overlaps with break time
-          if (appointmentTime.isBefore(breakEnd) && 
-              appointmentEnd.isAfter(breakStart)) {
-            conflictedAppointments.add(appointment);
+          if (time.isBefore(bEnd) && aptEnd.isAfter(bStart)) {
+            conflicted.add(apt);
           }
         }
       }
 
-      print('✅ Conflict check complete: ${conflictedAppointments.length} conflicts found');
-      return conflictedAppointments;
+      debugPrint('✅ Conflict check: ${conflicted.length} conflicts found');
+      return conflicted;
     } catch (e) {
-      print('Error checking schedule conflicts: $e');
+      debugPrint('Error checking conflicts: $e');
       return [];
     }
   }
 
-  /// ✅ Show warning dialog about conflicted appointments
-  Future<bool> _showConflictWarningDialog(
-    List<Appointment> conflicts,
-  ) async {
+  // ── DIALOGS ───────────────────────────────────────────────────────────────
+
+  Future<bool> _showConflictWarningDialog(List<Appointment> conflicts) async {
     return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            SizedBox(width: 12),
-            Text('Schedule Conflict'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Your new schedule conflicts with ${conflicts.length} existing appointment${conflicts.length > 1 ? 's' : ''}:',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 16),
-              ...conflicts.take(5).map((apt) {
-                final date = apt.appointmentDate;
-                final dateStr = '${date.day}/${date.month}/${date.year}';
-                final timeStr = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.event, size: 16, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '$dateStr at $timeStr (${apt.durationMinutes}min)',
-                          style: const TextStyle(fontSize: 14),
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                SizedBox(width: 12),
+                Text('Schedule Conflict'),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Your new schedule conflicts with ${conflicts.length} existing '
+                    'appointment${conflicts.length > 1 ? 's' : ''}:',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 16),
+                  ...conflicts.take(5).map((apt) {
+                    final d = apt.appointmentDate;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.event, size: 16, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${d.day}/${d.month}/${d.year} at '
+                              '${d.hour.toString().padLeft(2, '0')}:'
+                              '${d.minute.toString().padLeft(2, '0')} '
+                              '(${apt.durationMinutes}min)',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  if (conflicts.length > 5)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        '… and ${conflicts.length - 5} more',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
-              if (conflicts.length > 5)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    '... and ${conflicts.length - 5} more',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                      fontStyle: FontStyle.italic,
                     ),
-                  ),
-                ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.info_outline, 
-                          size: 18, 
-                          color: Colors.orange.shade700,
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline,
+                                size: 18, color: Colors.orange.shade700),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Important',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange.shade700),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Important',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange.shade700,
-                          ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'These appointments are still confirmed. You should:\n'
+                          '• Contact patients to reschedule\n'
+                          '• Or adjust your schedule to accommodate them',
+                          style: TextStyle(fontSize: 13),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'These appointments are still confirmed. You should:',
-                      style: TextStyle(fontSize: 13),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      '• Contact patients to reschedule\n'
-                      '• Or adjust your schedule to accommodate them',
-                      style: TextStyle(fontSize: 13),
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, false);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const AppointmentsPage()),
+                  );
+                },
+                child: const Text('View Appointments'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
                 ),
+                child: const Text('Save Anyway'),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context, false);
-              // Navigate to appointments page to manage conflicts
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AppointmentsPage(),
-                ),
-              );
-            },
-            child: const Text('View Appointments'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Save Anyway'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
+
+  // ── TIME PICKER ───────────────────────────────────────────────────────────
 
   Future<void> _pickTime({
     required BuildContext context,
     required String initialTime,
-    required Function(String) onTimePicked,
+    required void Function(String) onTimePicked,
   }) async {
     final parts = initialTime.split(':');
-    final initialTimeOfDay = TimeOfDay(
-      hour: int.parse(parts[0]),
-      minute: int.parse(parts[1]),
-    );
-
-    final pickedTime = await showTimePicker(
+    final picked = await showTimePicker(
       context: context,
-      initialTime: initialTimeOfDay,
+      initialTime: TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      ),
     );
-
-    if (pickedTime != null) {
-      final formattedTime =
-          '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
-      onTimePicked(formattedTime);
+    if (picked != null) {
+      onTimePicked(
+        '${picked.hour.toString().padLeft(2, '0')}:'
+        '${picked.minute.toString().padLeft(2, '0')}',
+      );
     }
   }
 
-  String _getDayName(int weekday) {
-    switch (weekday) {
-      case DateTime.monday:
-        return 'Monday';
-      case DateTime.tuesday:
-        return 'Tuesday';
-      case DateTime.wednesday:
-        return 'Wednesday';
-      case DateTime.thursday:
-        return 'Thursday';
-      case DateTime.friday:
-        return 'Friday';
-      case DateTime.saturday:
-        return 'Saturday';
-      case DateTime.sunday:
-        return 'Sunday';
-      default:
-        return '';
-    }
+  // ── HELPERS ───────────────────────────────────────────────────────────────
+
+  String _getDayName(int dartWeekday) {
+    const names = {
+      DateTime.monday: 'Monday',
+      DateTime.tuesday: 'Tuesday',
+      DateTime.wednesday: 'Wednesday',
+      DateTime.thursday: 'Thursday',
+      DateTime.friday: 'Friday',
+      DateTime.saturday: 'Saturday',
+      DateTime.sunday: 'Sunday',
+    };
+    return names[dartWeekday] ?? '';
   }
+
+  static DateTime _toDateTime(DateTime base, String hhmm) {
+    final p = hhmm.split(':');
+    return DateTime(base.year, base.month, base.day,
+        int.parse(p[0]), int.parse(p[1]));
+  }
+
+  // ── BUILD ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Manage Schedule',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('Manage Schedule',
+            style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF6C63FF),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Header
+          // Header card
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6C63FF).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.calendar_month,
-                          color: Color(0xFF6C63FF),
-                          size: 32,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Working Hours',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Set your availability for each day',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.calendar_month,
+                        color: Color(0xFF6C63FF), size: 32),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Working Hours',
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 4),
+                        Text('Set your availability for each day',
+                            style:
+                                TextStyle(color: Colors.grey, fontSize: 14)),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -603,7 +440,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
           const SizedBox(height: 16),
 
-          // ⚠️ Info Banner
+          // Info banner
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -613,15 +450,14 @@ class _SchedulePageState extends State<SchedulePage> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                Icon(Icons.info_outline,
+                    color: Colors.blue.shade700, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Changes to your schedule will be checked against existing appointments',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.blue.shade900,
-                    ),
+                    style:
+                        TextStyle(fontSize: 13, color: Colors.blue.shade900),
                   ),
                 ),
               ],
@@ -630,38 +466,34 @@ class _SchedulePageState extends State<SchedulePage> {
 
           const SizedBox(height: 16),
 
-          // Weekly Schedule
+          // Weekly schedule card
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Weekly Schedule',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Text('Weekly Schedule',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
-                  ..._dayAvailability.entries.map((entry) {
-                    final weekday = entry.key;
-                    final isAvailable = entry.value;
-                    final timeSlot = _dayTimeSlots[weekday]!;
+                  ..._dayEnabled.entries.map((entry) {
+                    final dartDay = entry.key;
+                    final isEnabled = entry.value;
+                    final hours = _dayHours[dartDay]!;
 
                     return Column(
                       children: [
-                        _buildDaySchedule(
-                          weekday: weekday,
-                          dayName: _getDayName(weekday),
-                          isAvailable: isAvailable,
-                          timeSlot: timeSlot,
+                        _buildDayRow(
+                          dartDay: dartDay,
+                          dayName: _getDayName(dartDay),
+                          isEnabled: isEnabled,
+                          hours: hours,
                         ),
-                        if (weekday != DateTime.sunday) const Divider(),
+                        if (dartDay != DateTime.sunday) const Divider(),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),
@@ -669,7 +501,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
           const SizedBox(height: 16),
 
-          // Break Time
+          // Break time card
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -679,13 +511,9 @@ class _SchedulePageState extends State<SchedulePage> {
                   Row(
                     children: [
                       const Expanded(
-                        child: Text(
-                          'Break Time (Optional)',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: Text('Break Time (Optional)',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                       ),
                       Switch(
                         value: _hasBreakTime,
@@ -693,10 +521,7 @@ class _SchedulePageState extends State<SchedulePage> {
                           setState(() {
                             _hasBreakTime = value;
                             if (value && _breakTime == null) {
-                              _breakTime = TimeSlot(
-                                startTime: '12:00',
-                                endTime: '13:00',
-                              );
+                              _breakTime = _TimeRange('12:00', '13:00');
                             }
                           });
                         },
@@ -711,18 +536,14 @@ class _SchedulePageState extends State<SchedulePage> {
                           child: OutlinedButton.icon(
                             onPressed: () => _pickTime(
                               context: context,
-                              initialTime: _breakTime!.startTime,
-                              onTimePicked: (time) {
-                                setState(() {
-                                  _breakTime = TimeSlot(
-                                    startTime: time,
-                                    endTime: _breakTime!.endTime,
-                                  );
-                                });
-                              },
+                              initialTime: _breakTime!.start,
+                              onTimePicked: (t) => setState(() {
+                                _breakTime =
+                                    _TimeRange(t, _breakTime!.end);
+                              }),
                             ),
                             icon: const Icon(Icons.access_time),
-                            label: Text(_breakTime!.startTime),
+                            label: Text(_breakTime!.start),
                           ),
                         ),
                         const Padding(
@@ -733,18 +554,14 @@ class _SchedulePageState extends State<SchedulePage> {
                           child: OutlinedButton.icon(
                             onPressed: () => _pickTime(
                               context: context,
-                              initialTime: _breakTime!.endTime,
-                              onTimePicked: (time) {
-                                setState(() {
-                                  _breakTime = TimeSlot(
-                                    startTime: _breakTime!.startTime,
-                                    endTime: time,
-                                  );
-                                });
-                              },
+                              initialTime: _breakTime!.end,
+                              onTimePicked: (t) => setState(() {
+                                _breakTime =
+                                    _TimeRange(_breakTime!.start, t);
+                              }),
                             ),
                             icon: const Icon(Icons.access_time),
-                            label: Text(_breakTime!.endTime),
+                            label: Text(_breakTime!.end),
                           ),
                         ),
                       ],
@@ -757,7 +574,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
           const SizedBox(height: 24),
 
-          // Save Button
+          // Save button
           SizedBox(
             height: 50,
             child: ElevatedButton(
@@ -766,8 +583,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 backgroundColor: const Color(0xFF6C63FF),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
               ),
               child: _isSaving
                   ? const SizedBox(
@@ -775,16 +591,13 @@ class _SchedulePageState extends State<SchedulePage> {
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : const Text(
-                      'Save Schedule',
+                  : const Text('Save Schedule',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                          fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -792,104 +605,72 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
-  Widget _buildDaySchedule({
-    required int weekday,
+  Widget _buildDayRow({
+    required int dartDay,
     required String dayName,
-    required bool isAvailable,
-    required TimeSlot timeSlot,
+    required bool isEnabled,
+    required _TimeRange hours,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Row(
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            dayName,
+            style: TextStyle(
+              fontWeight:
+                  isEnabled ? FontWeight.bold : FontWeight.normal,
+              color: isEnabled ? Colors.black : Colors.grey,
+            ),
+          ),
+        ),
+        Switch(
+          value: isEnabled,
+          onChanged: (val) =>
+              setState(() => _dayEnabled[dartDay] = val),
+        ),
+        const Spacer(),
+        if (isEnabled)
           Row(
             children: [
-              SizedBox(
-                width: 100,
-                child: Text(
-                  dayName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
+              TextButton(
+                onPressed: () => _pickTime(
+                  context: context,
+                  initialTime: hours.start,
+                  onTimePicked: (t) => setState(() {
+                    _dayHours[dartDay] = _TimeRange(t, hours.end);
+                  }),
                 ),
+                child: Text(hours.start,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
               ),
-              Switch(
-                value: isAvailable,
-                onChanged: (value) {
-                  setState(() {
-                    _dayAvailability[weekday] = value;
-                  });
-                },
+              const Text('-'),
+              TextButton(
+                onPressed: () => _pickTime(
+                  context: context,
+                  initialTime: hours.end,
+                  onTimePicked: (t) => setState(() {
+                    _dayHours[dartDay] = _TimeRange(hours.start, t);
+                  }),
+                ),
+                child: Text(hours.end,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ],
-          ),
-          if (isAvailable) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pickTime(
-                      context: context,
-                      initialTime: timeSlot.startTime,
-                      onTimePicked: (time) {
-                        setState(() {
-                          _dayTimeSlots[weekday] = TimeSlot(
-                            startTime: time,
-                            endTime: timeSlot.endTime,
-                          );
-                        });
-                      },
-                    ),
-                    icon: const Icon(Icons.access_time, size: 18),
-                    label: Text(timeSlot.startTime),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                    ),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    '-',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pickTime(
-                      context: context,
-                      initialTime: timeSlot.endTime,
-                      onTimePicked: (time) {
-                        setState(() {
-                          _dayTimeSlots[weekday] = TimeSlot(
-                            startTime: timeSlot.startTime,
-                            endTime: time,
-                          );
-                        });
-                      },
-                    ),
-                    icon: const Icon(Icons.access_time, size: 18),
-                    label: Text(timeSlot.endTime),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
+          )
+        else
+          const Text('Unavailable',
+              style: TextStyle(color: Colors.grey, fontSize: 13)),
+      ],
     );
   }
+}
+
+/// Simple immutable pair of HH:mm strings.
+class _TimeRange {
+  final String start;
+  final String end;
+  const _TimeRange(this.start, this.end);
 }

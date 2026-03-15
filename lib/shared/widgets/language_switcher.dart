@@ -15,12 +15,9 @@ class LanguageSwitcher extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.5),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1),
       ),
       child: InkWell(
         onTap: () => localeProvider.toggleLocale(),
@@ -31,7 +28,7 @@ class LanguageSwitcher extends StatelessWidget {
             Icon(
               Icons.language,
               size: 18,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
             const SizedBox(width: 6),
             Text(
@@ -46,7 +43,7 @@ class LanguageSwitcher extends StatelessWidget {
             Icon(
               Icons.swap_horiz,
               size: 16,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
           ],
         ),
@@ -71,7 +68,7 @@ class LanguageDropdown extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -91,10 +88,7 @@ class LanguageDropdown extends StatelessWidget {
                 SizedBox(width: 12),
                 Text(
                   'English',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -107,10 +101,7 @@ class LanguageDropdown extends StatelessWidget {
                 SizedBox(width: 12),
                 Text(
                   'Tiếng Việt',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -140,33 +131,23 @@ class LanguageSettingsTile extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF7B2BB0).withOpacity(0.1),
+          color: const Color(0xFF7B2BB0).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(
-          Icons.language,
-          color: Color(0xFF7B2BB0),
-          size: 24,
-        ),
+        child: const Icon(Icons.language, color: Color(0xFF7B2BB0), size: 24),
       ),
       title: const Text(
         'Language / Ngôn ngữ',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
         isEnglish ? 'English' : 'Tiếng Việt',
-        style: TextStyle(
-          fontSize: 14,
-          color: Colors.grey.shade600,
-        ),
+        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
       ),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFF7B2BB0).withOpacity(0.1),
+          color: const Color(0xFF7B2BB0).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(

@@ -1,4 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; 
+import 'package:flutter/foundation.dart';
+import 'package:n04_app/dummy_firebase.dart';
+
 import '../models/chat_room.dart';
 import '../models/chat_message.dart';
 import '../models/appointment.dart';
@@ -36,10 +38,11 @@ class ChatService {
         // Update the existing room with the new appointmentId
         await existingRoom.reference.update({
           'appointmentId': appointmentId,
-          'lastMessage': 'System: Cuộc trò chuyện đã được tạo sau khi đặt lịch.',
-          'lastMessageTime': FieldValue.serverTimestamp(),
+          'lastMessage':
+              'System: Cuộc trò chuyện đã được tạo sau khi đặt lịch.',
+          'lastMessageTime': FieldValue.serverDateTime(),
         });
-        
+
         // Send system message
         await sendMessage(
           roomId: existingRoom.id,
@@ -69,13 +72,14 @@ class ChatService {
       await sendMessage(
         roomId: docRef.id,
         senderId: 'system',
-        content: 'Bạn đã được kết nối với Expert cho buổi tư vấn. Hãy bắt đầu trò chuyện nếu bạn muốn trao đổi trước buổi hẹn.',
+        content:
+            'Bạn đã được kết nối với Expert cho buổi tư vấn. Hãy bắt đầu trò chuyện nếu bạn muốn trao đổi trước buổi hẹn.',
         type: MessageType.system,
       );
 
       return docRef.id;
     } catch (e) {
-      print('❌ Error creating/getting chat room: $e');
+      debugPrint('❌ Error creating/getting chat room: $e');
       rethrow;
     }
   }
@@ -120,10 +124,10 @@ class ChatService {
       // Update last message in chat room
       await _db.collection('chat_rooms').doc(roomId).update({
         'lastMessage': type == MessageType.text ? content : '[${type.name}]',
-        'lastMessageTime': Timestamp.fromDate(message.timestamp),
+        'lastMessageTime': (message.timestamp),
       });
     } catch (e) {
-      print('❌ Error sending message: $e');
+      debugPrint('❌ Error sending message: $e');
       rethrow;
     }
   }
@@ -136,8 +140,11 @@ class ChatService {
         .collection('messages')
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => ChatMessage.fromSnapshot(doc)).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ChatMessage.fromSnapshot(doc))
+              .toList(),
+        );
   }
 
   // Get user's chat rooms
@@ -147,8 +154,10 @@ class ChatService {
         .where('participants', arrayContains: userId)
         .orderBy('lastMessageTime', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => ChatRoom.fromSnapshot(doc)).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => ChatRoom.fromSnapshot(doc)).toList(),
+        );
   }
 
   // Get chat room by ID
@@ -160,7 +169,7 @@ class ChatService {
       }
       return null;
     } catch (e) {
-      print('❌ Error getting chat room: $e');
+      debugPrint('❌ Error getting chat room: $e');
       return null;
     }
   }
@@ -201,18 +210,18 @@ class ChatService {
 
     return false;
   }
-  
+
   // Check video call permission
   bool canJoinVideoCall(Appointment appointment) {
     if (appointment.status != AppointmentStatus.confirmed) return false;
-    
+
     final now = DateTime.now();
     final start = appointment.appointmentDate;
     final end = start.add(Duration(minutes: appointment.durationMinutes));
-    
+
     // Join allowed 10 minutes before start
     final allowedStart = start.subtract(const Duration(minutes: 10));
-    
+
     return now.isAfter(allowedStart) && now.isBefore(end);
   }
 }

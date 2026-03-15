@@ -1,12 +1,13 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/app_user.dart';
 
 class AdminUserManagementPage extends StatefulWidget {
   const AdminUserManagementPage({super.key});
 
   @override
-  State<AdminUserManagementPage> createState() => _AdminUserManagementPageState();
+  State<AdminUserManagementPage> createState() =>
+      _AdminUserManagementPageState();
 }
 
 class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
@@ -72,16 +73,14 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
               ],
             ),
           ),
-          
+
           // Users List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _getUsersStream(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
 
                 if (!snapshot.hasData) {
@@ -92,9 +91,11 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
 
                 var users = snapshot.data!.docs
                     .map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
+                      final data = doc.data();
+                      final userData = Map<String, dynamic>.from(data);
+                      userData['id'] = doc.id;
                       return {
-                        'user': AppUser.fromFirestore(data, doc.id),
+                        'user': AppUser.fromMap(userData),
                         'isBanned': data['isBanned'] ?? false,
                         'banReason': data['banReason'] as String?,
                       };
@@ -102,23 +103,28 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                     .where((item) {
                       final user = item['user'] as AppUser;
                       // Filter by role
-                      if (_filterRole != 'all' && user.role.name != _filterRole) {
+                      if (_filterRole != 'all' &&
+                          user.role.name != _filterRole) {
                         return false;
                       }
                       // Filter by search query
                       if (_searchQuery.isNotEmpty) {
-                        return user.displayName.toLowerCase().contains(_searchQuery) ||
-                               user.email.toLowerCase().contains(_searchQuery);
+                        return user.displayName.toLowerCase().contains(
+                              _searchQuery,
+                            ) ||
+                            user.email.toLowerCase().contains(_searchQuery);
                       }
                       return true;
                     })
                     .toList();
-                
+
                 // Sort by createdAt in Dart (newest first)
                 users.sort((a, b) {
                   final userA = a['user'] as AppUser;
                   final userB = b['user'] as AppUser;
-                  return userB.createdAt.compareTo(userA.createdAt);
+                  final dateA = userA.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  final dateB = userB.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+                  return dateB.compareTo(dateA);
                 });
 
                 if (users.isEmpty) {
@@ -175,7 +181,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       onSelected: (selected) {
         setState(() => _filterRole = value);
       },
-      selectedColor: const Color(0xFF7B2BB0).withOpacity(0.2),
+      selectedColor: const Color(0xFF7B2BB0).withValues(alpha: 0.2),
       checkmarkColor: const Color(0xFF7B2BB0),
       labelStyle: TextStyle(
         color: isSelected ? const Color(0xFF7B2BB0) : Colors.grey.shade700,
@@ -193,7 +199,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -206,7 +212,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: _getRoleColor(user.role).withOpacity(0.2),
+                backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.2),
                 child: Text(
                   user.displayName.substring(0, 1).toUpperCase(),
                   style: TextStyle(
@@ -245,7 +251,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
           const SizedBox(height: 12),
           Divider(color: Colors.grey.shade200),
           const SizedBox(height: 12),
-          
+
           // Show ban reason if user is banned
           if (isBanned && banReason != null && banReason.isNotEmpty) ...[
             Container(
@@ -292,16 +298,13 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
             ),
             const SizedBox(height: 12),
           ],
-          
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Joined: ${_formatDate(user.createdAt)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                'Joined: ${user.createdAt != null ? _formatDate(user.createdAt!) : 'N/A'}',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               Row(
                 children: [
@@ -374,7 +377,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
   Widget _buildRoleBadge(UserRole role) {
     Color color;
     String label;
-    
+
     switch (role) {
       case UserRole.admin:
         color = Colors.purple;
@@ -393,7 +396,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -453,9 +456,9 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -474,9 +477,9 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -495,9 +498,9 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -509,9 +512,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       builder: (context) => AlertDialog(
         title: const Text('Ban User'),
         content: TextField(
-          decoration: const InputDecoration(
-            hintText: 'Reason for ban...',
-          ),
+          decoration: const InputDecoration(hintText: 'Reason for ban...'),
           onChanged: (value) => reason = value,
           maxLines: 3,
         ),

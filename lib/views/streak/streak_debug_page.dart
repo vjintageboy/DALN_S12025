@@ -21,7 +21,8 @@ class _StreakDebugPageState extends State<StreakDebugPage> {
     try {
       await StreakTestDataGenerator.createStreakTestData(days: days);
       setState(() {
-        _status = '✅ Created $days consecutive mood entries!\nExpected streak: $days days';
+        _status =
+            '✅ Created $days consecutive mood entries!\nExpected streak: $days days';
         _isLoading = false;
       });
     } catch (e) {
@@ -57,7 +58,9 @@ class _StreakDebugPageState extends State<StreakDebugPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('⚠️ Warning'),
-        content: const Text('This will delete ALL your mood entries and reset streak to 0. Continue?'),
+        content: const Text(
+          'This will delete ALL your mood entries and reset streak to 0. Continue?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -65,7 +68,10 @@ class _StreakDebugPageState extends State<StreakDebugPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete All', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Delete All',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -126,7 +132,7 @@ class _StreakDebugPageState extends State<StreakDebugPage> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -237,10 +243,7 @@ class _StreakDebugPageState extends State<StreakDebugPage> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-      ),
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
     );
   }
 
@@ -258,10 +261,10 @@ class _StreakDebugPageState extends State<StreakDebugPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3), width: 2),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -272,7 +275,7 @@ class _StreakDebugPageState extends State<StreakDebugPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(Icons.science, color: color, size: 24),
@@ -293,10 +296,7 @@ class _StreakDebugPageState extends State<StreakDebugPage> {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                 ],
               ),

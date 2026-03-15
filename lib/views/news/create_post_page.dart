@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
+import '../../services/supabase_service.dart';
 
 class CreatePostPage extends StatefulWidget {
   final NewsPost? postToEdit; // ✅ Add optional post for editing
-  
+
   const CreatePostPage({super.key, this.postToEdit});
 
   @override
@@ -17,7 +16,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   final NewsService _newsService = NewsService();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
-  
+
   PostCategory _selectedCategory = PostCategory.community;
   bool _isSubmitting = false;
   bool _postAnonymously = false;
@@ -43,64 +42,46 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
   Future<void> _submitPost() async {
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a title')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a title')));
       return;
     }
 
     if (_contentController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter content')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter content')));
       return;
     }
 
     setState(() => _isSubmitting = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser!;
-      
+      final supabaseService = SupabaseService.instance;
+      final user = supabaseService.currentUser!;
+
       // Determine author info based on anonymous toggle
       String authorName;
       String? authorAvatarUrl;
       String authorRole;
-      
+
       if (_postAnonymously) {
         // Use anonymous identity
         authorName = 'Anonymous';
         authorAvatarUrl = null;
         authorRole = 'user';
       } else {
-        // Get real user info from Firestore
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        
-        // Also check profiles collection for avatar
-        final profileDoc = await FirebaseFirestore.instance
-            .collection('profiles')
-            .doc(user.uid)
-            .get();
-        
-        final userData = userDoc.data();
-        final profileData = profileDoc.data();
-        
-        authorName = userData?['displayName'] ?? user.displayName ?? 'User';
-        
-        // Try to get avatar from multiple sources
-        authorAvatarUrl = userData?['photoBase64'] ?? 
-                         profileData?['photoBase64'] ??
-                         userData?['photoURL'] ?? 
-                         profileData?['photoURL'] ??
-                         user.photoURL;
+        final userData = await supabaseService.client.from('users').select().eq('id', user.id).maybeSingle();
+
+        authorName = userData?['full_name'] ?? 'User';
+        authorAvatarUrl = userData?['avatar_url'];
         authorRole = userData?['role'] ?? 'user';
       }
 
       final post = NewsPost(
         postId: widget.postToEdit?.postId ?? '', // Use existing ID if editing
-        authorId: user.uid, // Keep real ID for moderation
+        authorId: user.id, // Keep real ID for moderation
         authorName: authorName,
         authorAvatarUrl: authorAvatarUrl,
         authorRole: authorRole,
@@ -113,7 +94,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
       if (widget.postToEdit != null) {
         // Edit mode - update existing post
         await _newsService.updatePost(post);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -156,7 +137,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   @override
   Widget build(BuildContext context) {
     final isEditMode = widget.postToEdit != null;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
@@ -216,7 +197,9 @@ class _CreatePostPageState extends State<CreatePostPage> {
                                     });
                                   }
                                 },
-                                selectedColor: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                                selectedColor: const Color(
+                                  0xFF6C63FF,
+                                ).withValues(alpha: 0.2),
                                 labelStyle: TextStyle(
                                   color: _selectedCategory == category
                                       ? const Color(0xFF6C63FF)
@@ -251,9 +234,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
                           _postAnonymously = value;
                         });
                       },
-                      activeColor: const Color(0xFF6C63FF),
+                      activeThumbColor: const Color(0xFF6C63FF),
                       secondary: Icon(
-                        _postAnonymously ? Icons.visibility_off : Icons.visibility,
+                        _postAnonymously
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         color: const Color(0xFF6C63FF),
                       ),
                     ),

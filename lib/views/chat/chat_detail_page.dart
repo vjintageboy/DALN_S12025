@@ -1,5 +1,5 @@
+import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/chat_message.dart';
@@ -45,7 +45,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     try {
       final chatRoom = await _chatService.getChatRoom(widget.roomId);
       if (chatRoom != null) {
-        final appointment = await _appointmentService.getAppointmentById(chatRoom.appointmentId);
+        final appointment = await _appointmentService.getAppointmentById(
+          chatRoom.appointmentId,
+        );
         if (mounted) {
           setState(() {
             _appointment = appointment;
@@ -56,20 +58,22 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         if (mounted) setState(() => _isLoadingAppointment = false);
       }
     } catch (e) {
-      print('Error loading appointment: $e');
+      debugPrint('Error loading appointment: $e');
       if (mounted) setState(() => _isLoadingAppointment = false);
     }
   }
 
   void _sendMessage() {
     if (_messageController.text.trim().isEmpty) return;
-    
+
     if (_appointment != null) {
       final isExpert = _currentUserId != _appointment!.userId;
       final canSend = _chatService.canSendMessage(_appointment!, isExpert);
       if (!canSend) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bạn chưa thể gửi tin nhắn vào lúc này.')),
+          const SnackBar(
+            content: Text('Bạn chưa thể gửi tin nhắn vào lúc này.'),
+          ),
         );
         return;
       }
@@ -95,14 +99,15 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       isExpert = _currentUserId != _appointment!.userId;
       canSend = _chatService.canSendMessage(_appointment!, isExpert);
       canVideo = _chatService.canJoinVideoCall(_appointment!);
-      
-      isPreSession = _appointment!.status == AppointmentStatus.confirmed && 
-                     DateTime.now().isBefore(_appointment!.appointmentDate);
+
+      isPreSession =
+          _appointment!.status == AppointmentStatus.confirmed &&
+          DateTime.now().isBefore(_appointment!.appointmentDate);
     }
 
     // App Colors (using context to access global theme if possible, but hardcoding for exact design match)
     final primaryColor = Theme.of(context).primaryColor;
-    final primaryLight = primaryColor.withOpacity(0.1);
+    final primaryLight = primaryColor.withValues(alpha: 0.1);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -139,7 +144,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
                   return ListView.builder(
                     reverse: true,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 24,
+                    ),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final message = messages[index];
@@ -159,7 +167,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             else if (isPreSession && !isExpert)
               _buildRestrictedFooter()
             else if (!isExpert)
-               Container(
+              Container(
                 padding: const EdgeInsets.all(16),
                 color: Colors.grey.shade50,
                 child: const Center(
@@ -168,7 +176,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     style: TextStyle(color: Colors.grey),
                   ),
                 ),
-              )
+              ),
           ],
         ),
       ),
@@ -192,28 +200,35 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             constraints: const BoxConstraints(),
           ),
           const SizedBox(width: 16),
-          
+
           // Avatar
           Container(
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.2), width: 2),
+              border: Border.all(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                width: 2,
+              ),
             ),
             child: CircleAvatar(
               radius: 18,
-              backgroundImage: widget.targetAvatarUrl != null && widget.targetAvatarUrl!.isNotEmpty
+              backgroundImage:
+                  widget.targetAvatarUrl != null &&
+                      widget.targetAvatarUrl!.isNotEmpty
                   ? NetworkImage(widget.targetAvatarUrl!)
                   : null,
               backgroundColor: Colors.grey.shade100,
-              child: (widget.targetAvatarUrl == null || widget.targetAvatarUrl!.isEmpty)
+              child:
+                  (widget.targetAvatarUrl == null ||
+                      widget.targetAvatarUrl!.isEmpty)
                   ? const Icon(Icons.person, size: 20, color: Colors.grey)
                   : null,
             ),
           ),
-          
+
           const SizedBox(width: 12),
-          
+
           // Name & Status
           Expanded(
             child: Column(
@@ -221,7 +236,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               children: [
                 Text(
                   widget.expertName,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
@@ -234,46 +252,58 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                         color: Colors.green.shade400,
                         shape: BoxShape.circle,
                         boxShadow: [
-                          BoxShadow(color: Colors.green.shade400.withOpacity(0.5), blurRadius: 4),
+                          BoxShadow(
+                            color: Colors.green.shade400.withValues(alpha: 0.5),
+                            blurRadius: 4,
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       'Đang trực tuyến',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          
+
           // Actions
           _buildHeaderAction(
-            icon: Icons.videocam_outlined, 
+            icon: Icons.videocam_outlined,
             tooltip: 'Bắt đầu cuộc gọi video',
             onPressed: canVideo
                 ? () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Tính năng gọi video sắp ra mắt')),
+                      const SnackBar(
+                        content: Text('Tính năng gọi video sắp ra mắt'),
+                      ),
                     );
                   }
                 : () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cuộc gọi video chỉ mở 10 phút trước giờ hẹn.')),
+                      const SnackBar(
+                        content: Text(
+                          'Cuộc gọi video chỉ mở 10 phút trước giờ hẹn.',
+                        ),
+                      ),
                     );
                   },
-             color: canVideo ? null : Colors.grey,
+            color: canVideo ? null : Colors.grey,
           ),
           _buildHeaderAction(
-            icon: Icons.error_outline_rounded, 
+            icon: Icons.error_outline_rounded,
             tooltip: 'Hỗ trợ khẩn cấp',
             color: Colors.red.shade400,
             onPressed: () => _showSOSDialog(context),
           ),
           _buildHeaderAction(
-            icon: Icons.more_vert_rounded, 
+            icon: Icons.more_vert_rounded,
             tooltip: 'Thêm',
             onPressed: _openAddAppointmentSheet,
           ),
@@ -283,7 +313,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Widget _buildHeaderAction({
-    required IconData icon, 
+    required IconData icon,
     required String tooltip,
     VoidCallback? onPressed,
     Color? color,
@@ -300,13 +330,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Widget _buildAppointmentInfoBar(Color primary, Color primaryLight) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-      color: primary.withOpacity(0.05),
+      color: primary.withValues(alpha: 0.05),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: primary.withOpacity(0.1),
+              color: primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.calendar_today_rounded, size: 14, color: primary),
@@ -315,11 +345,16 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: TextStyle(fontSize: 12, color: primary.withOpacity(0.9)),
+                style: TextStyle(fontSize: 12, color: primary.withValues(alpha: 0.9)),
                 children: [
-                  const TextSpan(text: 'Lịch hẹn sắp tới: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const TextSpan(
+                    text: 'Lịch hẹn sắp tới: ',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
                   TextSpan(
-                    text: DateFormat('HH:mm - dd/MM/yyyy').format(_appointment!.appointmentDate),
+                    text: DateFormat(
+                      'HH:mm - dd/MM/yyyy',
+                    ).format(_appointment!.appointmentDate),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -329,13 +364,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              border: Border.all(color: primary.withOpacity(0.2)),
+              border: Border.all(color: primary.withValues(alpha: 0.2)),
               borderRadius: BorderRadius.circular(4),
-              color: primary.withOpacity(0.1),
+              color: primary.withValues(alpha: 0.1),
             ),
             child: Text(
               'ĐÃ XÁC NHẬN',
-              style: TextStyle(fontSize: 10, color: primary, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 10,
+                color: primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -360,7 +399,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           ),
           child: Text(
             message.content,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey.shade500),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade500,
+            ),
           ),
         ),
       );
@@ -370,36 +413,61 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end, // Align bottom for avatar
         children: [
           if (!isMe) ...[
-             // Expert Avatar
-             CircleAvatar(
+            // Expert Avatar
+            CircleAvatar(
               radius: 12,
-              backgroundImage: widget.targetAvatarUrl != null && widget.targetAvatarUrl!.isNotEmpty
+              backgroundImage:
+                  widget.targetAvatarUrl != null &&
+                      widget.targetAvatarUrl!.isNotEmpty
                   ? NetworkImage(widget.targetAvatarUrl!)
                   : null,
               backgroundColor: Colors.grey.shade200,
-              child: (widget.targetAvatarUrl == null || widget.targetAvatarUrl!.isEmpty)
+              child:
+                  (widget.targetAvatarUrl == null ||
+                      widget.targetAvatarUrl!.isEmpty)
                   ? const Icon(Icons.person, size: 14, color: Colors.grey)
                   : null,
             ),
             const SizedBox(width: 8),
           ],
-          
+
           Flexible(
             child: Column(
-              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: isMe ? primaryColor : Colors.white,
-                    border: isMe ? null : Border.all(color: Colors.grey.shade200),
-                    boxShadow: isMe 
-                        ? [BoxShadow(color: primaryColor.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))]
-                        : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 2, offset: const Offset(0, 1))],
+                    border: isMe
+                        ? null
+                        : Border.all(color: Colors.grey.shade200),
+                    boxShadow: isMe
+                        ? [
+                            BoxShadow(
+                              color: primaryColor.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
@@ -419,7 +487,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 const SizedBox(height: 4),
                 Text(
                   DateFormat('HH:mm').format(message.timestamp),
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey.shade400),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade400,
+                  ),
                 ),
               ],
             ),
@@ -476,11 +548,19 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                         color: primaryColor,
                         borderRadius: BorderRadius.circular(8),
                         boxShadow: [
-                           BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))
+                          BoxShadow(
+                            color: primaryColor.withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
                         ],
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_upward_rounded, size: 16, color: Colors.white),
+                        icon: const Icon(
+                          Icons.arrow_upward_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                         onPressed: _sendMessage,
                         padding: EdgeInsets.zero,
                       ),
@@ -500,17 +580,24 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.amber.shade50.withOpacity(0.5),
+        color: Colors.amber.shade50.withValues(alpha: 0.5),
         border: Border(top: BorderSide(color: Colors.amber.shade100)),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline_rounded, size: 16, color: Colors.amber.shade600),
+          Icon(
+            Icons.info_outline_rounded,
+            size: 16,
+            color: Colors.amber.shade600,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               "Chat đầy đủ sẽ mở sau buổi tham vấn.",
-              style: TextStyle(color: Colors.amber.shade800.withOpacity(0.7), fontSize: 12),
+              style: TextStyle(
+                color: Colors.amber.shade800.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
             ),
           ),
           TextButton(
@@ -521,10 +608,15 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text("Gửi câu hỏi", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          )
+            child: const Text(
+              "Gửi câu hỏi",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ),
         ],
       ),
     );
@@ -565,7 +657,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 _chatService.sendMessage(
                   roomId: widget.roomId,
                   senderId: _currentUserId,
-                  content: '[Câu hỏi trước buổi hẹn]: ${questionController.text.trim()}',
+                  content:
+                      '[Câu hỏi trước buổi hẹn]: ${questionController.text.trim()}',
                 );
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -659,17 +752,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       MaterialPageRoute(
         builder: (_) => BookingPage(
           expertId: widget.expertId,
-          // Assuming BookingPage can accept chatRoomId to link back, 
+          // Assuming BookingPage can accept chatRoomId to link back,
           // but based on user snippet it seems it might use it to pre-fill or link.
           // Since I haven't seen BookingPage content, I'll trust the user's snippet.
-          // If BookingPage doesn't have chatRoomId, this might fail analysis, 
-          // but user explicitly asked for this: chatRoomId: widget.roomId 
+          // If BookingPage doesn't have chatRoomId, this might fail analysis,
+          // but user explicitly asked for this: chatRoomId: widget.roomId
           // Let's assume user knows BookingPage has this param or will add it.
-          // Wait, I saw BookingPage in file list but didn't read it. 
-          // I should verify if it accepts chatRoomId to be safe, but user request 
+          // Wait, I saw BookingPage in file list but didn't read it.
+          // I should verify if it accepts chatRoomId to be safe, but user request
           // implies I should just add this code. I will assume it's correct.
           // Actually, strict following of user request:
-          chatRoomId: widget.roomId, 
+          chatRoomId: widget.roomId,
         ),
       ),
     );

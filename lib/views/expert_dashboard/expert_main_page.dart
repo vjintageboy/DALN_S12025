@@ -22,7 +22,7 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
   @override
   Widget build(BuildContext context) {
     Widget currentTab;
-    
+
     switch (_selectedIndex) {
       case 0:
         currentTab = const ExpertDashboardPage();
@@ -45,7 +45,7 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
       default:
         currentTab = const ExpertDashboardPage();
     }
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: currentTab,
@@ -53,10 +53,7 @@ class _ExpertMainPageState extends State<ExpertMainPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-            ),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
           ],
         ),
         child: SafeArea(
