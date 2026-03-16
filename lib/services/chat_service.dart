@@ -162,10 +162,16 @@ class ChatService {
       final userRooms =
           rows.where((row) => roomIds.contains(row['id'].toString())).toList();
 
+      if (userRooms.isEmpty) return <ChatRoom>[];
+
+      // Batch fetch all participants for these rooms in one query
+      final userRoomIds = userRooms.map((r) => r['id'].toString()).toList();
+      final allParticipants = await _getParticipantsForRooms(userRoomIds);
+
       final chatRooms = <ChatRoom>[];
       for (final row in userRooms) {
         final roomId = row['id'].toString();
-        final participants = await _getParticipantsForRoom(roomId);
+        final participants = allParticipants[roomId] ?? [];
         chatRooms.add(ChatRoom.fromMap(row, participantIds: participants));
       }
       return chatRooms;
@@ -278,6 +284,28 @@ class ChatService {
     } catch (e) {
       debugPrint('❌ Error getting participants for room: $e');
       return [];
+    }
+  }
+
+  /// Batch fetch participants for multiple rooms in one query
+  Future<Map<String, List<String>>> _getParticipantsForRooms(
+      List<String> roomIds) async {
+    try {
+      final rows = await _supabase
+          .from('chat_participants')
+          .select('room_id, user_id')
+          .inFilter('room_id', roomIds);
+
+      final result = <String, List<String>>{};
+      for (final row in (rows as List)) {
+        final roomId = row['room_id'].toString();
+        final userId = row['user_id'].toString();
+        result.putIfAbsent(roomId, () => []).add(userId);
+      }
+      return result;
+    } catch (e) {
+      debugPrint('❌ Error batch getting participants: $e');
+      return {};
     }
   }
 }

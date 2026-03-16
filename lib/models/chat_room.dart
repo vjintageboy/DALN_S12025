@@ -35,7 +35,7 @@ class ChatRoom {
       {List<String>? participantIds}) {
     return ChatRoom(
       id: map['id']?.toString() ?? '',
-      appointmentId: map['appointment_id']?.toString(),
+      appointmentId: map['appointment_id'] as String?,
       participants: participantIds ?? [],
       status: _parseStatus(map['status']),
       createdAt:

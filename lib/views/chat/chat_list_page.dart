@@ -301,10 +301,11 @@ class _ChatListPageState extends State<ChatListPage> {
     try {
       final profile = await _supabaseService.getUserProfile(userId);
       if (profile != null) {
-        displayName = (profile['full_name'] as String?)?.isNotEmpty == true
-            ? profile['full_name'] as String
-            : 'Người dùng';
+        final fullName = profile['full_name'] as String?;
         avatarUrl = (profile['avatar_url'] as String?) ?? '';
+        if (fullName != null && fullName.isNotEmpty) {
+          displayName = fullName;
+        }
       }
     } catch (e) {
       debugPrint('Error fetching user info: $e');

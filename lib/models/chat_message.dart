@@ -19,7 +19,6 @@ class ChatMessage {
 
   Map<String, dynamic> toMap() {
     return {
-      'room_id': null, // set by service
       'sender_id': senderId,
       'content': content,
       'type': type.name,
