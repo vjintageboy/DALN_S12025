@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:n04_app/dummy_firebase.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/chat_room.dart';
 import '../models/chat_message.dart';
 import '../models/appointment.dart';
 
 class ChatService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   // Create or get existing chat room
   Future<String> createOrGetChatRoom({
@@ -16,68 +16,67 @@ class ChatService {
   }) async {
     try {
       // 1. Check if a chat room already exists between these two participants
-      // Firestore limitation: array-contains can only check one value.
-      // We check for userId, then filter for expertId.
-      final querySnapshot = await _db
-          .collection('chat_rooms')
-          .where('participants', arrayContains: userId)
-          .get();
+      final userRoomIds = await _getRoomIdsForUser(userId);
+      final expertRoomIds = await _getRoomIdsForUser(expertId);
 
-      DocumentSnapshot? existingRoom;
+      // Find common room IDs
+      final commonRoomIds =
+          userRoomIds.where((id) => expertRoomIds.contains(id)).toList();
 
-      for (var doc in querySnapshot.docs) {
-        final data = doc.data();
-        final participants = List<String>.from(data['participants'] ?? []);
-        if (participants.contains(expertId)) {
-          existingRoom = doc;
-          break;
-        }
-      }
+      if (commonRoomIds.isNotEmpty) {
+        final existingRoomId = commonRoomIds.first;
 
-      if (existingRoom != null) {
         // Update the existing room with the new appointmentId
-        await existingRoom.reference.update({
-          'appointmentId': appointmentId,
-          'lastMessage':
+        await _supabase.from('chat_rooms').update({
+          'appointment_id': appointmentId,
+          'last_message':
               'System: Cuộc trò chuyện đã được tạo sau khi đặt lịch.',
-          'lastMessageTime': FieldValue.serverDateTime(),
-        });
+          'last_message_time': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', existingRoomId);
 
         // Send system message
         await sendMessage(
-          roomId: existingRoom.id,
-          senderId: 'system',
+          roomId: existingRoomId,
+          senderId: userId,
           content: 'Bạn đã được kết nối với Expert cho buổi tư vấn mới.',
           type: MessageType.system,
         );
 
-        return existingRoom.id;
+        return existingRoomId;
       }
 
       // 2. Create new room if not exists
-      final docRef = _db.collection('chat_rooms').doc();
-      final chatRoom = ChatRoom(
-        id: docRef.id,
-        appointmentId: appointmentId,
-        participants: [userId, expertId],
-        status: ChatRoomStatus.active,
-        createdAt: DateTime.now(),
-        lastMessage: 'System: Cuộc trò chuyện đã được tạo sau khi đặt lịch.',
-        lastMessageTime: DateTime.now(),
-      );
+      final roomResponse = await _supabase
+          .from('chat_rooms')
+          .insert({
+            'appointment_id': appointmentId,
+            'status': ChatRoomStatus.active.name,
+            'last_message':
+                'System: Cuộc trò chuyện đã được tạo sau khi đặt lịch.',
+            'last_message_time': DateTime.now().toIso8601String(),
+          })
+          .select()
+          .single();
 
-      await docRef.set(chatRoom.toMap());
+      final newRoomId = roomResponse['id'].toString();
+
+      // Add participants
+      await _supabase.from('chat_participants').insert([
+        {'room_id': newRoomId, 'user_id': userId},
+        {'room_id': newRoomId, 'user_id': expertId},
+      ]);
 
       // Add initial system message
       await sendMessage(
-        roomId: docRef.id,
-        senderId: 'system',
+        roomId: newRoomId,
+        senderId: userId,
         content:
             'Bạn đã được kết nối với Expert cho buổi tư vấn. Hãy bắt đầu trò chuyện nếu bạn muốn trao đổi trước buổi hẹn.',
         type: MessageType.system,
       );
 
-      return docRef.id;
+      return newRoomId;
     } catch (e) {
       debugPrint('❌ Error creating/getting chat room: $e');
       rethrow;
@@ -105,67 +104,92 @@ class ChatService {
     MessageType type = MessageType.text,
   }) async {
     try {
-      final docRef = _db
-          .collection('chat_rooms')
-          .doc(roomId)
-          .collection('messages')
-          .doc();
-
-      final message = ChatMessage(
-        id: docRef.id,
-        senderId: senderId,
-        content: content,
-        type: type,
-        timestamp: DateTime.now(),
-      );
-
-      await docRef.set(message.toMap());
+      await _supabase.from('messages').insert({
+        'room_id': roomId,
+        'sender_id': senderId,
+        'content': content,
+        'type': type.name,
+      });
 
       // Update last message in chat room
-      await _db.collection('chat_rooms').doc(roomId).update({
-        'lastMessage': type == MessageType.text ? content : '[${type.name}]',
-        'lastMessageTime': (message.timestamp),
-      });
+      final displayContent =
+          type == MessageType.text ? content : '[${type.name}]';
+      await _supabase.from('chat_rooms').update({
+        'last_message': displayContent,
+        'last_message_time': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', roomId);
     } catch (e) {
       debugPrint('❌ Error sending message: $e');
       rethrow;
     }
   }
 
-  // Get chat stream
+  // Get chat stream (real-time)
   Stream<List<ChatMessage>> getChatStream(String roomId) {
-    return _db
-        .collection('chat_rooms')
-        .doc(roomId)
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .snapshots()
+    return _supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('room_id', roomId)
+        .order('created_at', ascending: false)
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ChatMessage.fromSnapshot(doc))
-              .toList(),
+          (rows) => rows.map((row) => ChatMessage.fromMap(row)).toList(),
         );
   }
 
   // Get user's chat rooms
-  Stream<List<ChatRoom>> getUserChats(String userId) {
-    return _db
-        .collection('chat_rooms')
-        .where('participants', arrayContains: userId)
-        .orderBy('lastMessageTime', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => ChatRoom.fromSnapshot(doc)).toList(),
-        );
+  Stream<List<ChatRoom>> getUserChats(String userId) async* {
+    if (userId.isEmpty) {
+      yield [];
+      return;
+    }
+
+    // Get room IDs where user is a participant
+    final roomIds = await _getRoomIdsForUser(userId);
+
+    if (roomIds.isEmpty) {
+      yield [];
+      return;
+    }
+
+    // Stream chat rooms
+    yield* _supabase
+        .from('chat_rooms')
+        .stream(primaryKey: ['id'])
+        .order('last_message_time', ascending: false)
+        .asyncMap((rows) async {
+      // Filter to only rooms the user participates in
+      final userRooms =
+          rows.where((row) => roomIds.contains(row['id'].toString())).toList();
+
+      if (userRooms.isEmpty) return <ChatRoom>[];
+
+      // Batch fetch all participants for these rooms in one query
+      final userRoomIds = userRooms.map((r) => r['id'].toString()).toList();
+      final allParticipants = await _getParticipantsForRooms(userRoomIds);
+
+      final chatRooms = <ChatRoom>[];
+      for (final row in userRooms) {
+        final roomId = row['id'].toString();
+        final participants = allParticipants[roomId] ?? [];
+        chatRooms.add(ChatRoom.fromMap(row, participantIds: participants));
+      }
+      return chatRooms;
+    });
   }
 
   // Get chat room by ID
   Future<ChatRoom?> getChatRoom(String roomId) async {
     try {
-      final doc = await _db.collection('chat_rooms').doc(roomId).get();
-      if (doc.exists) {
-        return ChatRoom.fromSnapshot(doc);
+      final data = await _supabase
+          .from('chat_rooms')
+          .select()
+          .eq('id', roomId)
+          .maybeSingle();
+
+      if (data != null) {
+        final participants = await _getParticipantsForRoom(roomId);
+        return ChatRoom.fromMap(data, participantIds: participants);
       }
       return null;
     } catch (e) {
@@ -223,5 +247,65 @@ class ChatService {
     final allowedStart = start.subtract(const Duration(minutes: 10));
 
     return now.isAfter(allowedStart) && now.isBefore(end);
+  }
+
+  // -------------------------------------------------------------------------
+  // PRIVATE HELPERS
+  // -------------------------------------------------------------------------
+
+  /// Get all room IDs that a user participates in
+  Future<List<String>> _getRoomIdsForUser(String userId) async {
+    try {
+      final rows = await _supabase
+          .from('chat_participants')
+          .select('room_id')
+          .eq('user_id', userId);
+
+      return (rows as List)
+          .map((row) => row['room_id'].toString())
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error getting room IDs for user: $e');
+      return [];
+    }
+  }
+
+  /// Get participant user IDs for a room
+  Future<List<String>> _getParticipantsForRoom(String roomId) async {
+    try {
+      final rows = await _supabase
+          .from('chat_participants')
+          .select('user_id')
+          .eq('room_id', roomId);
+
+      return (rows as List)
+          .map((row) => row['user_id'].toString())
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error getting participants for room: $e');
+      return [];
+    }
+  }
+
+  /// Batch fetch participants for multiple rooms in one query
+  Future<Map<String, List<String>>> _getParticipantsForRooms(
+      List<String> roomIds) async {
+    try {
+      final rows = await _supabase
+          .from('chat_participants')
+          .select('room_id, user_id')
+          .inFilter('room_id', roomIds);
+
+      final result = <String, List<String>>{};
+      for (final row in (rows as List)) {
+        final roomId = row['room_id'].toString();
+        final userId = row['user_id'].toString();
+        result.putIfAbsent(roomId, () => []).add(userId);
+      }
+      return result;
+    } catch (e) {
+      debugPrint('❌ Error batch getting participants: $e');
+      return {};
+    }
   }
 }

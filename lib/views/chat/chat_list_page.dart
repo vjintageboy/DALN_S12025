@@ -1,9 +1,10 @@
-import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/chat_service.dart';
 import '../../services/appointment_service.dart';
+import '../../services/supabase_service.dart';
 import '../../models/chat_room.dart';
 import '../../models/appointment.dart';
 import 'chat_detail_page.dart';
@@ -18,8 +19,9 @@ class ChatListPage extends StatefulWidget {
 class _ChatListPageState extends State<ChatListPage> {
   final ChatService _chatService = ChatService();
   final AppointmentService _appointmentService = AppointmentService();
-  final FirestoreService _firestoreService = FirestoreService();
-  final String _currentAuthId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final SupabaseService _supabaseService = SupabaseService();
+  String get _currentAuthId =>
+      Supabase.instance.client.auth.currentUser?.id ?? '';
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +106,9 @@ class _ChatListPageState extends State<ChatListPage> {
 
   Widget _buildChatListItem(ChatRoom chatRoom) {
     return FutureBuilder<Appointment?>(
-      future: _appointmentService.getAppointmentById(chatRoom.appointmentId),
+      future: chatRoom.appointmentId != null && chatRoom.appointmentId!.isNotEmpty
+          ? _appointmentService.getAppointmentById(chatRoom.appointmentId!)
+          : Future.value(null),
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data != null) {
           final appointment = snapshot.data!;
@@ -295,19 +299,12 @@ class _ChatListPageState extends State<ChatListPage> {
     String avatarUrl = '';
 
     try {
-      // 1. Try UserProfile
-      final profile = await _firestoreService.getUserProfile(userId);
-      if (profile != null && profile.fullName.isNotEmpty) {
-        displayName = profile.fullName;
-        avatarUrl = profile.avatarUrl ?? '';
-      } else {
-        // 2. Fallback to AppUser
-        final appUser = await _firestoreService.getUser(userId);
-        if (appUser != null) {
-          displayName = appUser.displayName.isNotEmpty
-              ? appUser.displayName
-              : 'Người dùng';
-          avatarUrl = appUser.photoUrl ?? '';
+      final profile = await _supabaseService.getUserProfile(userId);
+      if (profile != null) {
+        final fullName = profile['full_name'] as String?;
+        avatarUrl = (profile['avatar_url'] as String?) ?? '';
+        if (fullName != null && fullName.isNotEmpty) {
+          displayName = fullName;
         }
       }
     } catch (e) {

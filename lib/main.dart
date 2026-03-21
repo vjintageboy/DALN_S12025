@@ -15,8 +15,9 @@ import 'core/constants/app_colors.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables
-  await dotenv.load(fileName: '.env');
+  // Load environment variables from .env.example (tracked in repo).
+  // To use custom values, create a .env file: cp .env.example .env
+  await dotenv.load(fileName: '.env.example');
 
   // Initialize Supabase
   await Supabase.initialize(

@@ -1,6 +1,6 @@
-import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/chat_message.dart';
 import '../../models/appointment.dart';
@@ -30,7 +30,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
   final AppointmentService _appointmentService = AppointmentService();
-  final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get _currentUserId =>
+      Supabase.instance.client.auth.currentUser?.id ?? '';
 
   Appointment? _appointment;
   bool _isLoadingAppointment = true;
@@ -44,9 +45,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Future<void> _loadAppointment() async {
     try {
       final chatRoom = await _chatService.getChatRoom(widget.roomId);
-      if (chatRoom != null) {
+      if (chatRoom != null &&
+          chatRoom.appointmentId != null &&
+          chatRoom.appointmentId!.isNotEmpty) {
         final appointment = await _appointmentService.getAppointmentById(
-          chatRoom.appointmentId,
+          chatRoom.appointmentId!,
         );
         if (mounted) {
           setState(() {

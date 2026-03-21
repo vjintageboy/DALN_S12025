@@ -1,4 +1,3 @@
-import 'package:n04_app/dummy_firebase.dart';
 enum MessageType { text, image, file, system }
 
 class ChatMessage {
@@ -20,27 +19,25 @@ class ChatMessage {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'senderId': senderId,
+      'sender_id': senderId,
       'content': content,
       'type': type.name,
-      'timestamp': (timestamp),
-      'isPinned': isPinned,
+      'is_pinned': isPinned,
     };
   }
 
-  factory ChatMessage.fromSnapshot(DocumentSnapshot doc) {
-    final data = doc.data();
+  factory ChatMessage.fromMap(Map<String, dynamic> map) {
     return ChatMessage(
-      id: doc.id,
-      senderId: data['senderId'] ?? '',
-      content: data['content'] ?? '',
+      id: map['id']?.toString() ?? '',
+      senderId: map['sender_id']?.toString() ?? '',
+      content: map['content']?.toString() ?? '',
       type: MessageType.values.firstWhere(
-        (e) => e.name == data['type'],
+        (e) => e.name == map['type'],
         orElse: () => MessageType.text,
       ),
-      timestamp: (data['timestamp'] as DateTime).toDate(),
-      isPinned: data['isPinned'] ?? false,
+      timestamp: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      isPinned: map['is_pinned'] == true,
     );
   }
 }
