@@ -401,8 +401,10 @@ class AIChatbotService {
 
   /// Reset ephemeral model state (DB conversation history stays intact)
   void resetChatSession() {
-    // Kept for compatibility with provider API.
-    // No in-memory chat session is used now; context comes from DB messages.
+    // Clear tool controller so it's re-initialized with the correct userId on next use.
+    // Prevents stale userId from a previous user's session leaking into tool calls.
+    _toolController = null;
+    _modelWithTools = null;
   }
 
   /// Build context message with user info and short chat history
@@ -432,13 +434,16 @@ $userMessage
 
   /// Convert stored ChatMessage list to Gemini Content history format.
   List<Content> _buildGeminiHistory(List<ChatMessage> messages) {
-    return messages.map((msg) {
-      if (msg.isUser) {
-        return Content.text(msg.message);
-      } else {
-        return Content.model([TextPart(msg.message)]);
-      }
-    }).toList();
+    return messages
+        .where((msg) => msg.message.trim().isNotEmpty)
+        .map((msg) {
+          if (msg.isUser) {
+            return Content.text(msg.message);
+          } else {
+            return Content.model([TextPart(msg.message)]);
+          }
+        })
+        .toList();
   }
 
   /// Check if user is admin
