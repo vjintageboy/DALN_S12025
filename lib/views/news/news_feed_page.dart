@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
 import '../../services/supabase_service.dart';
@@ -61,155 +63,120 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          'Community',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppColors.primaryLight,
-        elevation: 0,
-        actions: [
-          // Create post button
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Colors.white),
-            onPressed: () async {
-              final changed = await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(builder: (context) => const CreatePostPage()),
-              );
-
-              if (changed == true && mounted) {
-                setState(() {});
-              }
-            },
-          ),
-        ],
-      ),
+      backgroundColor: _kSurface,
+      extendBodyBehindAppBar: true,
+      appBar: _buildGlassAppBar(),
       body: Column(
         children: [
-          // Filters button (opens bottom sheet with category, sort + author controls)
-          _buildFilterButton(),
-          // Posts list
-          Expanded(
-            child: StreamBuilder<List<NewsPost>>(
-              stream: _newsService.streamPosts(category: _selectedCategory),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  // Log the actual error for debugging
-                  debugPrint('❌ Error loading posts: ${snapshot.error}');
-
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: Colors.red.shade300,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Error loading posts',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${snapshot.error}',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _selectedCategory = null;
-                              });
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Try Again'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryLight,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primaryLight),
-                  );
-                }
-
-                final posts = snapshot.data!;
-                // Filter by author
-                final filteredPosts = _filterPostsByAuthor(posts);
-                // Sort posts based on selected sort option
-                final sortedPosts = _sortPosts(filteredPosts);
-
-                if (sortedPosts.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.article_outlined,
-                          size: 80,
-                          color: Colors.grey.shade300,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No posts yet',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Be the first to share!',
-                          style: TextStyle(color: Colors.grey.shade500),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    setState(() {});
-                  },
-                  color: AppColors.primaryLight,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: sortedPosts.length,
-                    itemBuilder: (context, index) {
-                      return _buildPostCard(sortedPosts[index]);
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
+          // Spacer cho glass header (SafeArea top + 72px header)
+          SizedBox(height: MediaQuery.of(context).padding.top + 72),
+          _buildFilterBar(),
+          Expanded(child: _buildPostFeed()),
         ],
       ),
+    );
+  }
+
+  PreferredSizeWidget _buildGlassAppBar() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(72),
+      child: Container(color: _kSurface),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildPostFeed() {
+    return StreamBuilder<List<NewsPost>>(
+      stream: _newsService.streamPosts(category: _selectedCategory),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Không thể tải bài viết',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: _kOnSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${snapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13, color: _kOnSurfaceVariant),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => setState(() => _selectedCategory = null),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Thử lại'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _kPrimary,
+                      foregroundColor: _kOnPrimary,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9999),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator(color: _kPrimary));
+        }
+
+        final posts = snapshot.data!;
+        final sortedPosts = _sortPosts(posts);
+
+        if (sortedPosts.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.article_outlined, size: 80, color: _kSurfaceContainerHighest),
+                const SizedBox(height: 16),
+                const Text(
+                  'Chưa có bài viết nào',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: _kOnSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Hãy là người đầu tiên chia sẻ!',
+                  style: TextStyle(color: _kOnSurfaceVariant),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async => setState(() {}),
+          color: _kPrimary,
+          child: ListView.builder(
+            padding: const EdgeInsets.only(top: 8, bottom: 120),
+            itemCount: sortedPosts.length,
+            itemBuilder: (context, index) => _buildPostCard(sortedPosts[index]),
+          ),
+        );
+      },
     );
   }
 
@@ -1155,3 +1122,19 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
     }
   }
 }
+
+// Organic Sanctuary color palette
+const _kSurface = Color(0xFFDDFFE2);
+const _kPrimary = Color(0xFF006B1B);
+const _kOnPrimary = Color(0xFFD1FFC8);
+const _kOnSurface = Color(0xFF0B361D);
+const _kOnSurfaceVariant = Color(0xFF3B6447);
+const _kSurfaceContainerLowest = Color(0xFFFFFFFF);
+const _kSurfaceContainerHighest = Color(0xFFACECBB);
+const _kPrimaryContainer = Color(0xFF76FB7A);
+const _kSecondaryContainer = Color(0xFF86FAAC);
+const _kOnSecondaryContainer = Color(0xFF005F32);
+const _kTertiaryContainer = Color(0xFF11EAFF);
+const _kOnTertiaryContainer = Color(0xFF005159);
+const _kSurfaceContainerHigh = Color(0xFFB5F0C2);
+const _kSurfaceContainer = Color(0xFFBEF5CA);
