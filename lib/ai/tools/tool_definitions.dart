@@ -28,13 +28,13 @@ class ToolDefinitions {
     'book_session',
     'Đặt lịch hẹn với chuyên gia tâm lý',
     Schema(SchemaType.object, properties: {
-      'expert_id': Schema(SchemaType.string),
+      'expert_id': Schema(SchemaType.string, description: 'UUID của chuyên gia'),
       'appointment_date':
           Schema(SchemaType.string, description: 'ISO8601 datetime'),
       'duration_minutes':
           Schema(SchemaType.integer, description: '30 hoặc 60'),
-      'call_type':
-          Schema(SchemaType.string, description: 'voice hoặc video'),
+      'call_type': Schema(SchemaType.string,
+          description: 'voice hoặc video', enumValues: ['voice', 'video']),
       'user_notes': Schema(SchemaType.string, nullable: true),
     }, requiredProperties: [
       'expert_id',
