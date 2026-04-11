@@ -51,6 +51,11 @@ class ToolDispatcher {
 
   static const int _maxRetries = 2;
 
+  // AppointmentService throws exceptions with these message patterns for conflicts.
+  // If the service layer is refactored to use typed exceptions, update these constants.
+  static const _expertConflictMsg = 'không rảnh';
+  static const _userConflictMsg = 'đã có lịch';
+
   const ToolDispatcher({
     required this.getAvailability,
     required this.getBookedTimeSlots,
@@ -118,8 +123,14 @@ class ToolDispatcher {
   Future<Map<String, Object?>> _checkAvailability(
     Map<String, Object?> args,
   ) async {
-    final expertId = args['expert_id'] as String;
-    final dateStr = args['date'] as String;
+    final expertId = args['expert_id'] as String?;
+    if (expertId == null || expertId.isEmpty) {
+      return {'error': 'MISSING_ARG', 'arg': 'expert_id'};
+    }
+    final dateStr = args['date'] as String?;
+    if (dateStr == null || dateStr.isEmpty) {
+      return {'error': 'MISSING_ARG', 'arg': 'date'};
+    }
     final durationMinutes = (args['duration_minutes'] as num?)?.toInt() ?? 60;
 
     final parsedDate = DateTime.parse(dateStr);
@@ -171,10 +182,23 @@ class ToolDispatcher {
   Future<Map<String, Object?>> _bookSession(
     Map<String, Object?> args,
   ) async {
-    final expertId = args['expert_id'] as String;
-    final appointmentDateStr = args['appointment_date'] as String;
-    final durationMinutes = (args['duration_minutes'] as num).toInt();
-    final callTypeStr = args['call_type'] as String;
+    final expertId = args['expert_id'] as String?;
+    if (expertId == null || expertId.isEmpty) {
+      return {'error': 'MISSING_ARG', 'arg': 'expert_id'};
+    }
+    final appointmentDateStr = args['appointment_date'] as String?;
+    if (appointmentDateStr == null || appointmentDateStr.isEmpty) {
+      return {'error': 'MISSING_ARG', 'arg': 'appointment_date'};
+    }
+    final durationMinutesRaw = args['duration_minutes'] as num?;
+    if (durationMinutesRaw == null) {
+      return {'error': 'MISSING_ARG', 'arg': 'duration_minutes'};
+    }
+    final durationMinutes = durationMinutesRaw.toInt();
+    final callTypeStr = args['call_type'] as String?;
+    if (callTypeStr == null || callTypeStr.isEmpty) {
+      return {'error': 'MISSING_ARG', 'arg': 'call_type'};
+    }
     final userNotes = args['user_notes'] as String?;
 
     // Validate duration
@@ -253,7 +277,7 @@ class ToolDispatcher {
       };
     } catch (e) {
       final message = e.toString();
-      if (message.contains('không rảnh') || message.contains('đã có lịch')) {
+      if (message.contains(_expertConflictMsg) || message.contains(_userConflictMsg)) {
         return {
           'error': 'TIME_CONFLICT',
           'message': 'Khung giờ này đã được đặt',
@@ -270,8 +294,16 @@ class ToolDispatcher {
   Future<Map<String, Object?>> _generateReport(
     Map<String, Object?> args,
   ) async {
-    final month = (args['month'] as num).toInt();
-    final year = (args['year'] as num).toInt();
+    final monthRaw = args['month'] as num?;
+    if (monthRaw == null) {
+      return {'error': 'MISSING_ARG', 'arg': 'month'};
+    }
+    final month = monthRaw.toInt();
+    final yearRaw = args['year'] as num?;
+    if (yearRaw == null) {
+      return {'error': 'MISSING_ARG', 'arg': 'year'};
+    }
+    final year = yearRaw.toInt();
 
     final start = DateTime(year, month, 1);
     final end = DateTime(year, month + 1, 0, 23, 59, 59);
@@ -369,16 +401,18 @@ class ToolDispatcher {
     Map<String, Object?> result,
     int latencyMs,
   ) {
+    final payload = {
+      'tool': toolName,
+      'user_id': userId,
+      'args': args,
+      'result': result,
+      'latency_ms': latencyMs,
+    }.toString();
+
     developer.log(
-      'tool_call',
+      payload,
       name: 'ToolDispatcher',
-      error: {
-        'tool': toolName,
-        'user_id': userId,
-        'args': args,
-        'result': result,
-        'latency_ms': latencyMs,
-      }.toString(),
+      error: result.containsKey('error') ? result['error'] : null,
     );
   }
 }

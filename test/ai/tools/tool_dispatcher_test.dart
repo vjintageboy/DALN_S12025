@@ -26,23 +26,6 @@ ExpertAvailability _mondaySlot({
       endTime: endTime,
     );
 
-Appointment _makeAppointment({
-  String id = 'appt-1',
-  AppointmentStatus status = AppointmentStatus.pending,
-  DateTime? date,
-}) =>
-    Appointment(
-      appointmentId: id,
-      userId: _userId,
-      expertId: _expertId,
-      expertName: 'Dr. Test',
-      expertBasePrice: 200000,
-      callType: CallType.video,
-      appointmentDate: date ?? _monday,
-      durationMinutes: 60,
-      status: status,
-    );
-
 ToolDispatcher _dispatcher({
   Future<List<ExpertAvailability>> Function(String)? getAvailability,
   Future<List<String>> Function(String, DateTime)? getBookedTimeSlots,
