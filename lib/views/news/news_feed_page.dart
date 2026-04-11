@@ -78,9 +78,75 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   }
 
   PreferredSizeWidget _buildGlassAppBar() {
+    final user = SupabaseService.instance.currentUser;
     return PreferredSize(
       preferredSize: const Size.fromHeight(72),
-      child: const SizedBox.shrink(),
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            color: _kSurface.withOpacity(0.80),
+            child: SafeArea(
+              bottom: false,
+              child: SizedBox(
+                height: 72,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      // Avatar user hiện tại
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: _kPrimaryContainer,
+                        backgroundImage: (user?.userMetadata?['avatar_url'] as String?)?.isNotEmpty == true
+                            ? NetworkImage(user!.userMetadata!['avatar_url'] as String)
+                            : null,
+                        child: (user?.userMetadata?['avatar_url'] as String?)?.isNotEmpty != true
+                            ? Icon(Icons.person, size: 20, color: _kPrimary)
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Cộng đồng',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: _kOnSurface,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.search, color: _kOnSurface),
+                        onPressed: () {},
+                        splashRadius: 22,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined, color: _kOnSurface),
+                        onPressed: () {},
+                        splashRadius: 22,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add, color: _kOnSurface),
+                        onPressed: () async {
+                          final changed = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CreatePostPage(),
+                            ),
+                          );
+                          if (changed == true && mounted) setState(() {});
+                        },
+                        splashRadius: 22,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
