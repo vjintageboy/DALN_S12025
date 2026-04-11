@@ -1,7 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../ai/tools/tool_definitions.dart';
+import '../ai/tools/tool_dispatcher.dart';
+import '../ai/tools/tool_loop_controller.dart';
 import '../core/config/gemini_config.dart';
+import '../services/appointment_service.dart';
+import '../services/availability_service.dart';
 
 /// AI Chatbot Service - Xử lý logic chatbot và AI responses
 class AIChatbotService {
@@ -9,6 +14,12 @@ class AIChatbotService {
 
   // Gemini AI Model
   GenerativeModel? _model;
+
+  // Model with function calling tools enabled
+  GenerativeModel? _modelWithTools;
+
+  // Tool loop controller (initialized when user is authenticated)
+  ToolLoopController? _toolController;
 
   // Initialize Gemini model
   void _initializeGemini() {
@@ -23,6 +34,60 @@ class AIChatbotService {
       ),
       systemInstruction: Content.text(GeminiConfig.systemPrompt),
     );
+  }
+
+  void _initializeTools(String userId) {
+    if (!GeminiConfig.isConfigured || userId.isEmpty) return;
+
+    _modelWithTools = GenerativeModel(
+      model: GeminiConfig.modelName,
+      apiKey: GeminiConfig.apiKey,
+      generationConfig: GenerationConfig(
+        temperature: GeminiConfig.temperature,
+        maxOutputTokens: GeminiConfig.maxOutputTokens,
+      ),
+      systemInstruction: Content.text(GeminiConfig.systemPrompt),
+      tools: [ToolDefinitions.allTools],
+    );
+
+    final dispatcher = ToolDispatcher(
+      userId: userId,
+      getAvailability: AvailabilityService().getAvailability,
+      getBookedTimeSlots: AppointmentService().getBookedTimeSlots,
+      generateTimeSlots: AppointmentService().generateTimeSlots,
+      createAppointment: AppointmentService().createAppointment,
+      getUserAppointments: AppointmentService().getUserAppointments,
+      getMoodEntries: (String uid, DateTime start, DateTime end) async {
+        final response = await Supabase.instance.client
+            .from('mood_entries')
+            .select()
+            .eq('user_id', uid)
+            .gte('created_at', start.toIso8601String())
+            .lte('created_at', end.toIso8601String());
+        return List<Map<String, dynamic>>.from(response);
+      },
+      getExpertPrice: (String expertId) async {
+        final response = await Supabase.instance.client
+            .from('experts')
+            .select('hourly_rate')
+            .eq('id', expertId)
+            .maybeSingle();
+        return response;
+      },
+      checkExistingAppointment:
+          (String uid, String expertId, DateTime date) async {
+        final response = await Supabase.instance.client
+            .from('appointments')
+            .select('id, status')
+            .eq('user_id', uid)
+            .eq('expert_id', expertId)
+            .eq('appointment_date', date.toIso8601String())
+            .neq('status', 'cancelled');
+        return List<Map<String, dynamic>>.from(response);
+      },
+    );
+
+    _toolController = ToolLoopController(dispatcher: dispatcher);
   }
 
   User? get _currentUser => _supabase.auth.currentUser;
@@ -206,6 +271,34 @@ class AIChatbotService {
         history.reversed.toList(),
       );
 
+      // Initialize tool calling if user is authenticated
+      if (user != null && _toolController == null) {
+        _initializeTools(user.id);
+      }
+
+      // Try function calling path first (if available)
+      if (_toolController != null && _modelWithTools != null) {
+        try {
+          final chat = _modelWithTools!.startChat(
+            history: _buildGeminiHistory(history.reversed.toList()),
+          );
+          final aiText = await _toolController!.execute(
+            userMessage: userMessage,
+            sendMessage: chat.sendMessage,
+          );
+          if (aiText.isNotEmpty) {
+            return ChatMessage(
+              message: aiText,
+              isUser: false,
+              timestamp: DateTime.now(),
+            );
+          }
+        } catch (toolError) {
+          debugPrint('Tool calling error, falling back: $toolError');
+          // Fall through to existing Gemini path
+        }
+      }
+
       // Try Gemini AI first
       if (_model != null) {
         try {
@@ -335,6 +428,17 @@ class AIChatbotService {
 [Current user message]
 $userMessage
 ''';
+  }
+
+  /// Convert stored ChatMessage list to Gemini Content history format.
+  List<Content> _buildGeminiHistory(List<ChatMessage> messages) {
+    return messages.map((msg) {
+      if (msg.isUser) {
+        return Content.text(msg.message);
+      } else {
+        return Content.model([TextPart(msg.message)]);
+      }
+    }).toList();
   }
 
   /// Check if user is admin
