@@ -28,6 +28,7 @@ class NewsFeedPage extends StatefulWidget {
 
 class _NewsFeedPageState extends State<NewsFeedPage> {
   final NewsService _newsService = NewsService();
+  final _sortButtonKey = GlobalKey();
   late final String currentUserId;
   Map<String, bool>? _optimisticLikeState;
   Map<String, int>? _optimisticLikeCount;
@@ -151,7 +152,113 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   }
 
   Widget _buildFilterBar() {
-    return const SizedBox.shrink();
+    return Container(
+      color: _kSurface,
+      padding: const EdgeInsets.fromLTRB(16, 8, 4, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildPillChip('Tất cả', null),
+                  const SizedBox(width: 8),
+                  ...PostCategory.values.map((cat) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _buildPillChip(cat.categoryDisplayName, cat),
+                  )),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            key: _sortButtonKey,
+            icon: const Icon(Icons.tune, color: _kOnSurfaceVariant),
+            onPressed: _showSortMenu,
+            splashRadius: 22,
+            tooltip: 'Sắp xếp',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPillChip(String label, PostCategory? category) {
+    final isSelected = _selectedCategory == category;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedCategory = category),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? _kPrimary : _kSurfaceContainerHighest,
+          borderRadius: BorderRadius.circular(9999),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? _kOnPrimary : _kOnSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSortMenu() {
+    final RenderBox button =
+        _sortButtonKey.currentContext!.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        button.localToGlobal(Offset.zero, ancestor: overlay),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu<SortBy>(
+      context: context,
+      position: position,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
+      items: [
+        _sortMenuItem('Mới nhất', SortBy.latest),
+        _sortMenuItem('Hot nhất', SortBy.hot),
+        _sortMenuItem('Nhiều like nhất', SortBy.mostLiked),
+        _sortMenuItem('Nhiều bình luận nhất', SortBy.mostDiscussed),
+      ],
+    ).then((value) {
+      if (value != null && mounted) setState(() => _sortBy = value);
+    });
+  }
+
+  PopupMenuItem<SortBy> _sortMenuItem(String label, SortBy value) {
+    return PopupMenuItem<SortBy>(
+      value: value,
+      child: Row(
+        children: [
+          if (_sortBy == value)
+            const Icon(Icons.check, size: 18, color: _kPrimary)
+          else
+            const SizedBox(width: 18),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: GoogleFonts.manrope(
+              color: _kOnSurface,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPostFeed() {
@@ -1204,3 +1311,22 @@ const _kTertiaryContainer = Color(0xFF11EAFF);
 const _kOnTertiaryContainer = Color(0xFF005159);
 const _kSurfaceContainerHigh = Color(0xFFB5F0C2);
 const _kSurfaceContainer = Color(0xFFBEF5CA);
+
+extension _PostCategoryDisplay on PostCategory {
+  String get categoryDisplayName {
+    switch (this) {
+      case PostCategory.mentalHealth:
+        return 'Sức khỏe';
+      case PostCategory.meditation:
+        return 'Thiền';
+      case PostCategory.wellness:
+        return 'Wellness';
+      case PostCategory.tips:
+        return 'Mẹo';
+      case PostCategory.community:
+        return 'Cộng đồng';
+      case PostCategory.news:
+        return 'Tin tức';
+    }
+  }
+}
