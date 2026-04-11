@@ -7,6 +7,24 @@ enum PostCategory {
   news, // Tin tức
 }
 
+/// Returns the localized display name for a post category.
+String categoryDisplayName(PostCategory category, dynamic l10n) {
+  switch (category) {
+    case PostCategory.mentalHealth:
+      return l10n.catMentalHealth;
+    case PostCategory.meditation:
+      return l10n.catMeditation;
+    case PostCategory.wellness:
+      return l10n.catWellness;
+    case PostCategory.tips:
+      return l10n.catTips;
+    case PostCategory.community:
+      return l10n.catCommunity;
+    case PostCategory.news:
+      return l10n.catNews;
+  }
+}
+
 class NewsPost {
   final String postId;
   final String authorId;
@@ -48,23 +66,6 @@ class NewsPost {
   int get likeCount => likedBy.length;
 
   bool isLikedBy(String userId) => likedBy.contains(userId);
-
-  String get categoryDisplayName {
-    switch (category) {
-      case PostCategory.mentalHealth:
-        return 'Mental Health';
-      case PostCategory.meditation:
-        return 'Meditation';
-      case PostCategory.wellness:
-        return 'Wellness';
-      case PostCategory.tips:
-        return 'Tips';
-      case PostCategory.community:
-        return 'Community';
-      case PostCategory.news:
-        return 'News';
-    }
-  }
 
   // Supabase conversion
   Map<String, dynamic> toMap() {

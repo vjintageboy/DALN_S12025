@@ -33,6 +33,145 @@ class AppLocalizationsEn extends AppLocalizations {
   String get news => 'News';
 
   @override
+  String get community => 'Community';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get sortBy => 'Sort by:';
+
+  @override
+  String get latest => 'Latest';
+
+  @override
+  String get hottest => 'Hottest';
+
+  @override
+  String get mostLiked => 'Most Liked';
+
+  @override
+  String get mostDiscussed => 'Most Discussed';
+
+  @override
+  String get cannotLoadPosts => 'Cannot load posts';
+
+  @override
+  String get tryAgain => 'Try Again';
+
+  @override
+  String get noPostsYet => 'No posts yet';
+
+  @override
+  String get beFirstToShare => 'Be the first to share!';
+
+  @override
+  String get expert => 'Expert';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get justNow => 'just now';
+
+  @override
+  String minutesAgo(int minutes) {
+    return '${minutes}m ago';
+  }
+
+  @override
+  String hoursAgo(int hours) {
+    return '${hours}h ago';
+  }
+
+  @override
+  String daysAgo(int days) {
+    return '${days}d ago';
+  }
+
+  @override
+  String get errorPrefix => 'Error';
+
+  @override
+  String get deletePost => 'Delete Post';
+
+  @override
+  String get deletePostConfirm =>
+      'Are you sure you want to delete this post? This action cannot be undone.';
+
+  @override
+  String get postDeletedSuccess => 'Post deleted successfully';
+
+  @override
+  String get errorDeletingPost => 'Error deleting post';
+
+  @override
+  String get errorLoadingPosts => 'Error loading posts';
+
+  @override
+  String get postDetail => 'Post';
+
+  @override
+  String get comments => 'Comments';
+
+  @override
+  String get errorLoadingComments => 'Error loading comments';
+
+  @override
+  String get noCommentsYet => 'No comments yet';
+
+  @override
+  String get beFirstToComment => 'Be the first to comment!';
+
+  @override
+  String get writeComment => 'Write a comment...';
+
+  @override
+  String get submit => 'Submit';
+
+  @override
+  String get anonymousComment => 'Comment anonymously';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String get likeFailed => 'Like failed';
+
+  @override
+  String get errorPostingComment => 'Error posting comment';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get catMentalHealth => 'Mental Health';
+
+  @override
+  String get catMeditation => 'Meditation';
+
+  @override
+  String get catWellness => 'Wellness';
+
+  @override
+  String get catTips => 'Tips';
+
+  @override
+  String get catCommunity => 'Community';
+
+  @override
+  String get catNews => 'News';
+
+  @override
   String get experts => 'Experts';
 
   @override
@@ -136,9 +275,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editProfileSubtitle => 'Update your personal information';
 
   @override
-  String get notifications => 'Notifications';
-
-  @override
   String get notificationsSubtitle => 'Manage notification preferences';
 
   @override
@@ -173,9 +309,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get logoutConfirmMessage => 'Are you sure you want to logout?';
-
-  @override
-  String get cancel => 'Cancel';
 
   @override
   String get howAreYouFeeling => 'How are you feeling today?';
@@ -365,9 +498,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveChanges => 'Save Changes';
 
   @override
-  String get delete => 'Delete';
-
-  @override
   String get createMeditation => 'Create Meditation';
 
   @override
@@ -380,13 +510,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get success => 'Success';
 
   @override
-  String get tryAgain => 'Try Again';
-
-  @override
   String get close => 'Close';
-
-  @override
-  String get search => 'Search';
 
   @override
   String get filter => 'Filter';
@@ -568,9 +692,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moodDetails => 'Mood Details';
 
   @override
-  String get edit => 'Edit';
-
-  @override
   String get factors => 'Factors';
 
   @override
@@ -593,9 +714,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get calendar => 'Calendar';
-
-  @override
-  String get all => 'All';
 
   @override
   String get avg => 'Avg';
@@ -632,9 +750,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get findAnExpert => 'Find an Expert';
-
-  @override
-  String get expert => 'Expert';
 
   @override
   String get available => 'available';
@@ -736,9 +851,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentSuccessful => 'Payment Successful!';
-
-  @override
-  String get sortBy => 'Sort by:';
 
   @override
   String get ratingSort => '⭐ Rating';

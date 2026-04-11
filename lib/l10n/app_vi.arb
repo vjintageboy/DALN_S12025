@@ -25,6 +25,65 @@
   "meditation": "Thiền định",
   "mood": "Tâm trạng",
   "news": "Tin tức",
+  "community": "Cộng đồng",
+  "search": "Tìm kiếm",
+  "notifications": "Thông báo",
+  "all": "Tất cả",
+  "sortBy": "Sắp xếp",
+  "latest": "Mới nhất",
+  "hottest": "Hot nhất",
+  "mostLiked": "Nhiều like nhất",
+  "mostDiscussed": "Nhiều bình luận nhất",
+  "cannotLoadPosts": "Không thể tải bài viết",
+  "tryAgain": "Thử lại",
+  "noPostsYet": "Chưa có bài viết nào",
+  "beFirstToShare": "Hãy là người đầu tiên chia sẻ!",
+  "expert": "Expert",
+  "edit": "Chỉnh sửa",
+  "delete": "Xóa",
+  "justNow": "vừa xong",
+  "minutesAgo": "{minutes} phút trước",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "hoursAgo": "{hours} giờ trước",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "daysAgo": "{days} ngày trước",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "errorPrefix": "Lỗi",
+  "deletePost": "Xóa bài viết",
+  "deletePostConfirm": "Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.",
+  "postDeletedSuccess": "Đã xóa bài viết thành công",
+  "errorDeletingPost": "Lỗi khi xóa bài viết",
+  "errorLoadingPosts": "Lỗi tải bài viết",
+  "postDetail": "Bài viết",
+  "comments": "Bình luận",
+  "errorLoadingComments": "Lỗi tải bình luận",
+  "noCommentsYet": "Chưa có bình luận nào",
+  "beFirstToComment": "Hãy là người đầu tiên bình luận!",
+  "writeComment": "Viết bình luận...",
+  "submit": "Gửi",
+  "anonymousComment": "Bình luận ẩn danh",
+  "share": "Chia sẻ",
+  "likeFailed": "Thả like thất bại",
+  "errorPostingComment": "Lỗi khi gửi bình luận",
+  "cancel": "Hủy",
+  "catMentalHealth": "Sức khỏe",
+  "catMeditation": "Thiền",
+  "catWellness": "Wellness",
+  "catTips": "Mẹo",
+  "catCommunity": "Cộng đồng",
+  "catNews": "Tin tức",
   "experts": "Chuyên gia",
   "profile": "Hồ sơ",
   

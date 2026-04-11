@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Organic Sanctuary - Cộng đồng</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface-variant": "#3b6447",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary": "#ccffd6",
+                      "primary": "#006b1b",
+                      "inverse-on-surface": "#7ba785",
+                      "error-container": "#f95630",
+                      "on-tertiary-fixed": "#003d43",
+                      "tertiary-fixed-dim": "#00dbee",
+                      "primary-fixed-dim": "#68ec6e",
+                      "on-secondary-fixed": "#004a26",
+                      "outline-variant": "#8bb795",
+                      "inverse-surface": "#001206",
+                      "surface-container-high": "#b5f0c2",
+                      "secondary-container": "#86faac",
+                      "on-error": "#ffefec",
+                      "surface-container": "#bef5ca",
+                      "surface-variant": "#acecbb",
+                      "surface-container-low": "#cafdd4",
+                      "tertiary-dim": "#005861",
+                      "surface-tint": "#006b1b",
+                      "primary-dim": "#005d16",
+                      "on-primary-fixed-variant": "#00691a",
+                      "on-primary": "#d1ffc8",
+                      "surface-container-highest": "#acecbb",
+                      "surface-bright": "#ddffe2",
+                      "tertiary-fixed": "#11eaff",
+                      "outline": "#568061",
+                      "on-tertiary-container": "#005159",
+                      "on-background": "#0b361d",
+                      "on-secondary-container": "#005f32",
+                      "primary-fixed": "#76fb7a",
+                      "error": "#b02500",
+                      "on-secondary-fixed-variant": "#006a38",
+                      "on-primary-container": "#005e17",
+                      "on-error-container": "#520c00",
+                      "error-dim": "#b92902",
+                      "primary-container": "#76fb7a",
+                      "background": "#ddffe2",
+                      "on-primary-fixed": "#00480f",
+                      "surface": "#ddffe2",
+                      "inverse-primary": "#76fb7a",
+                      "secondary-dim": "#005c30",
+                      "tertiary-container": "#11eaff",
+                      "secondary-fixed-dim": "#77eb9f",
+                      "on-surface": "#0b361d",
+                      "on-tertiary": "#d4f9ff",
+                      "on-tertiary-fixed-variant": "#005c64",
+                      "tertiary": "#00656f",
+                      "surface-dim": "#a0e4b1",
+                      "secondary-fixed": "#86faac",
+                      "secondary": "#006a38"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Plus Jakarta Sans"],
+                      "body": ["Manrope"],
+                      "label": ["Manrope"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-header {
+            backdrop-filter: blur(20px);
+        }
+        .tonal-shift {
+            background-color: #bef5ca;
+        }
+        .asymmetric-avatar {
+            margin-left: -1rem;
+        }
+        body {
+            background-color: #ddffe2;
+            font-family: 'Manrope', sans-serif;
+            color: #0b361d;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 glass-header bg-emerald-50/80 flex justify-between items-center px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="User Profile" class="w-10 h-10 rounded-full border-2 border-primary/20" data-alt="Close up portrait of a smiling man with friendly eyes in professional lighting, clean studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0xKl2bzH99nCPPQ02xo-bGawh2ZTwbjJlLueFbgYtistm2557Y0OTN5O2PByGwez7nWCHaDabaLwxHThktF3tIsG2qDxnLWWx2Zu1eQj1U-g8l1bQx-jP8ezG7Yva35dFuintrWnXDEj7ZOXqW0c_icT9IaIag98WWNpqN_6yxpDpN38ac5jhd0Y1fnvMfsGilFnAMsPfMAJ_rpIpsBInBwkFv-lTkEtsjPyu_JN0yK8HF0Q8F3-AMX35isBT9WYnkryDGo4fXvIN"/>
+<h1 class="font-headline font-extrabold tracking-tight text-emerald-800 text-lg">Cộng đồng</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-emerald-900 active:scale-95 duration-200">search</button>
+<button class="material-symbols-outlined text-emerald-900 active:scale-95 duration-200" data-icon="notifications">notifications</button>
+<button class="material-symbols-outlined text-emerald-900 active:scale-95 duration-200">add</button></div>
+</header>
+<main class="pt-24 px-6">
+<!-- Hero Section - Bento Style Intro -->
+<section class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="bg-primary-container p-6 rounded-xl flex flex-col justify-between aspect-square md:aspect-auto">
+<h2 class="font-headline font-bold text-2xl text-on-primary-container">Chia sẻ khoảnh khắc xanh của bạn.</h2>
+<div class="flex items-center gap-2 mt-4">
+<span class="bg-primary text-on-primary px-4 py-2 rounded-full text-sm font-semibold">Khám phá ngay</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-high rounded-xl overflow-hidden relative group">
+<img alt="Leaf macro" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Macro photography of a vibrant green leaf with visible intricate veins and morning dew drops, soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgj6wtgTUVut_3TOukSdryrcg2J09ruNBxIq4PZYyuierebLxA_lDEIkDF0sdnnf7Kn1Hg7S_AaCSqoB-aUz2PNxKPKPLPnSETpXaWHY-vjCQl49S3lQWGyiVRc4tdk8u7Wzb_362flI290-_vFkwFkq1jAA_757z2SUAR-mnwHhkJqkNxACLxsaun9M6_Y0EC41SgikDITKdiDqaPTKFsRYPkZB-VoCis_MY539k8787qZpD1ukWZGB_ah5Tacfmwqj62-ul3l00t"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+</div>
+<div class="bg-surface-container-high rounded-xl overflow-hidden relative group">
+<img alt="Organic garden" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Lush organic backyard garden with raised wooden beds filled with vegetables and blooming flowers in golden morning sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDKWzU9Tvk6-pMOsE3CuKFDR7vQdQvio-mWsX-NYpw_m9NuuO9CAf8sOztP0YtQSCZ3Y1RGrUNx62a4gXDzReuzsNLvR5Z2wQvNK3_KNzSSvNVRqvEfm9FuelKSj1yfTDgLGXRt7-LuPCEfLQt1FFn1bd5ItMEtsU2Yo55Azh6Z5kXOnrF0Tx5su7DF56A5Oma5m961N2WoRASIPilyHWerrMFHnHSwc4kEf4HUVnr86R5YPbFOkLV-Q9xeYnfcs-0bbSWI7-hn9YS"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+</div>
+</div>
+</section>
+<!-- Category/Filter Bar -->
+<div class="flex gap-3 overflow-x-auto pb-4 mb-8 scrollbar-hide">
+<button class="whitespace-nowrap px-6 py-2.5 rounded-full bg-primary text-on-primary font-semibold text-sm shadow-sm">Tất cả</button>
+<button class="whitespace-nowrap px-6 py-2.5 rounded-full bg-surface-container-highest text-on-surface-variant font-semibold text-sm hover:bg-surface-container-high transition-colors">Mẹo</button>
+<button class="whitespace-nowrap px-6 py-2.5 rounded-full bg-surface-container-highest text-on-surface-variant font-semibold text-sm hover:bg-surface-container-high transition-colors">Hỏi đáp</button>
+<button class="whitespace-nowrap px-6 py-2.5 rounded-full bg-surface-container-highest text-on-surface-variant font-semibold text-sm hover:bg-surface-container-high transition-colors">Thành viên</button>
+<button class="whitespace-nowrap px-6 py-2.5 rounded-full bg-surface-container-highest text-on-surface-variant font-semibold text-sm hover:bg-surface-container-high transition-colors">Sự kiện</button>
+</div>
+<!-- Community Post Feed -->
+<div class="space-y-10">
+<!-- Post 1 -->
+<article class="relative flex flex-col bg-surface-container-lowest p-6 rounded-xl shadow-[0px_12px_32px_rgba(11,54,29,0.06)] group">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="absolute -left-8 top-0 w-12 h-12 rounded-full border-4 border-surface overflow-hidden shadow-md">
+<img alt="pha avatar" class="w-full h-full object-cover" data-alt="Close up of a young man with a friendly smile, outdoor natural lighting, soft blurred greenery in the background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBG8x2ggJUjHUh03oA8cnJ27T5YOFa_PiHP2qXr_UVd-EpalchDvd1DHoO1GITCOmCW6wmweuHNU_uce0l_VNIGX_tWtc2tJUZgFZ3CXWHue7yojyrgMmtynoeVik7Y-QXaP7hBWfTQry1LYXmkhjOMroWXwlU_vyN7gh4Rp3_Bki8zkK49ACnnkMKCADzNbXaDncd6XW8hOfuE54C758pW_lrIupmq4Z5g0sRXqAIooaLYfORwQUzNMZ4By9CQTJ2Erhj2VpD63dw4"/>
+</div>
+</div>
+<div class="ml-6">
+<p class="font-headline font-bold text-on-surface">pha</p>
+<p class="text-xs text-on-surface-variant/70 font-medium">15/3/2026</p>
+</div>
+</div>
+<span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Tips</span>
+</div>
+<div class="mb-6">
+<h3 class="font-headline font-extrabold text-xl mb-2 text-emerald-900 group-hover:text-primary transition-colors">anh</h3>
+<p class="text-on-surface-variant leading-relaxed line-clamp-3">123 - Khám phá những bí quyết trồng rau sạch tại nhà chỉ với những vật dụng đơn giản nhất. Hôm nay mình sẽ hướng dẫn các bạn cách tái chế chai nhựa thành chậu treo tường cực xinh...</p>
+</div>
+<div class="rounded-lg overflow-hidden mb-6 aspect-video">
+<img alt="Post image" class="w-full h-full object-cover" data-alt="Close up of fresh green organic vegetables including lettuce and herbs growing in a bright sunlit greenhouse environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEl7YjpoJ6lKYUZMYZ5zNWinLnZMlHeTgFVP1dlMZtOK6t70mNRW-psa8A6QsaBKzddYty7lItmhm2Qz3WA5ys7POix4cKAF0Iidp4MkskmC-Y_oLaenxw1_WtITI37Xz0jGPPJhMrq2OKCg6PlbKQePnc_uJ_j__wh1uTc4p8aY97d6Nyn_05tk-y2JmcUNljv2PBjW5HNcQxF4W7mAbwE4tnfTD_WIKqyknUwJHq91q1Yuyo-8bOg0EzT0vsNJw1V7iSQkeBQAbY"/>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-surface-container">
+<div class="flex gap-6">
+<button class="flex items-center gap-2 group/btn">
+<span class="material-symbols-outlined text-error group-hover/btn:scale-110 transition-transform" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="text-sm font-bold text-on-surface">24</span>
+</button>
+<button class="flex items-center gap-2 group/btn">
+<span class="material-symbols-outlined text-primary group-hover/btn:scale-110 transition-transform">chat_bubble</span>
+<span class="text-sm font-bold text-on-surface">12</span>
+</button>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">share</button>
+</div>
+</article>
+<!-- Post 2 - Asymmetric / Different Layout -->
+<article class="bg-surface-container-low p-6 rounded-xl relative overflow-hidden">
+<div class="flex gap-6">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-3">
+<img alt="User" class="w-8 h-8 rounded-full" data-alt="Portrait of a woman with a warm smile and natural look, soft outdoor sunlight lighting her face" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDU-MNrb4IMvUyZ7Y5ZFSmmx8RT_vXne7_3ElluTR28ibmEjFtmhCeFG-kZ3Ngy4EeqeVVB42KTaHlo-uHupB340EjZIJsfI3w2ix-3KBF5HX5HjAxyThBPEe7s2HywSgDgSTLIz-dZrRqK0ybpdx2iRNZ0zAasmMXEhx0UvudAqDqU6ecCZv6uh2PZkjSAXN2RIny6WG9OM5Cg3k7g13rLT--10VkLe84hflG2HokXpSxqrcJv_IDBMrj4Jh6djPm03l13zUVpL1IJ"/>
+<span class="font-bold text-sm">lan_organic</span>
+<span class="text-[10px] text-on-surface-variant/60">• 1 giờ trước</span>
+</div>
+<h3 class="font-headline font-bold text-lg mb-1">Kinh nghiệm ủ phân hữu cơ</h3>
+<p class="text-sm text-on-surface-variant mb-4">Mọi người ơi, có ai biết cách khử mùi khi ủ phân trong căn hộ không ạ?</p>
+<div class="flex gap-4">
+<button class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">favorite</span>
+<span class="text-xs font-bold">5</span>
+</button>
+<button class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">chat_bubble</span>
+<span class="text-xs font-bold">8</span>
+</button>
+</div>
+</div>
+<div class="w-24 h-24 rounded-lg bg-surface-container-highest flex-shrink-0 overflow-hidden">
+<img alt="Compost" class="w-full h-full object-cover" data-alt="Detail of dark rich organic compost soil in a wooden bin with a small garden shovel, dramatic shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDV4swNx9LzlP5-kg5-uyjqTSIW0uiErqVCoJfH7QrFuDfYRD3WZF85V3RDHIRSBtb2muk8Jsw7Ql8mehPL4wJ1sqYRp51SBm1zT2msrvSteVaeOcKaJOUistdKOPfbET4e-llfcSReF4Ma7XBA2cYiSBSv88cmrRpPucywwDPzPsTLLzkUOlwWV2zvNWNddvzaKcV5tmUmxI5eICo9Ir4vAiP4tW07CSlah-CMFfwpBEwCOv4-6SqzT3quixtJ2gyygmYEl5gwk5vZ"/>
+</div>
+</div>
+</article>
+<!-- Post 3 -->
+<article class="flex flex-col bg-surface-container-lowest p-6 rounded-xl shadow-[0px_12px_32px_rgba(11,54,29,0.06)]">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<img alt="Minh" class="w-10 h-10 rounded-full" data-alt="Confident young man with professional look, studio lighting against a neutral green background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsQeVB83Y2MVGA4moTF3VuV4CgjtCndZfjXL4t3SqhJH6N81_NnwvnJTPGZh3rpjX5Y2oBiFWRwO1Ry4d-Pn_BIN49nLnZAu96o0PeehXzvEbS85gWSSvgO7DtIAxFQAwp5o1n07n8LtyCjUsQUr9LEeY_jgme883TPp7SW5ixKBlcGQ7Me-eMkfkkyJTx34zpdT1DtFXhn-7QAWkWjt3zqNsUqmUQLTiDzD9JewT4xNCSwRJSmt3rqilEwO_MEoua8A1su7izCEnX"/>
+<div>
+<p class="font-headline font-bold text-on-surface">Minh Nguyễn</p>
+<p class="text-xs text-on-surface-variant/70 font-medium">14/3/2026</p>
+</div>
+</div>
+<span class="bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Hỏi đáp</span>
+</div>
+<div class="mb-4">
+<h3 class="font-headline font-extrabold text-xl mb-2 text-emerald-900">Tại sao lá cà chua lại bị xoăn?</h3>
+<p class="text-on-surface-variant leading-relaxed">Dạo này vườn cà chua của mình có hiện tượng lá bị xoăn tít lại, mặc dù vẫn tưới nước đều đặn. Có ai gặp trường hợp này chưa ạ? Cho mình xin lời khuyên với.</p>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-surface-container">
+<div class="flex gap-6">
+<button class="flex items-center gap-2 group/btn">
+<span class="material-symbols-outlined text-on-surface-variant group-hover/btn:scale-110 transition-transform">favorite</span>
+<span class="text-sm font-bold text-on-surface">15</span>
+</button>
+<button class="flex items-center gap-2 group/btn">
+<span class="material-symbols-outlined text-primary group-hover/btn:scale-110 transition-transform">chat_bubble</span>
+<span class="text-sm font-bold text-on-surface">32</span>
+</button>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">share</button>
+</div>
+</article>
+</div>
+</main>
+<!-- FAB -->
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pt-3 pb-8 bg-emerald-50/70 backdrop-blur-2xl rounded-t-[2rem] shadow-[0px_-12px_32px_rgba(11,54,29,0.06)] z-50">
+<div class="flex flex-col items-center justify-center text-emerald-800/60 w-12 h-12 hover:bg-emerald-100/50 rounded-full transition-transform active:scale-90">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-emerald-800/60 w-12 h-12 hover:bg-emerald-100/50 rounded-full transition-transform active:scale-90">
+<span class="material-symbols-outlined">mood</span>
+</div>
+<!-- Active Item: Newspaper (closest to Community/Feed intent) -->
+<div class="flex flex-col items-center justify-center bg-emerald-200/50 text-emerald-900 rounded-full w-12 h-12 transition-transform active:scale-90">
+<span class="material-symbols-outlined">newspaper</span>
+</div>
+<div class="flex flex-col items-center justify-center text-emerald-800/60 w-12 h-12 hover:bg-emerald-100/50 rounded-full transition-transform active:scale-90">
+<span class="material-symbols-outlined">psychology</span>
+</div>
+<div class="flex flex-col items-center justify-center text-emerald-800/60 w-12 h-12 hover:bg-emerald-100/50 rounded-full transition-transform active:scale-90">
+<span class="material-symbols-outlined">person</span>
+</div>
+</nav>
+</body></html>

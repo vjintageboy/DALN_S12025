@@ -25,6 +25,65 @@
   "meditation": "Meditation",
   "mood": "Mood",
   "news": "News",
+  "community": "Community",
+  "search": "Search",
+  "notifications": "Notifications",
+  "all": "All",
+  "sortBy": "Sort",
+  "latest": "Latest",
+  "hottest": "Hottest",
+  "mostLiked": "Most Liked",
+  "mostDiscussed": "Most Discussed",
+  "cannotLoadPosts": "Cannot load posts",
+  "tryAgain": "Try Again",
+  "noPostsYet": "No posts yet",
+  "beFirstToShare": "Be the first to share!",
+  "expert": "Expert",
+  "edit": "Edit",
+  "delete": "Delete",
+  "justNow": "just now",
+  "minutesAgo": "{minutes}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "hoursAgo": "{hours}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "daysAgo": "{days}d ago",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "errorPrefix": "Error",
+  "deletePost": "Delete Post",
+  "deletePostConfirm": "Are you sure you want to delete this post? This action cannot be undone.",
+  "postDeletedSuccess": "Post deleted successfully",
+  "errorDeletingPost": "Error deleting post",
+  "errorLoadingPosts": "Error loading posts",
+  "postDetail": "Post",
+  "comments": "Comments",
+  "errorLoadingComments": "Error loading comments",
+  "noCommentsYet": "No comments yet",
+  "beFirstToComment": "Be the first to comment!",
+  "writeComment": "Write a comment...",
+  "submit": "Submit",
+  "anonymousComment": "Comment anonymously",
+  "share": "Share",
+  "likeFailed": "Like failed",
+  "errorPostingComment": "Error posting comment",
+  "cancel": "Cancel",
+  "catMentalHealth": "Mental Health",
+  "catMeditation": "Meditation",
+  "catWellness": "Wellness",
+  "catTips": "Tips",
+  "catCommunity": "Community",
+  "catNews": "News",
   "experts": "Experts",
   "profile": "Profile",
   

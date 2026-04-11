@@ -146,6 +146,270 @@ abstract class AppLocalizations {
   /// **'News'**
   String get news;
 
+  /// No description provided for @community.
+  ///
+  /// In en, this message translates to:
+  /// **'Community'**
+  String get community;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @sortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by:'**
+  String get sortBy;
+
+  /// No description provided for @latest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get latest;
+
+  /// No description provided for @hottest.
+  ///
+  /// In en, this message translates to:
+  /// **'Hottest'**
+  String get hottest;
+
+  /// No description provided for @mostLiked.
+  ///
+  /// In en, this message translates to:
+  /// **'Most Liked'**
+  String get mostLiked;
+
+  /// No description provided for @mostDiscussed.
+  ///
+  /// In en, this message translates to:
+  /// **'Most Discussed'**
+  String get mostDiscussed;
+
+  /// No description provided for @cannotLoadPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot load posts'**
+  String get cannotLoadPosts;
+
+  /// No description provided for @tryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Again'**
+  String get tryAgain;
+
+  /// No description provided for @noPostsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts yet'**
+  String get noPostsYet;
+
+  /// No description provided for @beFirstToShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Be the first to share!'**
+  String get beFirstToShare;
+
+  /// No description provided for @expert.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert'**
+  String get expert;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @justNow.
+  ///
+  /// In en, this message translates to:
+  /// **'just now'**
+  String get justNow;
+
+  /// No description provided for @minutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m ago'**
+  String minutesAgo(int minutes);
+
+  /// No description provided for @hoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h ago'**
+  String hoursAgo(int hours);
+
+  /// No description provided for @daysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d ago'**
+  String daysAgo(int days);
+
+  /// No description provided for @errorPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get errorPrefix;
+
+  /// No description provided for @deletePost.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Post'**
+  String get deletePost;
+
+  /// No description provided for @deletePostConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this post? This action cannot be undone.'**
+  String get deletePostConfirm;
+
+  /// No description provided for @postDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Post deleted successfully'**
+  String get postDeletedSuccess;
+
+  /// No description provided for @errorDeletingPost.
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting post'**
+  String get errorDeletingPost;
+
+  /// No description provided for @errorLoadingPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading posts'**
+  String get errorLoadingPosts;
+
+  /// No description provided for @postDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get postDetail;
+
+  /// No description provided for @comments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get comments;
+
+  /// No description provided for @errorLoadingComments.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading comments'**
+  String get errorLoadingComments;
+
+  /// No description provided for @noCommentsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet'**
+  String get noCommentsYet;
+
+  /// No description provided for @beFirstToComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Be the first to comment!'**
+  String get beFirstToComment;
+
+  /// No description provided for @writeComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a comment...'**
+  String get writeComment;
+
+  /// No description provided for @submit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get submit;
+
+  /// No description provided for @anonymousComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment anonymously'**
+  String get anonymousComment;
+
+  /// No description provided for @share.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get share;
+
+  /// No description provided for @likeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Like failed'**
+  String get likeFailed;
+
+  /// No description provided for @errorPostingComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Error posting comment'**
+  String get errorPostingComment;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @catMentalHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Mental Health'**
+  String get catMentalHealth;
+
+  /// No description provided for @catMeditation.
+  ///
+  /// In en, this message translates to:
+  /// **'Meditation'**
+  String get catMeditation;
+
+  /// No description provided for @catWellness.
+  ///
+  /// In en, this message translates to:
+  /// **'Wellness'**
+  String get catWellness;
+
+  /// No description provided for @catTips.
+  ///
+  /// In en, this message translates to:
+  /// **'Tips'**
+  String get catTips;
+
+  /// No description provided for @catCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Community'**
+  String get catCommunity;
+
+  /// No description provided for @catNews.
+  ///
+  /// In en, this message translates to:
+  /// **'News'**
+  String get catNews;
+
   /// No description provided for @experts.
   ///
   /// In en, this message translates to:
@@ -350,12 +614,6 @@ abstract class AppLocalizations {
   /// **'Update your personal information'**
   String get editProfileSubtitle;
 
-  /// No description provided for @notifications.
-  ///
-  /// In en, this message translates to:
-  /// **'Notifications'**
-  String get notifications;
-
   /// No description provided for @notificationsSubtitle.
   ///
   /// In en, this message translates to:
@@ -427,12 +685,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure you want to logout?'**
   String get logoutConfirmMessage;
-
-  /// No description provided for @cancel.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel'**
-  String get cancel;
 
   /// No description provided for @howAreYouFeeling.
   ///
@@ -806,12 +1058,6 @@ abstract class AppLocalizations {
   /// **'Save Changes'**
   String get saveChanges;
 
-  /// No description provided for @delete.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete'**
-  String get delete;
-
   /// No description provided for @createMeditation.
   ///
   /// In en, this message translates to:
@@ -836,23 +1082,11 @@ abstract class AppLocalizations {
   /// **'Success'**
   String get success;
 
-  /// No description provided for @tryAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Try Again'**
-  String get tryAgain;
-
   /// No description provided for @close.
   ///
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
-
-  /// No description provided for @search.
-  ///
-  /// In en, this message translates to:
-  /// **'Search'**
-  String get search;
 
   /// No description provided for @filter.
   ///
@@ -1190,12 +1424,6 @@ abstract class AppLocalizations {
   /// **'Mood Details'**
   String get moodDetails;
 
-  /// No description provided for @edit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit'**
-  String get edit;
-
   /// No description provided for @factors.
   ///
   /// In en, this message translates to:
@@ -1243,12 +1471,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Calendar'**
   String get calendar;
-
-  /// No description provided for @all.
-  ///
-  /// In en, this message translates to:
-  /// **'All'**
-  String get all;
 
   /// No description provided for @avg.
   ///
@@ -1321,12 +1543,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Find an Expert'**
   String get findAnExpert;
-
-  /// No description provided for @expert.
-  ///
-  /// In en, this message translates to:
-  /// **'Expert'**
-  String get expert;
 
   /// No description provided for @available.
   ///
@@ -1525,12 +1741,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Payment Successful!'**
   String get paymentSuccessful;
-
-  /// No description provided for @sortBy.
-  ///
-  /// In en, this message translates to:
-  /// **'Sort by:'**
-  String get sortBy;
 
   /// No description provided for @ratingSort.
   ///

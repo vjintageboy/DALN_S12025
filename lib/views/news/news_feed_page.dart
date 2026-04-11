@@ -5,14 +5,15 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
 import '../../services/supabase_service.dart';
+import '../../core/services/localization_service.dart';
 import 'create_post_page.dart';
 import 'post_detail_page.dart';
 
 enum SortBy {
-  latest, // Mới nhất
-  hot, // Hot nhất (likes + comments)
-  mostLiked, // Nhiều likes nhất
-  mostDiscussed, // Nhiều comments nhất
+  latest,
+  hot,
+  mostLiked,
+  mostDiscussed,
 }
 
 
@@ -43,15 +44,16 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
+    final l10n = context.l10n;
 
     if (difference.inSeconds < 60) {
-      return 'just now';
+      return l10n.justNow;
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+      return l10n.minutesAgo(difference.inMinutes);
     } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return l10n.hoursAgo(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
+      return l10n.daysAgo(difference.inDays);
     } else {
       return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
     }
@@ -104,7 +106,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Cộng đồng',
+                        context.l10n.community,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -148,6 +150,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   }
 
   Widget _buildFilterBar() {
+    final l10n = context.l10n;
     return Container(
       color: _kSurface,
       padding: const EdgeInsets.fromLTRB(16, 8, 4, 12),
@@ -158,11 +161,11 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildPillChip('Tất cả', null),
+                  _buildPillChip(l10n.all, null),
                   const SizedBox(width: 8),
                   ...PostCategory.values.map((cat) => Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: _buildPillChip(cat.categoryDisplayName, cat),
+                    child: _buildPillChip(categoryDisplayName(cat, l10n), cat),
                   )),
                 ],
               ),
@@ -173,7 +176,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
             icon: const Icon(Icons.tune, color: _kOnSurfaceVariant),
             onPressed: _showSortMenu,
             splashRadius: 22,
-            tooltip: 'Sắp xếp',
+            tooltip: l10n.sortBy,
           ),
         ],
       ),
@@ -204,6 +207,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   }
 
   void _showSortMenu() {
+    final l10n = context.l10n;
     final RenderBox button =
         _sortButtonKey.currentContext!.findRenderObject() as RenderBox;
     final RenderBox overlay =
@@ -225,10 +229,10 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: Colors.white,
       items: [
-        _sortMenuItem('Mới nhất', SortBy.latest),
-        _sortMenuItem('Hot nhất', SortBy.hot),
-        _sortMenuItem('Nhiều like nhất', SortBy.mostLiked),
-        _sortMenuItem('Nhiều bình luận nhất', SortBy.mostDiscussed),
+        _sortMenuItem(l10n.latest, SortBy.latest),
+        _sortMenuItem(l10n.hottest, SortBy.hot),
+        _sortMenuItem(l10n.mostLiked, SortBy.mostLiked),
+        _sortMenuItem(l10n.mostDiscussed, SortBy.mostDiscussed),
       ],
     ).then((value) {
       if (value != null && mounted) setState(() => _sortBy = value);
@@ -258,6 +262,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   }
 
   Widget _buildPostFeed() {
+    final l10n = context.l10n;
     return StreamBuilder<List<NewsPost>>(
       stream: _newsService.streamPosts(category: _selectedCategory),
       builder: (context, snapshot) {
@@ -271,7 +276,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                   Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
                   const SizedBox(height: 16),
                   Text(
-                    'Không thể tải bài viết',
+                    l10n.cannotLoadPosts,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -288,7 +293,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                   ElevatedButton.icon(
                     onPressed: () => setState(() => _selectedCategory = null),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Thử lại'),
+                    label: Text(l10n.tryAgain),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _kPrimary,
                       foregroundColor: _kOnPrimary,
@@ -318,8 +323,8 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
               children: [
                 Icon(Icons.article_outlined, size: 80, color: _kSurfaceContainerHighest),
                 const SizedBox(height: 16),
-                const Text(
-                  'Chưa có bài viết nào',
+                Text(
+                  l10n.noPostsYet,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -327,8 +332,8 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Hãy là người đầu tiên chia sẻ!',
+                Text(
+                  l10n.beFirstToShare,
                   style: TextStyle(color: _kOnSurfaceVariant),
                 ),
               ],
@@ -453,7 +458,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      'Expert',
+                                      context.l10n.expert,
                                       style: GoogleFonts.manrope(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
@@ -487,24 +492,25 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
                           ),
                           onSelected: (value) => _handlePostAction(value, post),
                           itemBuilder: (context) => [
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'edit',
                               child: Row(
                                 children: [
-                                  Icon(Icons.edit_outlined, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('Chỉnh sửa'),
+                                  const Icon(Icons.edit_outlined, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(context.l10n.edit),
                                 ],
                               ),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'delete',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete_outline,
+                                  const Icon(Icons.delete_outline,
                                       size: 18, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Xóa', style: TextStyle(color: Colors.red)),
+                                  const SizedBox(width: 8),
+                                  Text(context.l10n.delete,
+                                      style: const TextStyle(color: Colors.red)),
                                 ],
                               ),
                             ),
@@ -717,6 +723,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   }
 
   Widget _buildCategoryBadge(NewsPost post) {
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -724,7 +731,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
         borderRadius: BorderRadius.circular(9999),
       ),
       child: Text(
-        post.category.categoryDisplayName.toUpperCase(),
+        categoryDisplayName(post.category, l10n).toUpperCase(),
         style: GoogleFonts.manrope(
           fontSize: 10,
           fontWeight: FontWeight.w700,
@@ -760,7 +767,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi: $e'),
+          content: Text('${context.l10n.errorPrefix}: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -838,22 +845,21 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
 
   /// Delete post with confirmation
   Future<void> _deletePost(NewsPost post) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Post'),
-        content: const Text(
-          'Are you sure you want to delete this post? This action cannot be undone.',
-        ),
+        title: Text(l10n.deletePost),
+        content: Text(l10n.deletePostConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -865,8 +871,8 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✓ Post deleted successfully'),
+            SnackBar(
+              content: Text(l10n.postDeletedSuccess),
               backgroundColor: Colors.green,
             ),
           );
@@ -876,7 +882,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error deleting post: $e'),
+              content: Text('${l10n.errorDeletingPost}: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -901,25 +907,3 @@ const _kTertiaryContainer = Color(0xFF11EAFF);
 const _kOnTertiaryContainer = Color(0xFF005159);
 const _kSurfaceContainerHigh = Color(0xFFB5F0C2);
 const _kSurfaceContainer = Color(0xFFBEF5CA);
-
-// UI display names in Vietnamese for filter chips and post card badges.
-// Note: NewsPost also has a categoryDisplayName getter that returns English strings.
-// Always access this extension via `post.category.categoryDisplayName` (not `post.categoryDisplayName`).
-extension _PostCategoryDisplay on PostCategory {
-  String get categoryDisplayName {
-    switch (this) {
-      case PostCategory.mentalHealth:
-        return 'Sức khỏe';
-      case PostCategory.meditation:
-        return 'Thiền';
-      case PostCategory.wellness:
-        return 'Wellness';
-      case PostCategory.tips:
-        return 'Mẹo';
-      case PostCategory.community:
-        return 'Cộng đồng';
-      case PostCategory.news:
-        return 'Tin tức';
-    }
-  }
-}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
+import '../../core/services/localization_service.dart';
 import '../../core/constants/app_colors.dart';
 import 'create_post_page.dart';
 import 'post_detail_page.dart';
@@ -471,7 +472,7 @@ class _NewsManagerPageState extends State<NewsManagerPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  post.categoryDisplayName,
+                                  categoryDisplayName(post.category, context.l10n),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade800,

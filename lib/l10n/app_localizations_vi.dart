@@ -34,6 +34,145 @@ class AppLocalizationsVi extends AppLocalizations {
   String get news => 'Tin tức';
 
   @override
+  String get community => 'Cộng đồng';
+
+  @override
+  String get search => 'Tìm kiếm';
+
+  @override
+  String get notifications => 'Thông báo';
+
+  @override
+  String get all => 'Tất cả';
+
+  @override
+  String get sortBy => 'Sắp xếp:';
+
+  @override
+  String get latest => 'Mới nhất';
+
+  @override
+  String get hottest => 'Hot nhất';
+
+  @override
+  String get mostLiked => 'Nhiều like nhất';
+
+  @override
+  String get mostDiscussed => 'Nhiều bình luận nhất';
+
+  @override
+  String get cannotLoadPosts => 'Không thể tải bài viết';
+
+  @override
+  String get tryAgain => 'Thử lại';
+
+  @override
+  String get noPostsYet => 'Chưa có bài viết nào';
+
+  @override
+  String get beFirstToShare => 'Hãy là người đầu tiên chia sẻ!';
+
+  @override
+  String get expert => 'Chuyên gia';
+
+  @override
+  String get edit => 'Chỉnh sửa';
+
+  @override
+  String get delete => 'Xóa';
+
+  @override
+  String get justNow => 'vừa xong';
+
+  @override
+  String minutesAgo(int minutes) {
+    return '$minutes phút trước';
+  }
+
+  @override
+  String hoursAgo(int hours) {
+    return '$hours giờ trước';
+  }
+
+  @override
+  String daysAgo(int days) {
+    return '$days ngày trước';
+  }
+
+  @override
+  String get errorPrefix => 'Lỗi';
+
+  @override
+  String get deletePost => 'Xóa bài viết';
+
+  @override
+  String get deletePostConfirm =>
+      'Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.';
+
+  @override
+  String get postDeletedSuccess => 'Đã xóa bài viết thành công';
+
+  @override
+  String get errorDeletingPost => 'Lỗi khi xóa bài viết';
+
+  @override
+  String get errorLoadingPosts => 'Lỗi tải bài viết';
+
+  @override
+  String get postDetail => 'Bài viết';
+
+  @override
+  String get comments => 'Bình luận';
+
+  @override
+  String get errorLoadingComments => 'Lỗi tải bình luận';
+
+  @override
+  String get noCommentsYet => 'Chưa có bình luận nào';
+
+  @override
+  String get beFirstToComment => 'Hãy là người đầu tiên bình luận!';
+
+  @override
+  String get writeComment => 'Viết bình luận...';
+
+  @override
+  String get submit => 'Gửi';
+
+  @override
+  String get anonymousComment => 'Bình luận ẩn danh';
+
+  @override
+  String get share => 'Chia sẻ';
+
+  @override
+  String get likeFailed => 'Thả like thất bại';
+
+  @override
+  String get errorPostingComment => 'Lỗi khi gửi bình luận';
+
+  @override
+  String get cancel => 'Hủy';
+
+  @override
+  String get catMentalHealth => 'Sức khỏe';
+
+  @override
+  String get catMeditation => 'Thiền';
+
+  @override
+  String get catWellness => 'Wellness';
+
+  @override
+  String get catTips => 'Mẹo';
+
+  @override
+  String get catCommunity => 'Cộng đồng';
+
+  @override
+  String get catNews => 'Tin tức';
+
+  @override
   String get experts => 'Chuyên gia';
 
   @override
@@ -140,9 +279,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get editProfileSubtitle => 'Cập nhật thông tin cá nhân của bạn';
 
   @override
-  String get notifications => 'Thông báo';
-
-  @override
   String get notificationsSubtitle => 'Quản lý tùy chọn thông báo';
 
   @override
@@ -178,9 +314,6 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get logoutConfirmMessage =>
       'Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng?';
-
-  @override
-  String get cancel => 'Hủy';
 
   @override
   String get howAreYouFeeling => 'Hôm nay bạn cảm thấy thế nào?';
@@ -371,9 +504,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get saveChanges => 'Lưu thay đổi';
 
   @override
-  String get delete => 'Xóa';
-
-  @override
   String get createMeditation => 'Tạo thiền định';
 
   @override
@@ -386,13 +516,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get success => 'Thành công';
 
   @override
-  String get tryAgain => 'Thử lại';
-
-  @override
   String get close => 'Đóng';
-
-  @override
-  String get search => 'Tìm kiếm';
 
   @override
   String get filter => 'Lọc';
@@ -573,9 +697,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get moodDetails => 'Chi tiết tâm trạng';
 
   @override
-  String get edit => 'Chỉnh sửa';
-
-  @override
   String get factors => 'Yếu tố';
 
   @override
@@ -598,9 +719,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get calendar => 'Lịch';
-
-  @override
-  String get all => 'Tất cả';
 
   @override
   String get avg => 'TB';
@@ -637,9 +755,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get findAnExpert => 'Tìm chuyên gia';
-
-  @override
-  String get expert => 'Chuyên gia';
 
   @override
   String get available => 'có sẵn';
@@ -741,9 +856,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get paymentSuccessful => 'Thanh toán thành công!';
-
-  @override
-  String get sortBy => 'Sắp xếp:';
 
   @override
   String get ratingSort => '⭐ Đánh giá';

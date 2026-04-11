@@ -4,6 +4,7 @@ import '../../models/news_post.dart';
 import '../../models/post_comment.dart';
 import '../../services/news_service.dart';
 import '../../services/supabase_service.dart';
+import '../../core/services/localization_service.dart';
 import '../../core/constants/app_colors.dart';
 
 class PostDetailPage extends StatefulWidget {
@@ -126,7 +127,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error posting comment: $e'),
+            content: Text('${context.l10n.errorPostingComment}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -144,15 +145,16 @@ class _PostDetailPageState extends State<PostDetailPage> {
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
+    final l10n = context.l10n;
 
     if (difference.inSeconds < 60) {
-      return 'just now';
+      return l10n.justNow;
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+      return l10n.minutesAgo(difference.inMinutes);
     } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return l10n.hoursAgo(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
+      return l10n.daysAgo(difference.inDays);
     } else {
       return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
     }
@@ -168,7 +170,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
-          title: const Text('Post', style: TextStyle(color: Colors.white)),
+          title: Text(context.l10n.postDetail, style: const TextStyle(color: Colors.white)),
           backgroundColor: AppColors.primaryLight,
           iconTheme: const IconThemeData(color: Colors.white),
           leading: IconButton(
@@ -262,9 +264,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                               4,
                                             ),
                                           ),
-                                          child: const Text(
-                                            'Expert',
-                                            style: TextStyle(
+                                          child: Text(
+                                            context.l10n.expert,
+                                            style: const TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
                                               color: AppColors.primaryLight,
@@ -297,7 +299,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                widget.post.categoryDisplayName,
+                                categoryDisplayName(widget.post.category, context.l10n),
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -402,7 +404,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                         });
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: Text('Like failed: $e'),
+                                            content: Text('${context.l10n.likeFailed}: $e'),
                                             backgroundColor: Colors.red,
                                           ),
                                         );
@@ -509,9 +511,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Comments',
-                          style: TextStyle(
+                        Text(
+                          context.l10n.comments,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -542,7 +544,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                 ),
                                 child: Center(
                                   child: Text(
-                                    'Error loading comments',
+                                    context.l10n.errorLoadingComments,
                                     style: TextStyle(
                                       color: Colors.grey.shade500,
                                     ),
@@ -568,7 +570,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                       ),
                                       const SizedBox(height: 12),
                                       Text(
-                                        'No comments yet',
+                                        context.l10n.noCommentsYet,
                                         style: TextStyle(
                                           color: Colors.grey.shade500,
                                         ),
@@ -616,7 +618,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Replying to ${_replyingToUserName ?? 'comment'}',
+                              '${context.l10n.comments} · ${_replyingToUserName ?? ''}',
                               style: TextStyle(
                                 color: Colors.grey.shade800,
                                 fontSize: 13,
@@ -692,7 +694,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         child: FutureBuilder<Map<String, dynamic>>(
                           future: _loadUserAvatar(),
                           builder: (context, userSnapshot) {
-                            final userName = userSnapshot.data?['displayName'] ?? 'User';
+                            final l10n = context.l10n;
                             return Container(
                               constraints: const BoxConstraints(maxHeight: 100),
                               decoration: BoxDecoration(
@@ -705,11 +707,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
                                 decoration: InputDecoration(
                                   hintText: _replyingToCommentId != null
                                       ? (_commentAnonymously
-                                            ? 'Reply anonymously...'
-                                            : 'Write a reply...')
+                                            ? l10n.anonymousComment
+                                            : l10n.writeComment)
                                       : _commentAnonymously
-                                          ? 'Comment as Anonymous...'
-                                          : 'Comment as $userName...',
+                                          ? l10n.anonymousComment
+                                          : '${l10n.writeComment} ${l10n.anonymousComment}',
                                   hintStyle: TextStyle(
                                     color: Colors.grey.shade600,
                                     fontSize: 15,
@@ -819,7 +821,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        comment.userRole == 'admin' ? 'Admin' : 'Expert',
+                        comment.userRole == 'admin' ? 'Admin' : context.l10n.expert,
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
@@ -856,7 +858,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   _commentFocusNode.requestFocus();
                 },
                 child: Text(
-                  'Reply',
+                  context.l10n.submit,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
