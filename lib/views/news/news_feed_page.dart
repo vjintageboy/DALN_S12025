@@ -1,7 +1,7 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/news_post.dart';
 import '../../services/news_service.dart';
@@ -80,7 +80,7 @@ class _NewsFeedPageState extends State<NewsFeedPage> {
   PreferredSizeWidget _buildGlassAppBar() {
     return PreferredSize(
       preferredSize: const Size.fromHeight(72),
-      child: Container(color: _kSurface),
+      child: const SizedBox.shrink(),
     );
   }
 
