@@ -39,13 +39,14 @@ class ToolLoopController {
     int iteration = 0;
 
     while (iteration < _maxIterations) {
-      final response = await sendMessage(currentInput)
-          .timeout(const Duration(seconds: 30));
+      final response = await sendMessage(
+        currentInput,
+      ).timeout(const Duration(seconds: 30));
 
       final functionCalls = response.candidates.isNotEmpty
           ? response.candidates.first.content.parts
-              .whereType<FunctionCall>()
-              .toList()
+                .whereType<FunctionCall>()
+                .toList()
           : <FunctionCall>[];
 
       if (functionCalls.isEmpty) {
