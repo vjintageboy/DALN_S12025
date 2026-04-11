@@ -1317,6 +1317,9 @@ const _kOnTertiaryContainer = Color(0xFF005159);
 const _kSurfaceContainerHigh = Color(0xFFB5F0C2);
 const _kSurfaceContainer = Color(0xFFBEF5CA);
 
+// UI display names in Vietnamese for filter chips and post card badges.
+// Note: NewsPost also has a categoryDisplayName getter that returns English strings.
+// Always access this extension via `post.category.categoryDisplayName` (not `post.categoryDisplayName`).
 extension _PostCategoryDisplay on PostCategory {
   String get categoryDisplayName {
     switch (this) {
