@@ -301,41 +301,89 @@ class AIChatbotService {
 
       // Initialize tool calling if user is authenticated
       if (user != null && _toolController == null) {
+        debugPrint('[AIChatbot] Initializing function calling for user: ${user.id}');
         _initializeTools(user.id);
       }
 
       // Try function calling path first (if available)
       if (_toolController != null && _modelWithTools != null) {
         try {
+          debugPrint('[AIChatbot] Using function calling path');
           final chat = _modelWithTools!.startChat(
             history: _buildGeminiHistory(history.reversed.toList()),
           );
+          
+          // Build enhanced message with RAG context for better tool selection
+          final enhancedMessage = contextMessage.isNotEmpty 
+              ? contextMessage 
+              : userMessage;
+          
+          debugPrint('[AIChatbot] Executing tool loop with message length: ${enhancedMessage.length}');
           final aiText = await _toolController!.execute(
-            userMessage: userMessage,
+            userMessage: enhancedMessage,
             sendMessage: chat.sendMessage,
           );
+          
           if (aiText.isNotEmpty) {
+            debugPrint('[AIChatbot] Function calling returned response (${aiText.length} chars)');
+            // Inject disclaimer if needed
+            final finalResponse = DisclaimerInjector.maybeAdd(
+              aiResponse: aiText,
+              userInput: userMessage,
+            );
             return ChatMessage(
-              message: aiText,
+              message: finalResponse,
               isUser: false,
               timestamp: DateTime.now(),
             );
           }
         } catch (toolError) {
-          debugPrint('Tool calling error, falling back: $toolError');
-          // Fall through to existing Gemini path
+          debugPrint('[AIChatbot] Tool calling error: $toolError');
+          debugPrint('[AIChatbot] Stack trace: ${StackTrace.current}');
+          // Fall through to Gemini path WITH tools
+        }
+      } else {
+        debugPrint('[AIChatbot] Function calling not available: toolController=${_toolController != null}, modelWithTools=${_modelWithTools != null}');
+      }
+
+      // Fallback: Try Gemini WITH tools first (if available)
+      if (_modelWithTools != null) {
+        try {
+          debugPrint('[AIChatbot] Using Gemini with tools (fallback path)');
+          final response = await _modelWithTools!.generateContent([
+            Content.text(contextMessage),
+          ]);
+
+          final aiText = response.text?.trim();
+          if (aiText != null && aiText.isNotEmpty) {
+            debugPrint('[AIChatbot] Gemini with tools returned response (${aiText.length} chars)');
+            final finalResponse = DisclaimerInjector.maybeAdd(
+              aiResponse: aiText,
+              userInput: userMessage,
+            );
+            return ChatMessage(
+              message: finalResponse,
+              isUser: false,
+              timestamp: DateTime.now(),
+            );
+          }
+        } catch (geminiError) {
+          debugPrint('[AIChatbot] Gemini with tools error: $geminiError');
+          // Fall through to model without tools
         }
       }
 
-      // Try Gemini AI first
+      // Last resort: Try Gemini without tools
       if (_model != null) {
         try {
+          debugPrint('[AIChatbot] Using Gemini without tools (last resort)');
           final response = await _model!.generateContent([
             Content.text(contextMessage),
           ]);
 
           final aiText = response.text?.trim();
           if (aiText != null && aiText.isNotEmpty) {
+            debugPrint('[AIChatbot] Gemini without tools returned response (${aiText.length} chars)');
             // Inject disclaimer if needed
             final finalResponse = DisclaimerInjector.maybeAdd(
               aiResponse: aiText,
@@ -348,7 +396,7 @@ class AIChatbotService {
             );
           }
         } catch (geminiError) {
-          debugPrint('Gemini API error: $geminiError');
+          debugPrint('[AIChatbot] Gemini without tools error: $geminiError');
           // Fall back to rule-based response
         }
       }
