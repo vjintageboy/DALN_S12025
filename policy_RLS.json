@@ -141,9 +141,6 @@
     "?column?": "CREATE POLICY \"chat_participants_admin_all\" ON \"public\".\"chat_participants\" FOR ALL TO authenticated USING (is_admin()) WITH CHECK (is_admin());"
   },
   {
-    "?column?": "CREATE POLICY \"chat_participants_read\" ON \"public\".\"chat_participants\" FOR SELECT TO authenticated USING (((user_id = auth.uid()) OR (EXISTS ( SELECT 1\n   FROM chat_participants cp\n  WHERE ((cp.room_id = chat_participants.room_id) AND (cp.user_id = auth.uid()))))));"
-  },
-  {
     "?column?": "CREATE POLICY \"ai_conversations_admin_select\" ON \"public\".\"ai_conversations\" FOR SELECT TO authenticated USING (is_admin());"
   },
   {
@@ -277,5 +274,35 @@
   },
   {
     "?column?": "CREATE POLICY \"messages_insert_sender\" ON \"public\".\"messages\" FOR INSERT TO public WITH CHECK (((sender_id = auth.uid()) AND (auth.role() = 'authenticated'::text)));"
+  },
+  {
+    "?column?": "CREATE POLICY \"chat_participants_read\" ON \"public\".\"chat_participants\" FOR SELECT TO authenticated USING ((user_id = auth.uid()));"
+  },
+  {
+    "?column?": "CREATE POLICY \"Anyone can view meditations\" ON \"public\".\"meditations\" FOR SELECT TO public USING (true);"
+  },
+  {
+    "?column?": "CREATE POLICY \"Admins can manage meditations\" ON \"public\".\"meditations\" FOR ALL TO public USING ((EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = auth.uid()) AND (users.role = 'admin'::user_role)))));"
+  },
+  {
+    "?column?": "CREATE POLICY \"Users can view own mood entries\" ON \"public\".\"mood_entries\" FOR SELECT TO public USING ((user_id = auth.uid()));"
+  },
+  {
+    "?column?": "CREATE POLICY \"Users can create own mood entries\" ON \"public\".\"mood_entries\" FOR INSERT TO public WITH CHECK ((user_id = auth.uid()));"
+  },
+  {
+    "?column?": "CREATE POLICY \"Users can update own mood entries\" ON \"public\".\"mood_entries\" FOR UPDATE TO public USING ((user_id = auth.uid()));"
+  },
+  {
+    "?column?": "CREATE POLICY \"Users can delete own mood entries\" ON \"public\".\"mood_entries\" FOR DELETE TO public USING ((user_id = auth.uid()));"
+  },
+  {
+    "?column?": "CREATE POLICY \"Users can view own profile\" ON \"public\".\"users\" FOR SELECT TO public USING ((id = auth.uid()));"
+  },
+  {
+    "?column?": "CREATE POLICY \"Users can update own profile\" ON \"public\".\"users\" FOR UPDATE TO public USING ((id = auth.uid()));"
+  },
+  {
+    "?column?": "CREATE POLICY \"Admins can view all users\" ON \"public\".\"users\" FOR SELECT TO public USING ((EXISTS ( SELECT 1\n   FROM users admin_check\n  WHERE ((admin_check.id = auth.uid()) AND (admin_check.role = 'admin'::user_role)))));"
   }
 ]
