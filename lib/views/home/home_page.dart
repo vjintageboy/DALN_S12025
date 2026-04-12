@@ -5,8 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../mood/mood_history_page.dart';
 import '../profile/profile_page.dart';
 import '../news/news_feed_page.dart';
+import '../expert/expert_list_page.dart';
+import '../chatbot/chatbot_page.dart';
 import '../../core/services/localization_service.dart';
 import '../../core/constants/app_colors.dart';
+import '../../services/supabase_service.dart';
 import 'new_home_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,40 +19,114 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _selectedIndex = 0;
+
+  late AnimationController _fabGlowController;
+  bool _shouldGlow = false;
 
   static const _pages = [
     NewHomePage(),
     MoodHistoryPage(),
     NewsFeedPage(),
+    ExpertListPage(),
     ProfilePage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fabGlowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1300),
+    )..repeat(reverse: true);
+    _loadMoodState();
+  }
+
+  @override
+  void dispose() {
+    _fabGlowController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadMoodState() async {
+    try {
+      final service = SupabaseService.instance;
+      final user = service.currentUser;
+      if (user == null) return;
+      final moods = await service.getMoodEntries(user.id);
+      final latest = moods.isNotEmpty ? moods.first.moodLevel : null;
+      final shouldGlow = latest != null && latest <= 2;
+      if (mounted && _shouldGlow != shouldGlow) {
+        setState(() => _shouldGlow = shouldGlow);
+      }
+    } catch (_) {}
+  }
 
   void _onTabTap(int index) {
     if (_selectedIndex == index) return;
     HapticFeedback.selectionClick();
     setState(() => _selectedIndex = index);
+    _loadMoodState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.osSurface,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _pages),
+      floatingActionButton: _buildFab(context),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: _OsBottomNav(
         selectedIndex: _selectedIndex,
         onTap: _onTabTap,
       ),
     );
   }
+
+  Widget _buildFab(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
+      child: AnimatedBuilder(
+        animation: _fabGlowController,
+        builder: (context, child) {
+          final t = _fabGlowController.value;
+          return Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.osPrimary.withValues(
+                    alpha: _shouldGlow ? 0.22 + 0.18 * t : 0.18,
+                  ),
+                  blurRadius: _shouldGlow ? 18 + 10 * t : 12,
+                  spreadRadius: _shouldGlow ? 1 + 1.5 * t : 0,
+                ),
+              ],
+            ),
+            child: child,
+          );
+        },
+        child: FloatingActionButton(
+          heroTag: 'ai_fab',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ChatbotPage()),
+          ),
+          backgroundColor: AppColors.osPrimary,
+          elevation: 0,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.smart_toy_outlined, color: AppColors.osOnPrimary, size: 26),
+        ),
+      ),
+    );
+  }
 }
 
 // ============================================================================
-// ORGANIC SANCTUARY BOTTOM NAV
+// GLASSMORPHISM BOTTOM NAV — 5 TABS
 // ============================================================================
 class _OsBottomNav extends StatelessWidget {
   final int selectedIndex;
@@ -61,10 +138,11 @@ class _OsBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final items = [
-      _NavItem(icon: Icons.home_outlined, filledIcon: Icons.home_rounded, label: context.l10n.home),
-      _NavItem(icon: Icons.analytics_outlined, filledIcon: Icons.analytics_rounded, label: 'Insights'),
-      _NavItem(icon: Icons.group_outlined, filledIcon: Icons.group_rounded, label: context.l10n.community),
-      _NavItem(icon: Icons.person_outline_rounded, filledIcon: Icons.person_rounded, label: context.l10n.profile),
+      _NavItem(icon: Icons.home_outlined,        filledIcon: Icons.home_rounded,        label: context.l10n.home),
+      _NavItem(icon: Icons.mood_outlined,         filledIcon: Icons.mood_rounded,         label: context.l10n.mood),
+      _NavItem(icon: Icons.article_outlined,      filledIcon: Icons.article_rounded,      label: context.l10n.news),
+      _NavItem(icon: Icons.spa_outlined,          filledIcon: Icons.spa_rounded,          label: context.l10n.experts),
+      _NavItem(icon: Icons.person_outline_rounded,filledIcon: Icons.person_rounded,       label: context.l10n.profile),
     ];
 
     return ClipRect(
@@ -85,9 +163,8 @@ class _OsBottomNav extends StatelessWidget {
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 10, 16, bottomPadding > 0 ? 0 : 10),
+              padding: EdgeInsets.fromLTRB(8, 8, 8, bottomPadding > 0 ? 0 : 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: List.generate(items.length, (i) {
                   final item = items[i];
                   final isSelected = selectedIndex == i;
@@ -98,7 +175,7 @@ class _OsBottomNav extends StatelessWidget {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeInOut,
-                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
                         decoration: isSelected
                             ? BoxDecoration(
                                 color: AppColors.osPrimary,
@@ -110,21 +187,21 @@ class _OsBottomNav extends StatelessWidget {
                           children: [
                             Icon(
                               isSelected ? item.filledIcon : item.icon,
+                              size: 22,
                               color: isSelected
                                   ? AppColors.osOnPrimary
-                                  : AppColors.osOnSurface.withValues(alpha: 0.55),
-                              size: 22,
+                                  : AppColors.osOnSurface.withValues(alpha: 0.50),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               item.label,
                               style: GoogleFonts.manrope(
-                                fontSize: 10,
+                                fontSize: 9,
                                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                                 color: isSelected
                                     ? AppColors.osOnPrimary
-                                    : AppColors.osOnSurface.withValues(alpha: 0.55),
-                                letterSpacing: 0.4,
+                                    : AppColors.osOnSurface.withValues(alpha: 0.50),
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
