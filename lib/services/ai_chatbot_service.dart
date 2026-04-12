@@ -10,6 +10,7 @@ import '../ai/safety_filter.dart';
 import '../ai/disclaimer.dart';
 import '../services/appointment_service.dart';
 import '../services/availability_service.dart';
+import '../services/rag_service.dart';
 
 /// AI Chatbot Service - Xử lý logic chatbot và AI responses
 class AIChatbotService {
@@ -23,6 +24,15 @@ class AIChatbotService {
 
   // Tool loop controller (initialized when user is authenticated)
   ToolLoopController? _toolController;
+
+  // RAG service for dynamic context building
+  final RAGService _ragService = RAGService();
+
+  // Cache for user context to avoid rebuilding on every message
+  UserContext? _cachedContext;
+  String? _contextUserId;
+  DateTime? _contextBuiltAt;
+  static const Duration _contextTTL = Duration(minutes: 5);
 
   // Initialize Gemini model
   void _initializeGemini() {
@@ -280,12 +290,13 @@ class AIChatbotService {
           ? <ChatMessage>[]
           : await getConversationMessages(conversationId, limit: 12);
 
-      // Build context message
-      final contextMessage = _buildContextMessage(
+      // Build context message with RAG (async)
+      final contextMessage = await _buildContextMessageAsync(
         userMessage,
         userName,
         isAdmin,
         history.reversed.toList(),
+        user?.id ?? '',
       );
 
       // Initialize tool calling if user is authenticated
@@ -394,11 +405,12 @@ class AIChatbotService {
           ? <ChatMessage>[]
           : await getConversationMessages(conversationId, limit: 12);
 
-      final contextMessage = _buildContextMessage(
+      final contextMessage = await _buildContextMessageAsync(
         userMessage,
         userName,
         isAdmin,
         history.reversed.toList(),
+        user?.id ?? '',
       );
 
       // Try Gemini streaming
@@ -455,15 +467,21 @@ class AIChatbotService {
     // Prevents stale userId from a previous user's session leaking into tool calls.
     _toolController = null;
     _modelWithTools = null;
+    // Also clear RAG context cache
+    _cachedContext = null;
+    _contextUserId = null;
+    _contextBuiltAt = null;
+    _ragService.resetModel();
   }
 
-  /// Build context message with user info and short chat history
-  String _buildContextMessage(
+  /// Build context message with user info, short chat history, and RAG context
+  Future<String> _buildContextMessageAsync(
     String userMessage,
     String userName,
     bool isAdmin,
     List<ChatMessage> history,
-  ) {
+    String userId,
+  ) async {
     final role = isAdmin ? 'Admin' : 'Người dùng';
     final historyText = history
         .where((m) => m.message.trim().isNotEmpty)
@@ -473,9 +491,40 @@ class AIChatbotService {
         )
         .join('\n');
 
+    // Try to get cached RAG context
+    UserContext? ragContext;
+    final now = DateTime.now();
+    if (_contextUserId == userId &&
+        _cachedContext != null &&
+        _contextBuiltAt != null &&
+        now.difference(_contextBuiltAt!) < _contextTTL) {
+      ragContext = _cachedContext;
+      debugPrint('[AIChatbot] Using cached RAG context');
+    } else {
+      // Build fresh RAG context
+      try {
+        ragContext = await _ragService.buildUserContext(
+          userId: userId,
+          lastMessage: userMessage,
+        );
+        _cachedContext = ragContext;
+        _contextUserId = userId;
+        _contextBuiltAt = now;
+      } catch (e) {
+        debugPrint('[AIChatbot] Failed to build RAG context: $e');
+      }
+    }
+
+    // Build the full context string
+    String ragContextStr = '';
+    if (ragContext != null && !ragContext.isEmpty) {
+      ragContextStr = '\n${ragContext.toPromptContext()}\n';
+    }
+
     // Use dynamic system prompt template instead of inline string
     return '''
 [User: $userName | Role: $role]
+$ragContextStr
 [Conversation history]\n$historyText
 
 [Current user message]

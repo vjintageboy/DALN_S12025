@@ -146,8 +146,18 @@ class _ChatbotPageState extends State<ChatbotPage> {
           ),
           // Action buttons
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: AppColors.osPrimary, size: 24),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.osPrimaryContainer.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.more_horiz, color: AppColors.osPrimary, size: 20),
+            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 4,
+            shadowColor: AppColors.osOnSurface.withValues(alpha: 0.12),
+            color: AppColors.osSurfaceContainerLowest,
             position: PopupMenuPosition.under,
             onSelected: (value) {
               switch (value) {
@@ -165,16 +175,17 @@ class _ChatbotPageState extends State<ChatbotPage> {
             itemBuilder: (context) => [
               _buildMenuItem(
                 Icons.add_comment_outlined,
-                'New Chat',
+                'Chat mới',
                 AppColors.osPrimary,
                 'new_chat',
               ),
               _buildMenuItem(
-                Icons.history,
-                'Conversation History',
+                Icons.history_rounded,
+                'Lịch sử cuộc trò chuyện',
                 AppColors.osPrimary,
                 'history',
               ),
+              const PopupMenuDivider(height: 8),
               _buildMenuItem(
                 Icons.delete_outline,
                 context.l10n.clearChatHistory,
@@ -214,11 +225,26 @@ class _ChatbotPageState extends State<ChatbotPage> {
   PopupMenuItem<String> _buildMenuItem(IconData icon, String label, Color color, String value) {
     return PopupMenuItem<String>(
       value: value,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 20),
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
           const SizedBox(width: 12),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: color == Colors.red ? Colors.red : AppColors.osOnSurface,
+            ),
+          ),
         ],
       ),
     );
@@ -406,128 +432,206 @@ class _ChatbotPageState extends State<ChatbotPage> {
                               )
                             : ListView.builder(
                                 controller: scrollController,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                                 itemCount: conversations.length,
                                 itemBuilder: (context, index) {
                                   final c = conversations[index];
+                                  final isActive = c.id == chatbot.activeConversationId;
                                   final title = c.title.trim().isNotEmpty
                                       ? c.title
                                       : (c.lastMessagePreview?.isNotEmpty == true
                                             ? c.lastMessagePreview!
-                                            : 'Conversation');
+                                            : 'Cuộc trò chuyện');
 
                                   return Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                    child: InkWell(
-                                      onTap: () async {
-                                        await chatbot.loadConversation(c.id);
-                                        if (context.mounted) Navigator.pop(context);
-                                      },
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: c.id == chatbot.activeConversationId
-                                              ? AppColors.osSurfaceContainerLow
-                                              : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(
-                                            color: AppColors.osOutlineVariant.withValues(alpha: 0.1),
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: InkWell(
+                                        onTap: () async {
+                                          await chatbot.loadConversation(c.id);
+                                          if (context.mounted) Navigator.pop(context);
+                                        },
+                                        borderRadius: BorderRadius.circular(18),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: isActive
+                                                ? AppColors.osPrimaryContainer.withValues(alpha: 0.35)
+                                                : AppColors.osSurfaceContainer.withValues(alpha: 0.5),
+                                            borderRadius: BorderRadius.circular(18),
+                                            border: Border.all(
+                                              color: isActive
+                                                  ? AppColors.osPrimary.withValues(alpha: 0.3)
+                                                  : AppColors.osOutlineVariant.withValues(alpha: 0.15),
+                                              width: isActive ? 1.5 : 1,
+                                            ),
                                           ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.osPrimaryContainer,
-                                                borderRadius: BorderRadius.circular(12),
+                                          child: Row(
+                                            children: [
+                                              // Icon
+                                              Container(
+                                                width: 42,
+                                                height: 42,
+                                                decoration: BoxDecoration(
+                                                  color: isActive
+                                                      ? AppColors.osPrimary.withValues(alpha: 0.15)
+                                                      : AppColors.osPrimaryContainer,
+                                                  borderRadius: BorderRadius.circular(13),
+                                                ),
+                                                child: Icon(
+                                                  isActive
+                                                      ? Icons.chat_bubble_rounded
+                                                      : Icons.forum_outlined,
+                                                  color: isActive
+                                                      ? AppColors.osPrimary
+                                                      : AppColors.osOnPrimaryContainer,
+                                                  size: 20,
+                                                ),
                                               ),
-                                              child: const Icon(
-                                                Icons.forum_outlined,
-                                                color: AppColors.osOnPrimaryContainer,
-                                                size: 20,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 14),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    title,
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontWeight: FontWeight.w600,
-                                                      fontSize: 15,
-                                                      color: AppColors.osOnSurface,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    c.lastMessagePreview ?? '',
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: AppColors.osOnSurfaceVariant,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            PopupMenuButton<String>(
-                                              icon: Icon(
-                                                Icons.more_horiz,
-                                                color: AppColors.osOnSurfaceVariant,
-                                                size: 20,
-                                              ),
-                                              onSelected: (value) async {
-                                                if (value == 'delete') {
-                                                  final confirm = await showDialog<bool>(
-                                                    context: context,
-                                                    builder: (dialogContext) => AlertDialog(
-                                                      backgroundColor: AppColors.osSurfaceContainerLowest,
-                                                      title: const Text('Xóa đoạn chat'),
-                                                      content: const Text(
-                                                        'Bạn có chắc muốn xóa đoạn chat này khỏi lịch sử?',
-                                                      ),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () => Navigator.pop(dialogContext, false),
-                                                          child: Text(this.context.l10n.cancel),
-                                                        ),
-                                                        TextButton(
-                                                          onPressed: () => Navigator.pop(dialogContext, true),
+                                              const SizedBox(width: 12),
+                                              // Text
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
                                                           child: Text(
-                                                            this.context.l10n.delete,
-                                                            style: const TextStyle(color: Colors.red),
+                                                            title,
+                                                            maxLines: 1,
+                                                            overflow: TextOverflow.ellipsis,
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.w600,
+                                                              fontSize: 14,
+                                                              color: isActive
+                                                                  ? AppColors.osPrimary
+                                                                  : AppColors.osOnSurface,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        Text(
+                                                          _formatConversationDate(c.updatedAt),
+                                                          style: TextStyle(
+                                                            fontSize: 11,
+                                                            fontWeight: FontWeight.w500,
+                                                            color: isActive
+                                                                ? AppColors.osPrimary.withValues(alpha: 0.7)
+                                                                : AppColors.osOnSurfaceVariant,
                                                           ),
                                                         ),
                                                       ],
                                                     ),
-                                                  );
-
-                                                  if (confirm == true) {
-                                                    await chatbot.deleteConversation(c.id);
-                                                  }
-                                                }
-                                              },
-                                              itemBuilder: (context) => [
-                                                PopupMenuItem<String>(
-                                                  value: 'delete',
-                                                  child: Row(
-                                                    children: [
-                                                      const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                                      const SizedBox(width: 8),
-                                                      Text(this.context.l10n.delete),
+                                                    if (c.lastMessagePreview?.isNotEmpty == true) ...[
+                                                      const SizedBox(height: 3),
+                                                      Text(
+                                                        c.lastMessagePreview!,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: AppColors.osOnSurfaceVariant.withValues(alpha: 0.8),
+                                                        ),
+                                                      ),
                                                     ],
+                                                  ],
+                                                ),
+                                              ),
+                                              // Delete button
+                                              PopupMenuButton<String>(
+                                                icon: Container(
+                                                  padding: const EdgeInsets.all(5),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.osOutlineVariant.withValues(alpha: 0.15),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.more_horiz,
+                                                    color: AppColors.osOnSurfaceVariant,
+                                                    size: 18,
                                                   ),
                                                 ),
-                                              ],
-                                            ),
-                                          ],
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(16),
+                                                ),
+                                                elevation: 4,
+                                                shadowColor: AppColors.osOnSurface.withValues(alpha: 0.1),
+                                                color: AppColors.osSurfaceContainerLowest,
+                                                onSelected: (value) async {
+                                                  if (value == 'delete') {
+                                                    final confirm = await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (dialogContext) => AlertDialog(
+                                                        backgroundColor: AppColors.osSurfaceContainerLowest,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(24),
+                                                        ),
+                                                        title: const Text('Xóa cuộc trò chuyện'),
+                                                        content: const Text(
+                                                          'Bạn có chắc muốn xóa đoạn chat này khỏi lịch sử?',
+                                                        ),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () => Navigator.pop(dialogContext, false),
+                                                            child: Text(this.context.l10n.cancel),
+                                                          ),
+                                                          FilledButton(
+                                                            style: FilledButton.styleFrom(
+                                                              backgroundColor: Colors.red,
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius: BorderRadius.circular(12),
+                                                              ),
+                                                            ),
+                                                            onPressed: () => Navigator.pop(dialogContext, true),
+                                                            child: Text(this.context.l10n.delete),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+
+                                                    if (confirm == true) {
+                                                      await chatbot.deleteConversation(c.id);
+                                                    }
+                                                  }
+                                                },
+                                                itemBuilder: (context) => [
+                                                  PopupMenuItem<String>(
+                                                    value: 'delete',
+                                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                                    child: Row(
+                                                      children: [
+                                                        Container(
+                                                          padding: const EdgeInsets.all(7),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.red.withValues(alpha: 0.1),
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                          child: const Icon(
+                                                            Icons.delete_outline,
+                                                            color: Colors.red,
+                                                            size: 18,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 12),
+                                                        Text(
+                                                          this.context.l10n.delete,
+                                                          style: const TextStyle(
+                                                            color: Colors.red,
+                                                            fontWeight: FontWeight.w600,
+                                                            fontSize: 14,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -572,6 +676,50 @@ class _MessageList extends StatelessWidget {
       },
     );
   }
+}
+
+/// Formats a [DateTime] as a human-readable relative time string.
+String _formatMessageTime(DateTime time) {
+  final now = DateTime.now();
+  final diff = now.difference(time);
+  if (diff.inSeconds < 60) return 'Vừa xong';
+  if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
+  final hh = time.hour.toString().padLeft(2, '0');
+  final mm = time.minute.toString().padLeft(2, '0');
+  if (time.year == now.year && time.month == now.month && time.day == now.day) {
+    return '$hh:$mm';
+  }
+  final yesterday = now.subtract(const Duration(days: 1));
+  if (time.year == yesterday.year &&
+      time.month == yesterday.month &&
+      time.day == yesterday.day) {
+    return 'Hôm qua $hh:$mm';
+  }
+  final dd = time.day.toString().padLeft(2, '0');
+  final mo = time.month.toString().padLeft(2, '0');
+  return '$dd/$mo $hh:$mm';
+}
+
+/// Formats a conversation's [updatedAt] into a compact label for the history list.
+String _formatConversationDate(DateTime time) {
+  final now = DateTime.now();
+  final diff = now.difference(time);
+  if (diff.inSeconds < 60) return 'Vừa xong';
+  if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
+  final hh = time.hour.toString().padLeft(2, '0');
+  final mm = time.minute.toString().padLeft(2, '0');
+  if (time.year == now.year && time.month == now.month && time.day == now.day) {
+    return '$hh:$mm';
+  }
+  final yesterday = now.subtract(const Duration(days: 1));
+  if (time.year == yesterday.year &&
+      time.month == yesterday.month &&
+      time.day == yesterday.day) {
+    return 'Hôm qua';
+  }
+  final dd = time.day.toString().padLeft(2, '0');
+  final mo = time.month.toString().padLeft(2, '0');
+  return time.year == now.year ? '$dd/$mo' : '$dd/$mo/${time.year}';
 }
 
 /// Message Bubble
@@ -656,7 +804,7 @@ class _MessageBubble extends StatelessWidget {
                     left: message.isUser ? 0 : 44,
                   ),
                   child: Text(
-                    'Just now',
+                    _formatMessageTime(message.timestamp),
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
