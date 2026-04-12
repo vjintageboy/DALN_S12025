@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../models/mood_entry.dart';
 import '../../services/supabase_service.dart';
@@ -6,10 +7,22 @@ import 'mood_log_page.dart';
 import 'mood_analytics_page.dart';
 import 'mood_entry_detail_page.dart';
 import 'utils/mood_helpers.dart';
-import 'widgets/mood_filter_bar.dart';
 import 'widgets/mood_empty_state.dart';
 import 'widgets/calendar_legend.dart';
 import '../../core/services/localization_service.dart';
+import '../../l10n/app_localizations.dart';
+
+// ── Organic Sanctuary palette ─────────────────────────────────────────────
+const _kSurface = Color(0xFFDDFFE2);
+const _kSurfaceContainerLow = Color(0xFFCAFDD4);
+const _kSurfaceContainerHigh = Color(0xFFB5F0C2);
+const _kSurfaceContainerHighest = Color(0xFFACECBB);
+const _kSurfaceContainerLowest = Color(0xFFFFFFFF);
+const _kOnSurface = Color(0xFF0B361D);
+const _kOnSurfaceVariant = Color(0xFF3B6447);
+const _kPrimary = Color(0xFF006B1B);
+const _kPrimaryContainer = Color(0xFF76FB7A);
+const _kOnPrimaryContainer = Color(0xFF005E17);
 
 class MoodHistoryPage extends StatefulWidget {
   const MoodHistoryPage({super.key});
@@ -24,7 +37,8 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
   List<MoodEntry> _moodEntries = [];
   bool _isLoading = true;
   late TabController _tabController;
-  int _selectedMoodFilter = 0; // 0 = All, 1-5 = specific mood levels
+  int _currentTabIndex = 0; // source-of-truth for the pill UI (updates immediately on tap)
+  int _selectedMoodFilter = 0;
   DateTime _selectedMonth = DateTime.now();
   DateTime? _selectedDate;
 
@@ -65,7 +79,6 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
     }
   }
 
-  // Group entries by date
   Map<String, List<MoodEntry>> get _groupedEntries {
     final grouped = <String, List<MoodEntry>>{};
     for (var entry in _filteredEntries) {
@@ -78,7 +91,6 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
     return grouped;
   }
 
-  // Filter entries by mood level
   List<MoodEntry> get _filteredEntries {
     if (_selectedMoodFilter == 0) return _moodEntries;
     return _moodEntries
@@ -86,16 +98,22 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
         .toList();
   }
 
-  // Delete mood entry
   Future<void> _deleteMoodEntry(String entryId) async {
     try {
       await _supabaseService.deleteMoodEntry(entryId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mood entry deleted'),
-            backgroundColor: Color(0xFF4CAF50),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(
+              'Mood entry deleted',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: _kPrimary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 2),
           ),
         );
         _loadMoodEntries();
@@ -105,46 +123,61 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error deleting entry: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
     }
   }
 
-  // Show delete confirmation
   Future<bool?> _showDeleteDialog(BuildContext context) {
     return showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: _kSurfaceContainerLowest,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
           ),
-          title: const Text(
+          title: Text(
             'Delete Entry',
-            style: TextStyle(fontWeight: FontWeight.w700),
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w800,
+              color: _kOnSurface,
+            ),
           ),
-          content: const Text(
+          content: Text(
             'Are you sure you want to delete this mood entry?',
+            style: GoogleFonts.manrope(color: _kOnSurfaceVariant),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.manrope(
+                  color: _kOnSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade400,
+                backgroundColor: Colors.red.shade500,
                 foregroundColor: Colors.white,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Delete',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -156,54 +189,39 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: _kSurface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: _kSurface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        automaticallyImplyLeading: Navigator.canPop(context),
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: _kPrimary,
+                  size: 20,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
               )
             : null,
         title: Text(
           context.l10n.moodHistory,
-          style: const TextStyle(
-            color: Colors.black,
+          style: GoogleFonts.plusJakartaSans(
+            color: _kPrimary,
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w800,
           ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.add_rounded,
-                color: Color(0xFF4CAF50),
-                size: 20,
-              ),
+            icon: const Icon(
+              Icons.analytics_outlined,
+              color: _kOnSurfaceVariant,
+              size: 22,
             ),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MoodLogPage()),
-              );
-              if (result == true && mounted) {
-                setState(() {});
-              }
-            },
-            tooltip: 'Log Mood',
-          ),
-          IconButton(
-            icon: const Icon(Icons.analytics_outlined, color: Colors.black),
             onPressed: () {
               Navigator.push(
                 context,
@@ -214,30 +232,43 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
             },
             tooltip: 'View Analytics',
           ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MoodLogPage()),
+                );
+                if (result == true && mounted) setState(() {});
+              },
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: _kPrimary,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _kPrimary.withValues(alpha: 0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.add, color: Colors.white, size: 22),
+              ),
+            ),
+          ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: const Color(0xFF4CAF50),
-          unselectedLabelColor: Colors.grey.shade600,
-          indicatorColor: const Color(0xFF4CAF50),
-          indicatorWeight: 3,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 15,
-          ),
-          tabs: [
-            Tab(text: context.l10n.grouped),
-            Tab(text: context.l10n.calendar),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: _buildTabSelector(),
         ),
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+              child: CircularProgressIndicator(color: _kPrimary),
             )
           : TabBarView(
               controller: _tabController,
@@ -246,37 +277,88 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
     );
   }
 
+  // ── Tab selector ──────────────────────────────────────────────────────────
+
+  Widget _buildTabSelector() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: _kSurfaceContainerLow,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Row(
+          children: [
+            _buildTabItem(0, context.l10n.grouped),
+            _buildTabItem(1, context.l10n.calendar),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabItem(int index, String label) {
+    final selected = _currentTabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() => _currentTabIndex = index);
+          _tabController.animateTo(index);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? _kPrimary : Colors.transparent,
+            borderRadius: BorderRadius.circular(100),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: _kPrimary.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.manrope(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : _kOnSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Grouped view ──────────────────────────────────────────────────────────
+
   Widget _buildGroupedView() {
     final grouped = _groupedEntries;
     final sortedKeys = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return Column(
       children: [
-        // Mood filter bar (always visible in Grouped view)
-        MoodFilterBar(
-          selectedFilter: _selectedMoodFilter,
-          onFilterChanged: (value) {
-            setState(() {
-              _selectedMoodFilter = value;
-            });
-          },
-        ),
-
-        // Content area
+        _buildFilterChips(),
         Expanded(
           child: grouped.isEmpty
               ? const MoodEmptyState()
               : RefreshIndicator(
                   onRefresh: _loadMoodEntries,
-                  color: const Color(0xFF4CAF50),
+                  color: _kPrimary,
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
                     itemCount: sortedKeys.length,
                     itemBuilder: (context, index) {
                       final dateKey = sortedKeys[index];
                       final entries = grouped[dateKey]!;
                       final date = DateTime.parse(dateKey);
-
                       return _buildDateGroup(date, entries);
                     },
                   ),
@@ -286,100 +368,166 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
     );
   }
 
+  Widget _buildFilterChips() {
+    final l10n = AppLocalizations.of(context)!;
+    final filters = [
+      (0, l10n.all, ''),
+      (1, l10n.veryPoor, '😫'),
+      (2, l10n.poor, '😞'),
+      (3, l10n.okay, '😐'),
+      (4, l10n.good, '😊'),
+      (5, l10n.excellent, '🤩'),
+    ];
+
+    return SizedBox(
+      height: 56,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final (value, label, emoji) = filters[index];
+          final selected = _selectedMoodFilter == value;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedMoodFilter = value),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: selected ? _kPrimary : _kSurfaceContainerHighest,
+                borderRadius: BorderRadius.circular(100),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: _kPrimary.withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (emoji.isNotEmpty) ...[
+                    Text(emoji, style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(
+                    label,
+                    style: GoogleFonts.manrope(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color:
+                          selected ? Colors.white : _kOnSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildDateGroup(DateTime date, List<MoodEntry> entries) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final entryDate = DateTime(date.year, date.month, date.day);
 
     String dateLabel;
+    String dateSubLabel;
+
     if (entryDate == today) {
       dateLabel = context.l10n.today;
+      final locale = Localizations.localeOf(context).toString();
+      dateSubLabel = DateFormat('EEEE, d MMMM', locale).format(date);
     } else if (entryDate == today.subtract(const Duration(days: 1))) {
       dateLabel = context.l10n.yesterday;
-    } else {
-      // Use locale from context for date formatting
       final locale = Localizations.localeOf(context).toString();
-      dateLabel = DateFormat('EEEE, MMM dd', locale).format(date);
+      dateSubLabel = DateFormat('EEEE, d MMMM', locale).format(date);
+    } else {
+      final locale = Localizations.localeOf(context).toString();
+      dateLabel = DateFormat('EEEE', locale).format(date);
+      dateSubLabel = DateFormat('d MMMM', locale).format(date);
     }
 
-    // Calculate average mood for the day
     final avgMood =
         entries.fold<int>(0, (sum, e) => sum + e.moodLevel) / entries.length;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12, top: 16),
-          child: Row(
-            children: [
-              Text(
-                dateLabel,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A1A),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: MoodHelpers.getMoodColor(
-                    avgMood.round(),
-                  ).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: MoodHelpers.getMoodColor(
-                      avgMood.round(),
-                    ).withValues(alpha: 0.5),
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        dateLabel,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: _kOnSurface,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        dateSubLabel,
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: _kOnSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      MoodHelpers.getMoodEmoji(avgMood.round()),
-                      style: const TextStyle(fontSize: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _kPrimaryContainer.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${context.l10n.avg}: ${avgMood.toStringAsFixed(1)}',
+                    style: GoogleFonts.manrope(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: _kOnPrimaryContainer,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${context.l10n.avg}: ${avgMood.toStringAsFixed(1)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: MoodHelpers.getMoodColor(avgMood.round()),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Text(
-                '${entries.length} ${entries.length == 1 ? context.l10n.entry : context.l10n.entries}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        ...entries.map((entry) => _buildMoodEntryCard(entry, showDate: false)),
-      ],
+          ...entries.map(
+            (entry) => _buildMoodEntryCard(entry, showDate: false),
+          ),
+        ],
+      ),
     );
   }
 
+  // ── Calendar view ─────────────────────────────────────────────────────────
+
   Widget _buildCalendarView() {
     if (_moodEntries.isEmpty) {
-      return const MoodEmptyState(); // Corrected to return a Widget
+      return const MoodEmptyState();
     }
 
-    // Group entries by date
     final entriesByDate = <DateTime, List<MoodEntry>>{};
     for (var entry in _moodEntries) {
       final date = DateTime(
@@ -397,46 +545,39 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
       children: [
         // Month selector
         Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          color: _kSurface,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () {
-                  setState(() {
-                    _selectedMonth = DateTime(
-                      _selectedMonth.year,
-                      _selectedMonth.month - 1,
-                    );
-                  });
-                },
+              _buildMonthNavButton(
+                Icons.chevron_left_rounded,
+                () => setState(() {
+                  _selectedMonth = DateTime(
+                    _selectedMonth.year,
+                    _selectedMonth.month - 1,
+                  );
+                }),
               ),
               Text(
                 DateFormat('MMMM yyyy').format(_selectedMonth),
-                style: const TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
+                  color: _kOnSurface,
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () {
+              _buildMonthNavButton(
+                Icons.chevron_right_rounded,
+                () {
                   final now = DateTime.now();
-                  final nextMonth = DateTime(
+                  final next = DateTime(
                     _selectedMonth.year,
                     _selectedMonth.month + 1,
                   );
-                  if (nextMonth.isBefore(now) ||
-                      (nextMonth.year == now.year &&
-                          nextMonth.month == now.month)) {
-                    setState(() {
-                      _selectedMonth = nextMonth;
-                    });
+                  if (next.isBefore(now) ||
+                      (next.year == now.year && next.month == now.month)) {
+                    setState(() => _selectedMonth = next);
                   }
                 },
               ),
@@ -444,32 +585,39 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
           ),
         ),
 
-        // Calendar grid
         Expanded(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               child: Column(
                 children: [
                   _buildCalendarGrid(entriesByDate),
-
                   const SizedBox(height: 24),
-
-                  // Legend
                   const CalendarLegend(),
-
                   const SizedBox(height: 24),
-
-                  // Selected date entries
-                  if (_selectedDate != null) ...[
+                  if (_selectedDate != null)
                     _buildSelectedDateEntries(entriesByDate),
-                  ],
                 ],
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMonthNavButton(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: _kSurfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: _kOnSurface, size: 24),
+      ),
     );
   }
 
@@ -484,8 +632,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
       _selectedMonth.month + 1,
       0,
     );
-    final firstWeekday = firstDayOfMonth.weekday % 7; // 0 = Sunday
-
+    final firstWeekday = firstDayOfMonth.weekday % 7;
     final daysInMonth = lastDayOfMonth.day;
     final totalCells = ((daysInMonth + firstWeekday) / 7).ceil() * 7;
 
@@ -499,10 +646,10 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
                   child: Center(
                     child: Text(
                       day,
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: GoogleFonts.manrope(
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: Colors.grey.shade600,
+                        color: _kOnSurfaceVariant,
                       ),
                     ),
                   ),
@@ -512,20 +659,18 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
         ),
         const SizedBox(height: 12),
 
-        // Calendar grid
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 7,
             childAspectRatio: 1,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
+            crossAxisSpacing: 6,
+            mainAxisSpacing: 6,
           ),
           itemCount: totalCells,
           itemBuilder: (context, index) {
             final dayNumber = index - firstWeekday + 1;
-
             if (dayNumber < 1 || dayNumber > daysInMonth) {
               return const SizedBox.shrink();
             }
@@ -554,23 +699,20 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
 
             return GestureDetector(
               onTap: entries.isNotEmpty
-                  ? () {
-                      setState(() {
-                        _selectedDate = date;
-                      });
-                    }
+                  ? () => setState(() => _selectedDate = date)
                   : null,
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
                 decoration: BoxDecoration(
                   color: avgMood != null
                       ? MoodHelpers.getMoodColor(
                           avgMood.round(),
                         ).withValues(alpha: 0.3)
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
+                      : _kSurfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isSelected
-                        ? const Color(0xFF4CAF50)
+                        ? _kPrimary
                         : isToday
                         ? Colors.blue.shade400
                         : Colors.transparent,
@@ -582,33 +724,35 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
                     Center(
                       child: Text(
                         '$dayNumber',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: isToday
-                              ? FontWeight.w800
-                              : FontWeight.w600,
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight:
+                              isToday ? FontWeight.w800 : FontWeight.w600,
                           color: avgMood != null
-                              ? Colors.black87
-                              : Colors.grey.shade400,
+                              ? _kOnSurface
+                              : _kOnSurfaceVariant.withValues(alpha: 0.5),
                         ),
                       ),
                     ),
                     if (entries.isNotEmpty)
                       Positioned(
-                        bottom: 2,
-                        right: 2,
+                        bottom: 3,
+                        right: 3,
                         child: Container(
-                          padding: const EdgeInsets.all(2),
+                          width: 14,
+                          height: 14,
                           decoration: BoxDecoration(
                             color: MoodHelpers.getMoodColor(avgMood!.round()),
                             shape: BoxShape.circle,
                           ),
-                          child: Text(
-                            '${entries.length}',
-                            style: const TextStyle(
-                              fontSize: 8,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
+                          child: Center(
+                            child: Text(
+                              '${entries.length}',
+                              style: const TextStyle(
+                                fontSize: 8,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
@@ -627,7 +771,6 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
     Map<DateTime, List<MoodEntry>> entriesByDate,
   ) {
     final entries = entriesByDate[_selectedDate!] ?? [];
-
     if (entries.isEmpty) return const SizedBox.shrink();
 
     final avgMood =
@@ -639,9 +782,15 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            color: _kSurfaceContainerLowest,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: _kOnSurface.withValues(alpha: 0.06),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -651,17 +800,18 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
                   children: [
                     Text(
                       DateFormat('EEEE, MMMM dd').format(_selectedDate!),
-                      style: const TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
+                        color: _kOnSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${entries.length} ${entries.length == 1 ? context.l10n.entry : context.l10n.entries}',
-                      style: TextStyle(
+                      style: GoogleFonts.manrope(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: _kOnSurfaceVariant,
                       ),
                     ),
                   ],
@@ -669,33 +819,26 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                  horizontal: 14,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: MoodHelpers.getMoodColor(
-                    avgMood.round(),
-                  ).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: MoodHelpers.getMoodColor(
-                      avgMood.round(),
-                    ).withValues(alpha: 0.5),
-                  ),
+                  color: _kPrimaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
                   children: [
                     Text(
                       MoodHelpers.getMoodEmoji(avgMood.round()),
-                      style: const TextStyle(fontSize: 18),
+                      style: const TextStyle(fontSize: 20),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     Text(
                       avgMood.toStringAsFixed(1),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: MoodHelpers.getMoodColor(avgMood.round()),
+                      style: GoogleFonts.manrope(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: _kOnPrimaryContainer,
                       ),
                     ),
                   ],
@@ -710,6 +853,8 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
     );
   }
 
+  // ── Mood entry card ───────────────────────────────────────────────────────
+
   Widget _buildMoodEntryCard(MoodEntry entry, {required bool showDate}) {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final timeFormat = DateFormat('h:mm a');
@@ -718,28 +863,26 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
       key: Key(entry.entryId),
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) => _showDeleteDialog(context),
-      onDismissed: (direction) {
-        _deleteMoodEntry(entry.entryId);
-      },
+      onDismissed: (direction) => _deleteMoodEntry(entry.entryId),
       background: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         decoration: BoxDecoration(
-          color: Colors.red.shade400,
-          borderRadius: BorderRadius.circular(16),
+          color: Colors.red.shade500,
+          borderRadius: BorderRadius.circular(24),
         ),
         alignment: Alignment.centerRight,
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Icon(Icons.delete_outline, color: Colors.white, size: 28),
+            Icon(Icons.delete_outline_rounded, color: Colors.white, size: 26),
             SizedBox(width: 8),
             Text(
               'Delete',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
-                fontSize: 16,
+                fontSize: 15,
               ),
             ),
           ],
@@ -748,20 +891,20 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: _kSurfaceContainerLowest,
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: _kOnSurface.withValues(alpha: 0.06),
+              blurRadius: 32,
+              offset: const Offset(0, 12),
             ),
           ],
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
             onTap: () async {
               final result = await Navigator.push(
                 context,
@@ -769,146 +912,109 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
                   builder: (context) => MoodEntryDetailPage(entry: entry),
                 ),
               );
-
-              if (result == true) {
-                _loadMoodEntries(); // Reload if entry was edited
-              }
+              if (result == true) _loadMoodEntries();
             },
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+              padding: const EdgeInsets.all(20),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Date and mood level
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: MoodHelpers.getMoodColor(
-                            entry.moodLevel,
-                          ).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          MoodHelpers.getMoodEmoji(entry.moodLevel),
-                          style: const TextStyle(fontSize: 28),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
+                  // Emoji
+                  Text(
+                    MoodHelpers.getMoodEmoji(entry.moodLevel),
+                    style: const TextStyle(fontSize: 48),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Mood label + time
+                        Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              MoodHelpers.getMoodLabel(
-                                context,
-                                entry.moodLevel,
-                              ),
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: MoodHelpers.getMoodColor(
+                            Expanded(
+                              child: Text(
+                                MoodHelpers.getMoodLabel(
+                                  context,
                                   entry.moodLevel,
+                                ),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: _kOnSurface,
+                                  height: 1.1,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(width: 8),
                             Text(
                               showDate
-                                  ? '${dateFormat.format(entry.timestamp)} • ${timeFormat.format(entry.timestamp)}'
+                                  ? '${dateFormat.format(entry.timestamp)}\n${timeFormat.format(entry.timestamp)}'
                                   : timeFormat.format(entry.timestamp),
-                              style: TextStyle(
+                              textAlign: TextAlign.right,
+                              style: GoogleFonts.manrope(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w600,
+                                color: _kOnSurfaceVariant,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                    ],
-                  ),
 
-                  // Note
-                  if (entry.note != null && entry.note!.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        entry.note!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade800,
-                          height: 1.4,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-
-                  // Emotion factors
-                  if (entry.emotionFactors.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children:
-                          entry.emotionFactors.take(4).map((factor) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF81C784).withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: const Color(
-                                    0xFF4CAF50,
-                                  ).withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Text(
-                                _getEmotionFactorLabel(factor),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF2E7D32),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            );
-                          }).toList()..addAll(
-                            entry.emotionFactors.length > 4
-                                ? [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        '+${entry.emotionFactors.length - 4}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade700,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ]
-                                : [],
+                        // Note
+                        if (entry.note != null && entry.note!.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            '"${entry.note!}"',
+                            style: GoogleFonts.manrope(
+                              fontSize: 13,
+                              color: _kOnSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                              height: 1.5,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                           ),
+                        ],
+
+                        // Emotion factor tags
+                        if (entry.emotionFactors.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              ...entry.emotionFactors
+                                  .take(4)
+                                  .map((factor) => _buildTag(factor)),
+                              if (entry.emotionFactors.length > 4)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _kSurfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '+${entry.emotionFactors.length - 4}',
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: _kOnSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
@@ -918,10 +1024,27 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
     );
   }
 
-  String _getEmotionFactorLabel(String factor) {
-    // Normalize to lowercase for key matching (backward compatibility with old data)
-    final key = factor.toLowerCase().replaceAll(' ', '');
+  Widget _buildTag(String factor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: _kSurfaceContainerHigh,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        _getEmotionFactorLabel(factor).toUpperCase(),
+        style: GoogleFonts.manrope(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: _kOnPrimaryContainer,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
 
+  String _getEmotionFactorLabel(String factor) {
+    final key = factor.toLowerCase().replaceAll(' ', '');
     switch (key) {
       case 'work':
         return context.l10n.work;
@@ -944,7 +1067,7 @@ class _MoodHistoryPageState extends State<MoodHistoryPage>
       case 'food':
         return context.l10n.food;
       default:
-        return factor; // Return original if no match
+        return factor;
     }
   }
 }
