@@ -1207,4 +1207,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get monthlyHighlights => 'Nổi bật tháng này';
+
+  @override
+  String get joinAsExpert => 'Tham gia với vai trò Chuyên gia Tâm lý';
 }

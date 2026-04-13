@@ -561,5 +561,10 @@
   "keyInfluencers": "Yếu tố ảnh hưởng chính",
   "moodTrends": "Xu hướng tâm trạng",
   "distribution": "Phân bố",
-  "monthlyHighlights": "Nổi bật tháng này"
+  "monthlyHighlights": "Nổi bật tháng này",
+
+  "joinAsExpert": "Tham gia với vai trò Chuyên gia Tâm lý",
+  "@joinAsExpert": {
+    "description": "Văn bản nút đăng ký cho chuyên gia sức khỏe tâm thần"
+  }
 }

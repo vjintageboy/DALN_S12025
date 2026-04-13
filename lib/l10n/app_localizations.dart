@@ -2413,6 +2413,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Monthly Highlights'**
   String get monthlyHighlights;
+
+  /// Button text for mental health experts to sign up
+  ///
+  /// In en, this message translates to:
+  /// **'Join as Mental Health Expert'**
+  String get joinAsExpert;
 }
 
 class _AppLocalizationsDelegate

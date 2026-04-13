@@ -1199,4 +1199,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get monthlyHighlights => 'Monthly Highlights';
+
+  @override
+  String get joinAsExpert => 'Join as Mental Health Expert';
 }

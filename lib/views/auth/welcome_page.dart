@@ -337,7 +337,7 @@ class _WelcomePageState extends State<WelcomePage>
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: Text(
-                    'Track your emotions,\nelevate your mindset',
+                    context.l10n.appTagline,
                     style: GoogleFonts.plusJakartaSans(
                       color: AppColors.osOnSurface,
                       fontSize: 28,
@@ -354,7 +354,7 @@ class _WelcomePageState extends State<WelcomePage>
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: Text(
-                    'Nền tảng chăm sóc sức khỏe tinh thần toàn diện.',
+                    context.l10n.welcomeTagline,
                     style: GoogleFonts.manrope(
                       color: AppColors.osOnSurfaceVariant,
                       fontSize: 15,
@@ -428,14 +428,18 @@ class _WelcomePageState extends State<WelcomePage>
                                 color: AppColors.osPrimary,
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                'Join as Mental Health Expert',
-                                style: GoogleFonts.manrope(
-                                  color: AppColors.osOnSurfaceVariant,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: AppColors.osOnSurfaceVariant,
+                              Flexible(
+                                child: Text(
+                                  context.l10n.joinAsExpert,
+                                  softWrap: true,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.manrope(
+                                    color: AppColors.osOnSurfaceVariant,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: AppColors.osOnSurfaceVariant,
+                                  ),
                                 ),
                               ),
                             ],

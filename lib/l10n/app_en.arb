@@ -561,5 +561,10 @@
   "keyInfluencers": "Key Influencers",
   "moodTrends": "Mood Trends",
   "distribution": "Distribution",
-  "monthlyHighlights": "Monthly Highlights"
+  "monthlyHighlights": "Monthly Highlights",
+
+  "joinAsExpert": "Join as Mental Health Expert",
+  "@joinAsExpert": {
+    "description": "Button text for mental health experts to sign up"
+  }
 }
