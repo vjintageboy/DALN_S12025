@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import '../models/chat_room.dart';
 import '../models/chat_message.dart';
@@ -10,98 +13,50 @@ class ChatService {
   final SupabaseClient _supabase = SupabaseService.instance.client;
 
   Future<int> syncAppointmentChatRoomsForUser(String userId) async {
-    if (userId.isEmpty) return 0;
-    try {
-      final appointments = await _supabase
-          .from('appointments')
-          .select('id, user_id, expert_id')
-          .or('user_id.eq.$userId,expert_id.eq.$userId');
-
-      if (appointments.isEmpty) return 0;
-
-      var changedRooms = 0;
-      for (final row in appointments) {
-        final map = Map<String, dynamic>.from(row);
-        final appointmentId = map['id']?.toString() ?? '';
-        final appointmentUserId = map['user_id']?.toString() ?? '';
-        final appointmentExpertId = map['expert_id']?.toString() ?? '';
-
-        if (appointmentId.isEmpty ||
-            appointmentUserId.isEmpty ||
-            appointmentExpertId.isEmpty) {
-          continue;
-        }
-
-        final roomId = await _ensureAppointmentRoomAndParticipants(
-          appointmentId: appointmentId,
-          userId: appointmentUserId,
-          expertId: appointmentExpertId,
-          allowCreateRoom: false,
-        );
-
-        if (roomId != null) changedRooms++;
-      }
-
-      return changedRooms;
-    } catch (e) {
-      if (_isRlsDenied(e)) {
-        debugPrint(
-          '⚠️ Sync skipped by RLS (chat_rooms insert/select policy). Existing rooms are still shown if accessible.',
-        );
-        return 0;
-      }
-      debugPrint('❌ Error syncing appointment chat rooms: $e');
-      return 0;
-    }
+    // Room creation is now handled entirely by Edge Functions.
+    // Client-side sync is no longer needed.
+    return 0;
   }
 
-  // Create or get existing appointment chat room
+  // Create or get existing appointment chat room via Edge Function (bypasses RLS)
   Future<String> createOrGetChatRoom({
     required String appointmentId,
     required String userId,
     required String expertId,
   }) async {
     try {
-      final existingRoom = await _supabase
-          .from('chat_rooms')
-          .select('id')
-          .eq('appointment_id', appointmentId)
-          .maybeSingle();
+      final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+      final anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+      if (supabaseUrl.isEmpty || anonKey.isEmpty) {
+        throw Exception('Supabase not configured');
+      }
+      final edgeFunctionUrl = '$supabaseUrl/functions/v1/create-chat-room';
 
-      String roomId;
-      if (existingRoom != null) {
-        roomId = existingRoom['id'].toString();
-      } else {
-        final inserted = await _supabase
-            .from('chat_rooms')
-            .insert({
-              'appointment_id': appointmentId,
-              'status': ChatRoomStatus.active.name,
-              'room_type': 'appointment',
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .select('id')
-            .single();
-        roomId = inserted['id'].toString();
+      final response = await http.post(
+        Uri.parse(edgeFunctionUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': anonKey,
+          'Authorization': 'Bearer $anonKey',
+        },
+        body: jsonEncode({
+          'appointmentId': appointmentId,
+          'userId': userId,
+          'expertId': expertId,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        final errorBody = jsonDecode(response.body);
+        throw Exception(
+            'Edge Function failed: ${errorBody['error'] ?? response.body}');
       }
 
-      await _upsertParticipant(roomId, userId);
-      await _upsertParticipant(roomId, expertId);
-
-      final hasSystemMessage = await _hasSystemMessage(roomId);
-      if (!hasSystemMessage) {
-        await sendMessage(
-          roomId: roomId,
-          senderId: userId,
-          content:
-              'System: Bạn đã được kết nối với Expert cho buổi tư vấn. Hãy bắt đầu trò chuyện nếu bạn muốn trao đổi trước buổi hẹn.',
-          type: MessageType.system,
-        );
-      }
-
+      final data = jsonDecode(response.body);
+      final roomId = data['roomId'] as String;
       return roomId;
     } catch (e) {
-      debugPrint('❌ Error creating/getting chat room: $e');
+      debugPrint('❌ Error creating/getting chat room via Edge Function: $e');
       rethrow;
     }
   }
@@ -111,48 +66,38 @@ class ChatService {
     required String userB,
   }) async {
     try {
-      final participants = [userA, userB]..sort();
-      final directKey = '${participants.first}:${participants.last}';
+      final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+      final anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+      if (supabaseUrl.isEmpty || anonKey.isEmpty) {
+        throw Exception('Supabase not configured');
+      }
+      final edgeFunctionUrl =
+          '$supabaseUrl/functions/v1/create-direct-chat-room';
 
-      final existingRoom = await _supabase
-          .from('chat_rooms')
-          .select('id')
-          .eq('direct_key', directKey)
-          .maybeSingle();
+      final response = await http.post(
+        Uri.parse(edgeFunctionUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': anonKey,
+          'Authorization': 'Bearer $anonKey',
+        },
+        body: jsonEncode({'userA': userA, 'userB': userB}),
+      );
 
-      if (existingRoom != null) {
-        return existingRoom['id'].toString();
+      if (response.statusCode != 200) {
+        final errorBody = jsonDecode(response.body);
+        throw Exception(
+            'Edge Function failed: ${errorBody['error'] ?? response.body}');
       }
 
-      final inserted = await _supabase
-          .from('chat_rooms')
-          .insert({
-            'status': ChatRoomStatus.active.name,
-            'room_type': 'direct',
-            'direct_key': directKey,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .select('id')
-          .single();
-
-      final roomId = inserted['id'].toString();
-      await _upsertParticipant(roomId, userA);
-      await _upsertParticipant(roomId, userB);
+      final data = jsonDecode(response.body);
+      final roomId = data['roomId'] as String;
       return roomId;
     } catch (e) {
-      debugPrint('❌ Error creating/getting direct chat room: $e');
+      debugPrint(
+          '❌ Error creating/getting direct chat room via Edge Function: $e');
       rethrow;
     }
-  }
-
-  Future<bool> _hasSystemMessage(String roomId) async {
-    final rows = await _supabase
-        .from('messages')
-        .select('id')
-        .eq('room_id', roomId)
-        .eq('type', MessageType.system.name)
-        .limit(1);
-    return rows.isNotEmpty;
   }
 
   // Wrapper for backward compatibility
@@ -401,84 +346,6 @@ class ChatService {
   }) async {
     // Typing feature is temporarily disabled.
     return;
-  }
-
-  Future<void> _upsertParticipant(String roomId, String userId) async {
-    if (roomId.isEmpty || userId.isEmpty) {
-      return;
-    }
-    await _supabase.from('chat_participants').upsert({
-      'room_id': roomId,
-      'user_id': userId,
-    });
-  }
-
-  Future<String?> _ensureAppointmentRoomAndParticipants({
-    required String appointmentId,
-    required String userId,
-    required String expertId,
-    bool allowCreateRoom = true,
-  }) async {
-    try {
-      final existingRoom = await _supabase
-          .from('chat_rooms')
-          .select('id')
-          .eq('appointment_id', appointmentId)
-          .maybeSingle();
-
-      String? roomId;
-      if (existingRoom != null) {
-        roomId = existingRoom['id'].toString();
-      } else {
-        if (!allowCreateRoom) {
-          return null;
-        }
-
-        final inserted = await _supabase
-            .from('chat_rooms')
-            .insert({
-              'appointment_id': appointmentId,
-              'status': ChatRoomStatus.active.name,
-              'room_type': 'appointment',
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .select('id')
-            .single();
-        roomId = inserted['id'].toString();
-      }
-
-      await _upsertParticipant(roomId, userId);
-      await _upsertParticipant(roomId, expertId);
-
-      final participantRows = await _supabase
-          .from('chat_participants')
-          .select('user_id')
-          .eq('room_id', roomId)
-          .inFilter('user_id', [userId, expertId]);
-
-      if (participantRows.length < 2) {
-        debugPrint(
-          '⚠️ Participant sync incomplete for room $roomId (appointment $appointmentId). Retrying...',
-        );
-        await _upsertParticipant(roomId, userId);
-        await _upsertParticipant(roomId, expertId);
-      }
-
-      return roomId;
-    } catch (e) {
-      if (_isRlsDenied(e)) {
-        debugPrint(
-          '⚠️ RLS denied room sync for appointment $appointmentId. Skipping client-side room creation.',
-        );
-        return null;
-      }
-      debugPrint('❌ Error ensuring appointment room participants: $e');
-      return null;
-    }
-  }
-
-  bool _isRlsDenied(Object error) {
-    return error is PostgrestException && error.code == '42501';
   }
 
   // Check if user can send message based on appointment status and time

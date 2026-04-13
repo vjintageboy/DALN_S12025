@@ -22,34 +22,15 @@ class _ChatListPageState extends State<ChatListPage> {
   final SupabaseService _supabaseService = SupabaseService.instance;
   String get _currentAuthId => Supabase.instance.client.auth.currentUser?.id ?? '';
 
-  bool _isSyncingRooms = false;
-  int _lastSyncedRooms = 0;
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncRoomsFromAppointments();
-    });
   }
 
   Future<void> _syncRoomsFromAppointments() async {
-    if (_isSyncingRooms) return;
-    if (_currentAuthId.isEmpty) return;
-
-    setState(() {
-      _isSyncingRooms = true;
-    });
-
-    final changed = await _chatService.syncAppointmentChatRoomsForUser(
-      _currentAuthId,
-    );
-
-    if (!mounted) return;
-    setState(() {
-      _isSyncingRooms = false;
-      _lastSyncedRooms = changed;
-    });
+    // Room creation is now handled by Edge Functions.
+    // This method is kept for UI compatibility only.
+    return;
   }
 
   @override
@@ -63,14 +44,8 @@ class _ChatListPageState extends State<ChatListPage> {
         actions: [
           IconButton(
             tooltip: 'Đồng bộ cuộc trò chuyện',
-            onPressed: _isSyncingRooms ? null : _syncRoomsFromAppointments,
-            icon: _isSyncingRooms
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.sync, color: Colors.black87),
+            onPressed: () => _syncRoomsFromAppointments(),
+            icon: const Icon(Icons.sync),
           ),
         ],
       ),
@@ -103,16 +78,6 @@ class _ChatListPageState extends State<ChatListPage> {
                     'Chưa có tin nhắn nào',
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _isSyncingRooms ? null : _syncRoomsFromAppointments,
-                    icon: const Icon(Icons.sync),
-                    label: Text(
-                      _isSyncingRooms
-                          ? 'Đang đồng bộ...'
-                          : 'Đồng bộ từ lịch hẹn',
-                    ),
-                  ),
                   const SizedBox(height: 20),
                   // DEBUG INFO
                   Container(
@@ -127,10 +92,6 @@ class _ChatListPageState extends State<ChatListPage> {
                         const Text(
                           'Querying: Supabase chat_participants by current user',
                           style: TextStyle(fontSize: 11),
-                        ),
-                        Text(
-                          'Last Sync Changed Rooms: $_lastSyncedRooms',
-                          style: const TextStyle(fontSize: 11),
                         ),
                         Text(
                           'Chats Found: ${chatRooms.length}',
