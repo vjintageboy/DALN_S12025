@@ -1,5 +1,5 @@
-import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   final Function(int)? onNavigate;
@@ -11,8 +11,7 @@ class AdminDashboardPage extends StatefulWidget {
 }
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final _supabase = Supabase.instance.client;
 
   bool _isLoading = true;
 
@@ -23,6 +22,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   int _totalAppointments = 0;
   int _pendingExpertApplications = 0;
   int _todayAppointments = 0;
+
+  String get _currentUserName =>
+      _supabase.auth.currentUser?.userMetadata?['full_name'] as String? ??
+      _supabase.auth.currentUser?.email?.split('@').first ??
+      'Admin';
 
   @override
   void initState() {
@@ -35,53 +39,39 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
     try {
       final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
+      final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
+      final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59).toIso8601String();
 
-      // Load all stats in parallel (no need to fetch 'experts' collection for counting)
       final results = await Future.wait([
-        _db.collection('users').get(),
-        _db.collection('meditations').get(),
-        _db.collection('appointments').get(),
-        _db.collection('expertUsers').get(),
+        _supabase.from('users').select('role'),
+        _supabase.from('meditations').select('id'),
+        _supabase.from('appointments').select('id, appointment_date'),
+        _supabase.from('experts').select('id, is_approved'),
       ]);
 
-      final usersSnapshot = results[0];
-      final meditationsSnapshot = results[1];
-      final appointmentsSnapshot = results[2];
-      final expertUsersSnapshot = results[3];
+      final users = results[0] as List;
+      final meditations = results[1] as List;
+      final appointments = results[2] as List;
+      final experts = results[3] as List;
 
-      // Filter users by role (count regular users and experts separately)
-      final regularUsersCount = usersSnapshot.docs.where((doc) {
-        final data = doc.data();
-        return data['role'] == 'user';
-      }).length;
-      // Count users that have role 'expert' (more reliable than raw 'experts' collection)
-      final expertUsersCount = usersSnapshot.docs.where((doc) {
-        final data = doc.data();
-        return data['role'] == 'expert';
-      }).length;
+      final regularUsersCount = users.where((u) => u['role'] == 'user').length;
+      final expertUsersCount = users.where((u) => u['role'] == 'expert').length;
+      final pendingExpertsCount = experts.where((e) => e['is_approved'] == false).length;
 
-      // Filter expertUsers by status (count pending applications)
-      final pendingExpertsCount = expertUsersSnapshot.docs.where((doc) {
-        final data = doc.data();
-        return data['status'] == 'pending';
-      }).length;
-
-      // Count today's appointments
-      final todayAppts = appointmentsSnapshot.docs.where((doc) {
-        final data = doc.data();
-        final aptDate = (data['appointmentDate'] as DateTime).toDate();
-        return aptDate.year == today.year &&
-            aptDate.month == today.month &&
-            aptDate.day == today.day;
+      final todayAppts = appointments.where((a) {
+        final dateStr = a['appointment_date'] as String?;
+        if (dateStr == null) return false;
+        final date = DateTime.tryParse(dateStr);
+        if (date == null) return false;
+        return date.isAfter(DateTime.parse(todayStart)) &&
+            date.isBefore(DateTime.parse(todayEnd));
       }).length;
 
       setState(() {
         _totalUsers = regularUsersCount;
-        // Use expertUsersCount (users with role 'expert') as the authoritative expert count
         _totalExperts = expertUsersCount;
-        _totalMeditations = meditationsSnapshot.docs.length;
-        _totalAppointments = appointmentsSnapshot.docs.length;
+        _totalMeditations = meditations.length;
+        _totalAppointments = appointments.length;
         _pendingExpertApplications = pendingExpertsCount;
         _todayAppointments = todayAppts;
         _isLoading = false;
@@ -352,7 +342,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _auth.currentUser?.displayName ?? 'Admin',
+                              _currentUserName,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,

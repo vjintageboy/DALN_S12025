@@ -1,5 +1,5 @@
-import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/meditation.dart';
 import 'edit_meditation_page.dart';
 import 'add_meditation_page.dart';
@@ -14,7 +14,7 @@ class MeditationManagementPage extends StatefulWidget {
 }
 
 class _MeditationManagementPageState extends State<MeditationManagementPage> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final _supabase = Supabase.instance.client;
   List<Meditation> _meditations = [];
   List<Meditation> _filteredMeditations = [];
   bool _isLoading = true;
@@ -32,7 +32,11 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
     setState(() => _isLoading = true);
 
     try {
-      final meditations = await _firestoreService.getAllMeditations();
+      final data = await _supabase
+          .from('meditations')
+          .select()
+          .order('created_at', ascending: false);
+      final meditations = (data as List).map((m) => Meditation.fromMap(m)).toList();
       setState(() {
         _meditations = meditations;
         _filteredMeditations = meditations;
@@ -99,7 +103,7 @@ class _MeditationManagementPageState extends State<MeditationManagementPage> {
     if (confirm != true) return;
 
     try {
-      await _firestoreService.deleteMeditation(meditation.meditationId);
+      await _supabase.from('meditations').delete().eq('id', meditation.meditationId);
       _loadMeditations();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

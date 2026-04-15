@@ -1,5 +1,5 @@
-import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/meditation.dart';
 
 /// Edit Meditation Page - Trang chỉnh sửa meditation (Admin only)
@@ -20,6 +20,7 @@ class _EditMeditationPageState extends State<EditMeditationPage> {
   late TextEditingController _audioUrlController;
   late TextEditingController _thumbnailUrlController;
 
+  final _supabase = Supabase.instance.client;
   late MeditationCategory _selectedCategory;
   late MeditationLevel _selectedLevel;
   bool _isSaving = false;
@@ -63,21 +64,20 @@ class _EditMeditationPageState extends State<EditMeditationPage> {
       final updates = {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'duration': int.parse(_durationController.text),
+        'duration_minutes': int.parse(_durationController.text),
         'category': _selectedCategory.toString().split('.').last,
-        'level': _selectedLevel.toString().split('.').last,
-        'audioUrl': _audioUrlController.text.trim().isEmpty
+        'audio_url': _audioUrlController.text.trim().isEmpty
             ? null
             : _audioUrlController.text.trim(),
-        'thumbnailUrl': _thumbnailUrlController.text.trim().isEmpty
+        'thumbnail_url': _thumbnailUrlController.text.trim().isEmpty
             ? null
             : _thumbnailUrlController.text.trim(),
       };
 
-      await FirestoreService().updateMeditation(
-        widget.meditation.meditationId,
-        updates,
-      );
+      await _supabase
+          .from('meditations')
+          .update(updates)
+          .eq('id', widget.meditation.meditationId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

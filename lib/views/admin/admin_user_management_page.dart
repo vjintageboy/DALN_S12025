@@ -1,5 +1,5 @@
-import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/app_user.dart';
 
 class AdminUserManagementPage extends StatefulWidget {
@@ -11,12 +11,50 @@ class AdminUserManagementPage extends StatefulWidget {
 }
 
 class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final _supabase = Supabase.instance.client;
   String _searchQuery = '';
   String _filterRole = 'all'; // all, user, expert, admin
+  List<Map<String, dynamic>>? _allUsers;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await _supabase
+          .from('users')
+          .select()
+          .order('created_at', ascending: false);
+      setState(() {
+        _allUsers = List<Map<String, dynamic>>.from(data);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  List<Map<String, dynamic>> _computeFilteredUsers() {
+    final all = _allUsers ?? const <Map<String, dynamic>>[];
+    return all.where((data) {
+      final user = AppUser.fromMap(data);
+      if (_filterRole != 'all' && user.role.name != _filterRole) return false;
+      if (_searchQuery.isNotEmpty) {
+        return user.displayName.toLowerCase().contains(_searchQuery) ||
+            user.email.toLowerCase().contains(_searchQuery);
+      }
+      return true;
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final filteredUsers = _isLoading ? <Map<String, dynamic>>[] : _computeFilteredUsers();
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
@@ -32,6 +70,12 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
         ),
         centerTitle: true,
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadUsers,
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -76,101 +120,57 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
 
           // Users List
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _getUsersStream(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-
-                if (!snapshot.hasData) {
-                  return const Center(
+            child: _isLoading
+                ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFF7B2BB0)),
-                  );
-                }
-
-                var users = snapshot.data!.docs
-                    .map((doc) {
-                      final data = doc.data();
-                      final userData = Map<String, dynamic>.from(data);
-                      userData['id'] = doc.id;
-                      return {
-                        'user': AppUser.fromMap(userData),
-                        'isBanned': data['isBanned'] ?? false,
-                        'banReason': data['banReason'] as String?,
-                      };
-                    })
-                    .where((item) {
-                      final user = item['user'] as AppUser;
-                      // Filter by role
-                      if (_filterRole != 'all' &&
-                          user.role.name != _filterRole) {
-                        return false;
-                      }
-                      // Filter by search query
-                      if (_searchQuery.isNotEmpty) {
-                        return user.displayName.toLowerCase().contains(
-                              _searchQuery,
-                            ) ||
-                            user.email.toLowerCase().contains(_searchQuery);
-                      }
-                      return true;
-                    })
-                    .toList();
-
-                // Sort by createdAt in Dart (newest first)
-                users.sort((a, b) {
-                  final userA = a['user'] as AppUser;
-                  final userB = b['user'] as AppUser;
-                  final dateA = userA.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-                  final dateB = userB.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-                  return dateB.compareTo(dateA);
-                });
-
-                if (users.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 64,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No users found',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade600,
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadUsers,
+                    color: const Color(0xFF7B2BB0),
+                    child: filteredUsers.isEmpty
+                        ? ListView(
+                            children: [
+                              SizedBox(
+                                height: 300,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.people_outline,
+                                        size: 64,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'No users found',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredUsers.length,
+                            itemBuilder: (context, index) {
+                              final data = filteredUsers[index];
+                              final user = AppUser.fromMap(data);
+                              final isBanned = data['is_banned'] as bool? ?? false;
+                              final banReason = data['ban_reason'] as String?;
+                              return _buildUserCard(user, isBanned, banReason);
+                            },
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: users.length,
-                  itemBuilder: (context, index) {
-                    final user = users[index]['user'] as AppUser;
-                    final isBanned = users[index]['isBanned'] as bool;
-                    final banReason = users[index]['banReason'] as String?;
-                    return _buildUserCard(user, isBanned, banReason);
-                  },
-                );
-              },
-            ),
+                  ),
           ),
         ],
       ),
     );
-  }
-
-  Stream<QuerySnapshot> _getUsersStream() {
-    // Fetch all users without orderBy to avoid composite index requirement
-    return _db.collection('users').snapshots();
   }
 
   Widget _buildFilterChip(String label, String value) {
@@ -214,7 +214,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                 radius: 24,
                 backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.2),
                 child: Text(
-                  user.displayName.substring(0, 1).toUpperCase(),
+                  _userInitial(user),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -425,6 +425,20 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  String _userInitial(AppUser user) {
+    final displayName = user.displayName.trim();
+    if (displayName.isNotEmpty) {
+      return displayName.characters.first.toUpperCase();
+    }
+
+    final email = user.email.trim();
+    if (email.isNotEmpty) {
+      return email.characters.first.toUpperCase();
+    }
+
+    return '?';
+  }
+
   Future<void> _handleAction(String action, AppUser user) async {
     switch (action) {
       case 'ban':
@@ -444,11 +458,12 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
     if (reason == null) return;
 
     try {
-      await _db.collection('users').doc(user.id).update({
-        'isBanned': true,
-        'banReason': reason,
-      });
+      await _supabase.from('users').update({
+        'is_banned': true,
+        'ban_reason': reason,
+      }).eq('id', user.id);
 
+      await _loadUsers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User banned successfully')),
@@ -456,20 +471,21 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     }
   }
 
   Future<void> _unbanUser(AppUser user) async {
     try {
-      await _db.collection('users').doc(user.id).update({
-        'isBanned': false,
-        'banReason': FieldValue.delete(),
-      });
+      await _supabase.from('users').update({
+        'is_banned': false,
+        'ban_reason': null,
+      }).eq('id', user.id);
 
+      await _loadUsers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User unbanned successfully')),
@@ -477,9 +493,9 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     }
   }
@@ -489,8 +505,9 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
     if (!confirmed) return;
 
     try {
-      await _db.collection('users').doc(user.id).delete();
+      await _supabase.from('users').delete().eq('id', user.id);
 
+      await _loadUsers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User deleted successfully')),
@@ -498,9 +515,9 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     }
   }

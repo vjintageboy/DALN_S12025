@@ -1,5 +1,5 @@
-import 'package:n04_app/dummy_firebase.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/meditation.dart';
 
 /// Add Meditation Page - Trang thêm meditation mới (Admin only)
@@ -11,6 +11,7 @@ class AddMeditationPage extends StatefulWidget {
 }
 
 class _AddMeditationPageState extends State<AddMeditationPage> {
+  final _supabase = Supabase.instance.client;
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -38,26 +39,18 @@ class _AddMeditationPageState extends State<AddMeditationPage> {
     setState(() => _isSaving = true);
 
     try {
-      final meditationId = 'med_${DateTime.now().millisecondsSinceEpoch}';
-
-      final meditation = Meditation(
-        meditationId: meditationId,
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        duration: int.parse(_durationController.text),
-        category: _selectedCategory,
-        level: _selectedLevel,
-        audioUrl: _audioUrlController.text.trim().isEmpty
+      await _supabase.from('meditations').insert({
+        'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'duration_minutes': int.parse(_durationController.text),
+        'category': _selectedCategory.toString().split('.').last,
+        'audio_url': _audioUrlController.text.trim().isEmpty
             ? null
             : _audioUrlController.text.trim(),
-        thumbnailUrl: _thumbnailUrlController.text.trim().isEmpty
+        'thumbnail_url': _thumbnailUrlController.text.trim().isEmpty
             ? null
             : _thumbnailUrlController.text.trim(),
-        rating: 0.0,
-        totalReviews: 0,
-      );
-
-      await FirestoreService().createMeditation(meditation);
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
