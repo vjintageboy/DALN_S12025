@@ -94,7 +94,7 @@ class _BookingPageState extends State<BookingPage> {
         setState(() => _isLoadingExpert = false);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load expert info: $e')),
+          SnackBar(content: Text(context.l10n.couldNotLoadExpertInfo(e.toString()))),
         );
       }
     }
@@ -258,7 +258,7 @@ class _BookingPageState extends State<BookingPage> {
       if (mounted) setState(() => _isLoadingSlots = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading slots: $e')),
+          SnackBar(content: Text(context.l10n.errorLoadingSlots(e.toString()))),
         );
       }
     }
@@ -382,7 +382,10 @@ class _BookingPageState extends State<BookingPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${_expert!.fullName} is not available on ${DateFormat('EEEE').format(selectedDay)}',
+            context.l10n.expertNotAvailableOnDay(
+              _expert!.fullName,
+              DateFormat('EEEE').format(selectedDay),
+            ),
           ),
           backgroundColor: Colors.orange,
         ),
@@ -413,8 +416,8 @@ class _BookingPageState extends State<BookingPage> {
   Future<void> _confirmBooking() async {
     if (_selectedDay == null || _selectedTimeSlot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select date and time'),
+        SnackBar(
+          content: Text(context.l10n.pleaseSelectDateAndTime),
           backgroundColor: Colors.orange,
         ),
       );
@@ -426,7 +429,7 @@ class _BookingPageState extends State<BookingPage> {
     if (user == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please login first')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.pleaseLoginFirst)));
       return;
     }
 
@@ -516,13 +519,13 @@ class _BookingPageState extends State<BookingPage> {
     // Conflict messages (both EN + VI)
     if (message.contains('already have an appointment') ||
         message.contains('đã có lịch hẹn')) {
-      return 'You already have an appointment at this time. Please choose another time slot.';
+      return context.l10n.bookingConflictAlreadyHaveAppointment;
     }
 
     if (message.contains('not available') ||
         message.contains('không rảnh') ||
         message.contains('không khả dụng')) {
-      return 'This expert is not available at the selected time. Please choose another time slot.';
+      return context.l10n.bookingConflictExpertNotAvailable;
     }
 
     // Supabase/Postgres common causes
@@ -531,23 +534,23 @@ class _BookingPageState extends State<BookingPage> {
 
       if (pgMessage.contains('invalid input value for enum') &&
           pgMessage.contains('call_type')) {
-        return 'Call type configuration is invalid in database. Please contact admin.';
+        return context.l10n.bookingInvalidCallTypeConfig;
       }
 
       if (pgMessage.contains('foreign key') &&
           (pgMessage.contains('expert_id') || pgMessage.contains('user_id'))) {
-        return 'Booking data is invalid (expert/user not found). Please reopen this page and try again.';
+        return context.l10n.bookingInvalidData;
       }
 
       if (pgMessage.contains('row-level security') ||
           pgMessage.contains('permission')) {
-        return 'You do not have permission to create this appointment. Please sign in again.';
+        return context.l10n.bookingNoPermission;
       }
 
-      return 'Booking failed: ${e.message}';
+      return context.l10n.bookingFailedWithReason(e.message);
     }
 
-    return 'Failed to book appointment. Please try again.';
+    return context.l10n.bookingFailedGeneric;
   }
 
   @override
@@ -561,8 +564,8 @@ class _BookingPageState extends State<BookingPage> {
 
     if (_expert == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Error')),
-        body: const Center(child: Text('Expert not found')),
+        appBar: AppBar(title: Text(context.l10n.error)),
+        body: Center(child: Text(context.l10n.expertNotFound)),
       );
     }
 
@@ -771,7 +774,9 @@ class _BookingPageState extends State<BookingPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Available Time Slots - ${DateFormat('EEE, MMM d').format(_selectedDay!)}',
+                      context.l10n.availableTimeSlotsOnDate(
+                        DateFormat('EEE, MMM d').format(_selectedDay!),
+                      ),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -798,7 +803,7 @@ class _BookingPageState extends State<BookingPage> {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'No available slots for this day',
+                                context.l10n.noAvailableSlotsForThisDay,
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -808,8 +813,10 @@ class _BookingPageState extends State<BookingPage> {
                               const SizedBox(height: 4),
                               Text(
                                 _isDayAvailable(_selectedDay!)
-                                    ? 'All slots are fully booked'
-                                    : 'Expert is not available on ${DateFormat('EEEE').format(_selectedDay!)}s',
+                                    ? context.l10n.allSlotsAreFullyBooked
+                                    : context.l10n.expertIsNotAvailableOnSelectedDay(
+                                        DateFormat('EEEE').format(_selectedDay!),
+                                      ),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey.shade600,
@@ -887,7 +894,7 @@ class _BookingPageState extends State<BookingPage> {
                       controller: _notesController,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        hintText: 'Any notes for the expert?',
+                        hintText: context.l10n.anyNotesForExpert,
                         hintStyle: TextStyle(color: Colors.grey.shade400),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -922,7 +929,7 @@ class _BookingPageState extends State<BookingPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'You can cancel up to 4 hours before your appointment',
+                        context.l10n.cancelUpTo4HoursBeforeAppointment,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.orange.shade700,
@@ -961,7 +968,7 @@ class _BookingPageState extends State<BookingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Total',
+                    context.l10n.amount,
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 4),
@@ -992,9 +999,12 @@ class _BookingPageState extends State<BookingPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Continue to Payment',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  child: Text(
+                    context.l10n.proceedToPayment,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),

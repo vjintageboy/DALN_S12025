@@ -566,5 +566,76 @@
   "joinAsExpert": "Join as Mental Health Expert",
   "@joinAsExpert": {
     "description": "Button text for mental health experts to sign up"
-  }
+  },
+  "couldNotLoadExpertInfo": "Could not load expert info: {error}",
+  "@couldNotLoadExpertInfo": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "errorLoadingSlots": "Error loading slots: {error}",
+  "@errorLoadingSlots": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expertNotAvailableOnDay": "{expertName} is not available on {day}",
+  "@expertNotAvailableOnDay": {
+    "placeholders": {
+      "expertName": {"type": "String"},
+      "day": {"type": "String"}
+    }
+  },
+  "pleaseSelectDateAndTime": "Please select date and time",
+  "pleaseLoginFirst": "Please login first",
+  "bookingConflictAlreadyHaveAppointment": "You already have an appointment at this time. Please choose another time slot.",
+  "bookingConflictExpertNotAvailable": "This expert is not available at the selected time. Please choose another time slot.",
+  "bookingInvalidCallTypeConfig": "Call type configuration is invalid in database. Please contact admin.",
+  "bookingInvalidData": "Booking data is invalid (expert/user not found). Please reopen this page and try again.",
+  "bookingNoPermission": "You do not have permission to create this appointment. Please sign in again.",
+  "bookingFailedWithReason": "Booking failed: {reason}",
+  "@bookingFailedWithReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "bookingFailedGeneric": "Failed to book appointment. Please try again.",
+  "expertNotFound": "Expert not found",
+  "availableTimeSlotsOnDate": "Available Time Slots - {date}",
+  "@availableTimeSlotsOnDate": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "noAvailableSlotsForThisDay": "No available slots for this day",
+  "allSlotsAreFullyBooked": "All slots are fully booked",
+  "expertIsNotAvailableOnSelectedDay": "Expert is not available on {day}",
+  "@expertIsNotAvailableOnSelectedDay": {
+    "placeholders": {
+      "day": {"type": "String"}
+    }
+  },
+  "anyNotesForExpert": "Any notes for the expert?",
+  "cancelUpTo4HoursBeforeAppointment": "You can cancel up to 4 hours before your appointment",
+  "appointmentSummary": "Appointment Summary",
+  "sessionFee": "Session Fee",
+  "serviceFee": "Service Fee",
+  "mockCreditCard": "Mock Credit Card",
+  "simulateCardPayment": "Simulate card payment",
+  "mockMomo": "Mock MoMo",
+  "simulateMomoEwallet": "Simulate MoMo e-wallet",
+  "mockBanking": "Mock Banking",
+  "simulateBankTransfer": "Simulate bank transfer",
+  "viewMyAppointments": "View My Appointments",
+  "yourAppointmentHasBeenConfirmed": "Your appointment has been confirmed",
+  "at": "at",
+  "momoOpenFailed": "Cannot open MoMo",
+  "momoCreateFailed": "Failed to create MoMo transaction",
+  "paymentInfoSaveError": "Error saving payment information: {error}",
+  "@paymentInfoSaveError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "paymentConfirmTimeout": "Payment confirmation timed out. Please check transaction status again."
 }

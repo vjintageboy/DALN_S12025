@@ -1202,4 +1202,132 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get joinAsExpert => 'Join as Mental Health Expert';
+
+  @override
+  String couldNotLoadExpertInfo(String error) {
+    return 'Could not load expert info: $error';
+  }
+
+  @override
+  String errorLoadingSlots(String error) {
+    return 'Error loading slots: $error';
+  }
+
+  @override
+  String expertNotAvailableOnDay(String expertName, String day) {
+    return '$expertName is not available on $day';
+  }
+
+  @override
+  String get pleaseSelectDateAndTime => 'Please select date and time';
+
+  @override
+  String get pleaseLoginFirst => 'Please login first';
+
+  @override
+  String get bookingConflictAlreadyHaveAppointment =>
+      'You already have an appointment at this time. Please choose another time slot.';
+
+  @override
+  String get bookingConflictExpertNotAvailable =>
+      'This expert is not available at the selected time. Please choose another time slot.';
+
+  @override
+  String get bookingInvalidCallTypeConfig =>
+      'Call type configuration is invalid in database. Please contact admin.';
+
+  @override
+  String get bookingInvalidData =>
+      'Booking data is invalid (expert/user not found). Please reopen this page and try again.';
+
+  @override
+  String get bookingNoPermission =>
+      'You do not have permission to create this appointment. Please sign in again.';
+
+  @override
+  String bookingFailedWithReason(String reason) {
+    return 'Booking failed: $reason';
+  }
+
+  @override
+  String get bookingFailedGeneric =>
+      'Failed to book appointment. Please try again.';
+
+  @override
+  String get expertNotFound => 'Expert not found';
+
+  @override
+  String availableTimeSlotsOnDate(String date) {
+    return 'Available Time Slots - $date';
+  }
+
+  @override
+  String get noAvailableSlotsForThisDay => 'No available slots for this day';
+
+  @override
+  String get allSlotsAreFullyBooked => 'All slots are fully booked';
+
+  @override
+  String expertIsNotAvailableOnSelectedDay(String day) {
+    return 'Expert is not available on $day';
+  }
+
+  @override
+  String get anyNotesForExpert => 'Any notes for the expert?';
+
+  @override
+  String get cancelUpTo4HoursBeforeAppointment =>
+      'You can cancel up to 4 hours before your appointment';
+
+  @override
+  String get appointmentSummary => 'Appointment Summary';
+
+  @override
+  String get sessionFee => 'Session Fee';
+
+  @override
+  String get serviceFee => 'Service Fee';
+
+  @override
+  String get mockCreditCard => 'Mock Credit Card';
+
+  @override
+  String get simulateCardPayment => 'Simulate card payment';
+
+  @override
+  String get mockMomo => 'Mock MoMo';
+
+  @override
+  String get simulateMomoEwallet => 'Simulate MoMo e-wallet';
+
+  @override
+  String get mockBanking => 'Mock Banking';
+
+  @override
+  String get simulateBankTransfer => 'Simulate bank transfer';
+
+  @override
+  String get viewMyAppointments => 'View My Appointments';
+
+  @override
+  String get yourAppointmentHasBeenConfirmed =>
+      'Your appointment has been confirmed';
+
+  @override
+  String get at => 'at';
+
+  @override
+  String get momoOpenFailed => 'Cannot open MoMo';
+
+  @override
+  String get momoCreateFailed => 'Failed to create MoMo transaction';
+
+  @override
+  String paymentInfoSaveError(String error) {
+    return 'Error saving payment information: $error';
+  }
+
+  @override
+  String get paymentConfirmTimeout =>
+      'Payment confirmation timed out. Please check transaction status again.';
 }

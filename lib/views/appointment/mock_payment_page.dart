@@ -56,10 +56,10 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
             _showPollingDialog();
           }
         } else {
-          _showError("Không mở được MoMo");
+          _showError(context.l10n.momoOpenFailed);
         }
       } else {
-        String errorMsg = response?['message'] ?? "Tạo giao dịch MoMo thất bại";
+        String errorMsg = response?['message'] ?? context.l10n.momoCreateFailed;
         if (response?['details'] != null) {
           errorMsg += "\n${response!['details']}";
         }
@@ -172,7 +172,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text("Lỗi lưu thông tin thanh toán: $e"),
+                content: Text(context.l10n.paymentInfoSaveError(e.toString())),
                 backgroundColor: Colors.red,
               ),
             );
@@ -204,7 +204,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
         if (mounted) {
           Navigator.pop(context);
           _showError(
-            "Đã quá thời gian chờ xác nhận thanh toán. Vui lòng kiểm tra lại trạng thái giao dịch.",
+            context.l10n.paymentConfirmTimeout,
           );
         }
       }
@@ -256,7 +256,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Your appointment has been confirmed',
+                context.l10n.yourAppointmentHasBeenConfirmed,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
               ),
@@ -272,25 +272,25 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                   children: [
                     _buildInfoRow(
                       widget.appointment.callTypeLabel,
-                      '${widget.appointment.durationMinutes} min',
+                      '${widget.appointment.durationMinutes} ${context.l10n.min}',
                     ),
                     const SizedBox(height: 8),
                     _buildInfoRow(
-                      '📅 Date',
+                      '📅 ${context.l10n.date}',
                       DateFormat(
                         'EEE, MMM d, yyyy',
                       ).format(widget.appointment.appointmentDate),
                     ),
                     const SizedBox(height: 8),
                     _buildInfoRow(
-                      '🕐 Time',
+                      '🕐 ${context.l10n.time}',
                       DateFormat(
                         'HH:mm',
                       ).format(widget.appointment.appointmentDate),
                     ),
                     const SizedBox(height: 8),
                     _buildInfoRow(
-                      '💰 Amount',
+                      '💰 ${context.l10n.amount}',
                       '₫${widget.appointment.price.toInt()}',
                       isHighlight: true,
                     ),
@@ -320,9 +320,12 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'View My Appointments',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  child: Text(
+                    context.l10n.viewMyAppointments,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -389,8 +392,8 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Appointment Summary',
+                  Text(
+                    context.l10n.appointmentSummary,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -430,7 +433,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${widget.appointment.callTypeLabel} • ${widget.appointment.durationMinutes} min',
+                              '${widget.appointment.callTypeLabel} • ${widget.appointment.durationMinutes} ${context.l10n.min}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey.shade600,
@@ -438,7 +441,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${DateFormat('EEE, MMM d, yyyy').format(widget.appointment.appointmentDate)} at ${DateFormat('HH:mm').format(widget.appointment.appointmentDate)}',
+                              '${DateFormat('EEE, MMM d, yyyy').format(widget.appointment.appointmentDate)} ${context.l10n.at} ${DateFormat('HH:mm').format(widget.appointment.appointmentDate)}',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey.shade600,
@@ -474,22 +477,22 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                   _buildPaymentMethod(
                     'card',
                     '💳',
-                    'Mock Credit Card',
-                    'Simulate card payment',
+                    context.l10n.mockCreditCard,
+                    context.l10n.simulateCardPayment,
                   ),
                   const SizedBox(height: 12),
                   _buildPaymentMethodWithImage(
                     'momo',
                     'assets/images/Logo-MoMo-Circle.webp',
-                    'Mock MoMo',
-                    'Simulate MoMo e-wallet',
+                    context.l10n.mockMomo,
+                    context.l10n.simulateMomoEwallet,
                   ),
                   const SizedBox(height: 12),
                   _buildPaymentMethod(
                     'banking',
                     '🏦',
-                    'Mock Banking',
-                    'Simulate bank transfer',
+                    context.l10n.mockBanking,
+                    context.l10n.simulateBankTransfer,
                   ),
                 ],
               ),
@@ -507,7 +510,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Session Fee',
+                        context.l10n.sessionFee,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade700,
@@ -528,7 +531,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Service Fee',
+                        context.l10n.serviceFee,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade700,
@@ -548,8 +551,8 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Total',
+                      Text(
+                        context.l10n.amount,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,

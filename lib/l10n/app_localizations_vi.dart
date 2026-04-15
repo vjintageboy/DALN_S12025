@@ -1210,4 +1210,132 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get joinAsExpert => 'Tham gia với vai trò Chuyên gia Tâm lý';
+
+  @override
+  String couldNotLoadExpertInfo(String error) {
+    return 'Không thể tải thông tin chuyên gia: $error';
+  }
+
+  @override
+  String errorLoadingSlots(String error) {
+    return 'Lỗi tải khung giờ: $error';
+  }
+
+  @override
+  String expertNotAvailableOnDay(String expertName, String day) {
+    return '$expertName không có lịch vào $day';
+  }
+
+  @override
+  String get pleaseSelectDateAndTime => 'Vui lòng chọn ngày và giờ';
+
+  @override
+  String get pleaseLoginFirst => 'Vui lòng đăng nhập trước';
+
+  @override
+  String get bookingConflictAlreadyHaveAppointment =>
+      'Bạn đã có lịch hẹn vào thời điểm này. Vui lòng chọn khung giờ khác.';
+
+  @override
+  String get bookingConflictExpertNotAvailable =>
+      'Chuyên gia không rảnh vào thời điểm đã chọn. Vui lòng chọn khung giờ khác.';
+
+  @override
+  String get bookingInvalidCallTypeConfig =>
+      'Cấu hình loại cuộc gọi trong cơ sở dữ liệu không hợp lệ. Vui lòng liên hệ quản trị viên.';
+
+  @override
+  String get bookingInvalidData =>
+      'Dữ liệu đặt lịch không hợp lệ (không tìm thấy chuyên gia/người dùng). Vui lòng mở lại trang và thử lại.';
+
+  @override
+  String get bookingNoPermission =>
+      'Bạn không có quyền tạo lịch hẹn này. Vui lòng đăng nhập lại.';
+
+  @override
+  String bookingFailedWithReason(String reason) {
+    return 'Đặt lịch thất bại: $reason';
+  }
+
+  @override
+  String get bookingFailedGeneric => 'Đặt lịch thất bại. Vui lòng thử lại.';
+
+  @override
+  String get expertNotFound => 'Không tìm thấy chuyên gia';
+
+  @override
+  String availableTimeSlotsOnDate(String date) {
+    return 'Khung giờ trống - $date';
+  }
+
+  @override
+  String get noAvailableSlotsForThisDay =>
+      'Không có khung giờ trống trong ngày này';
+
+  @override
+  String get allSlotsAreFullyBooked => 'Tất cả khung giờ đã được đặt';
+
+  @override
+  String expertIsNotAvailableOnSelectedDay(String day) {
+    return 'Chuyên gia không có lịch vào $day';
+  }
+
+  @override
+  String get anyNotesForExpert => 'Bạn có ghi chú gì cho chuyên gia không?';
+
+  @override
+  String get cancelUpTo4HoursBeforeAppointment =>
+      'Bạn có thể hủy tối đa 4 giờ trước lịch hẹn';
+
+  @override
+  String get appointmentSummary => 'Tóm tắt lịch hẹn';
+
+  @override
+  String get sessionFee => 'Phí buổi tư vấn';
+
+  @override
+  String get serviceFee => 'Phí dịch vụ';
+
+  @override
+  String get mockCreditCard => 'Thẻ tín dụng mô phỏng';
+
+  @override
+  String get simulateCardPayment => 'Mô phỏng thanh toán thẻ';
+
+  @override
+  String get mockMomo => 'MoMo mô phỏng';
+
+  @override
+  String get simulateMomoEwallet => 'Mô phỏng ví điện tử MoMo';
+
+  @override
+  String get mockBanking => 'Chuyển khoản mô phỏng';
+
+  @override
+  String get simulateBankTransfer => 'Mô phỏng chuyển khoản ngân hàng';
+
+  @override
+  String get viewMyAppointments => 'Xem lịch hẹn của tôi';
+
+  @override
+  String get yourAppointmentHasBeenConfirmed =>
+      'Lịch hẹn của bạn đã được xác nhận';
+
+  @override
+  String get at => 'lúc';
+
+  @override
+  String get momoOpenFailed => 'Không thể mở MoMo';
+
+  @override
+  String get momoCreateFailed => 'Tạo giao dịch MoMo thất bại';
+
+  @override
+  String paymentInfoSaveError(String error) {
+    return 'Lỗi lưu thông tin thanh toán: $error';
+  }
+
+  @override
+  String get paymentConfirmTimeout =>
+      'Đã quá thời gian chờ xác nhận thanh toán. Vui lòng kiểm tra lại trạng thái giao dịch.';
 }

@@ -566,5 +566,76 @@
   "joinAsExpert": "Tham gia với vai trò Chuyên gia Tâm lý",
   "@joinAsExpert": {
     "description": "Văn bản nút đăng ký cho chuyên gia sức khỏe tâm thần"
-  }
+  },
+  "couldNotLoadExpertInfo": "Không thể tải thông tin chuyên gia: {error}",
+  "@couldNotLoadExpertInfo": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "errorLoadingSlots": "Lỗi tải khung giờ: {error}",
+  "@errorLoadingSlots": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "expertNotAvailableOnDay": "{expertName} không có lịch vào {day}",
+  "@expertNotAvailableOnDay": {
+    "placeholders": {
+      "expertName": {"type": "String"},
+      "day": {"type": "String"}
+    }
+  },
+  "pleaseSelectDateAndTime": "Vui lòng chọn ngày và giờ",
+  "pleaseLoginFirst": "Vui lòng đăng nhập trước",
+  "bookingConflictAlreadyHaveAppointment": "Bạn đã có lịch hẹn vào thời điểm này. Vui lòng chọn khung giờ khác.",
+  "bookingConflictExpertNotAvailable": "Chuyên gia không rảnh vào thời điểm đã chọn. Vui lòng chọn khung giờ khác.",
+  "bookingInvalidCallTypeConfig": "Cấu hình loại cuộc gọi trong cơ sở dữ liệu không hợp lệ. Vui lòng liên hệ quản trị viên.",
+  "bookingInvalidData": "Dữ liệu đặt lịch không hợp lệ (không tìm thấy chuyên gia/người dùng). Vui lòng mở lại trang và thử lại.",
+  "bookingNoPermission": "Bạn không có quyền tạo lịch hẹn này. Vui lòng đăng nhập lại.",
+  "bookingFailedWithReason": "Đặt lịch thất bại: {reason}",
+  "@bookingFailedWithReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "bookingFailedGeneric": "Đặt lịch thất bại. Vui lòng thử lại.",
+  "expertNotFound": "Không tìm thấy chuyên gia",
+  "availableTimeSlotsOnDate": "Khung giờ trống - {date}",
+  "@availableTimeSlotsOnDate": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "noAvailableSlotsForThisDay": "Không có khung giờ trống trong ngày này",
+  "allSlotsAreFullyBooked": "Tất cả khung giờ đã được đặt",
+  "expertIsNotAvailableOnSelectedDay": "Chuyên gia không có lịch vào {day}",
+  "@expertIsNotAvailableOnSelectedDay": {
+    "placeholders": {
+      "day": {"type": "String"}
+    }
+  },
+  "anyNotesForExpert": "Bạn có ghi chú gì cho chuyên gia không?",
+  "cancelUpTo4HoursBeforeAppointment": "Bạn có thể hủy tối đa 4 giờ trước lịch hẹn",
+  "appointmentSummary": "Tóm tắt lịch hẹn",
+  "sessionFee": "Phí buổi tư vấn",
+  "serviceFee": "Phí dịch vụ",
+  "mockCreditCard": "Thẻ tín dụng mô phỏng",
+  "simulateCardPayment": "Mô phỏng thanh toán thẻ",
+  "mockMomo": "MoMo mô phỏng",
+  "simulateMomoEwallet": "Mô phỏng ví điện tử MoMo",
+  "mockBanking": "Chuyển khoản mô phỏng",
+  "simulateBankTransfer": "Mô phỏng chuyển khoản ngân hàng",
+  "viewMyAppointments": "Xem lịch hẹn của tôi",
+  "yourAppointmentHasBeenConfirmed": "Lịch hẹn của bạn đã được xác nhận",
+  "at": "lúc",
+  "momoOpenFailed": "Không thể mở MoMo",
+  "momoCreateFailed": "Tạo giao dịch MoMo thất bại",
+  "paymentInfoSaveError": "Lỗi lưu thông tin thanh toán: {error}",
+  "@paymentInfoSaveError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "paymentConfirmTimeout": "Đã quá thời gian chờ xác nhận thanh toán. Vui lòng kiểm tra lại trạng thái giao dịch."
 }
